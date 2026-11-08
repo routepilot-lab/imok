@@ -1,10 +1,12 @@
 {
-  "version": "0.2.32-2",
-  "local_checks": [
+  "version": "0.2.35-6",
+  "product": "iMOK 2.0",
+  "date": "2026-11-08",
+  "checks": [
     {
       "check": "python-main",
       "exit": 0,
-      "tests": 326
+      "tests": 375
     },
     {
       "check": "python-server",
@@ -42,7 +44,37 @@
       "tests": null
     },
     {
+      "check": "test_flat_settings",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_null_render",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_overview_v2",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_pages_v2",
+      "exit": 0,
+      "tests": null
+    },
+    {
       "check": "test_request_binding",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_rules_sections",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_rules_ui",
       "exit": 0,
       "tests": null
     },
@@ -57,32 +89,48 @@
       "tests": null
     }
   ],
+  "all_passed": true,
   "integrity": {
-    "version": "0.2.32-2",
-    "syntax_files": 43,
+    "version": "0.2.35-6",
+    "syntax_files": 47,
     "worker_hash": true,
     "reproducible": true,
-    "package_sha256": "1e9e03ff121ce9f1a2061596ac3b9b6907aae2bdc734a9334868cb9d5fc81b02",
-    "package_files": 41
+    "package_sha256": "8c46a22d3a649d53d5af0f305df689b3df7053b52478785820f2e876269671ff",
+    "package_files": 45
   },
-  "all_passed": true,
-  "installed_program_files_verified": 40,
-  "protected_configuration_and_identity_unchanged": true,
-  "entry_and_exit_preserved": true,
-  "stable_runtime_samples": 5,
+  "installed_target": {
+    "router": "GL.iNet GL-MT6000",
+    "architecture": "ARM64",
+    "firmware_family": "OpenWrt 24.10",
+    "theme": "Argon 2.2.9.4",
+    "version": "0.2.35-6"
+  },
+  "installed_program_files_verified": 44,
+  "protected_files_unchanged": 98,
+  "entry_exit_protocol_scope_preserved": true,
+  "personal_rules_preserved": true,
+  "stable_runtime_samples": 12,
+  "stable_seconds": 33,
   "https_checks": [
     "proxy Google 204",
     "proxy Cloudflare 200",
     "direct Baidu 200"
   ],
-  "browser": "Safari: five independent pages, Workers without global Save, badge rendering verified",
-  "opus": "Independent static review INSTALLABLE, followed by scoped badge fix review INSTALLABLE",
+  "live_ui": {
+    "pages": 12,
+    "new_asset_loaded": true,
+    "null_or_undefined_text": 0,
+    "rules_pages_rechecked_after_load": 3
+  },
+  "screenshots": "Synthetic data from the actual source view in isolated preview; not production credentials or speed evidence",
+  "release_protection_tests": 4,
   "limits": [
-    "not a long-term stability guarantee",
-    "no phone speed acceptance",
-    "no WireGuard switch",
-    "no real endpoint fault injection",
-    "no multi-LAN real-client acceptance",
-    "no full SDK build"
+    "No real Windows/Safari/mobile-OS acceptance this round",
+    "Desktop first; narrow viewport with Argon sidebar open can be constrained",
+    "No full new-device runtime installation tested",
+    "No WireGuard switch acceptance",
+    "No multi-LAN client end-to-end acceptance",
+    "No production rollback drill",
+    "No full OpenWrt SDK build"
   ]
 }

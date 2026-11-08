@@ -37,7 +37,10 @@ def archive(files):
             if data is None:
                 item.type = tarfile.DIRTYPE
             tf.addfile(item, io.BytesIO(data) if data is not None else None)
-    return gzip.compress(stream.getvalue(), mtime=0)
+    # Normalize the platform byte across Python versions without changing package data.
+    compressed = bytearray(gzip.compress(stream.getvalue(), compresslevel=9, mtime=0))
+    compressed[9] = 255
+    return bytes(compressed)
 
 
 def build(destination=None):

@@ -109,6 +109,11 @@ def compile_config(cfg, directory):
     china = read_rules(directory, 'china.txt', 'cidr')
     domain_rules = {name: domain_file(directory, filename)
                     for name, filename in (('gfw', 'gfw.txt'), ('whitelist', 'whitelist.txt'), ('china', 'china_domains.txt'))}
+    if 'rule_overrides' in cfg:
+        from rules_overrides import normalize, merge
+        personal = normalize(cfg['rule_overrides'])
+        china = merge(china, 'china', personal)
+        domain_rules = {name: merge(values, {'china': 'china_domains'}.get(name, name), personal) for name, values in domain_rules.items()}
     scope = main.get('scope', 'devices')
     if scope not in ('devices', 'lan'):
         raise ValueError('接管范围无效')

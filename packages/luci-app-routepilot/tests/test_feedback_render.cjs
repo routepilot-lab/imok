@@ -24,7 +24,8 @@ class Element {
  remove(){}
 
 }
-function E(tag,attrs,children) { return new Element(tag,attrs,children); }
+// Target LuCI dom.append stringifies null/undefined inside arrays; direct null adds nothing.
+function E(tag,attrs,children) { return new Element(tag,attrs,Array.isArray(children)?children.map(c=>c instanceof Element?c:String(c)):children); }
 let lastMap,lastMapNode;const selections={};
 class Map {
  constructor(){this.children=[];lastMap=this;}
@@ -115,19 +116,26 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  location.pathname='/admin/services/routepilot/cloudflare/account';
  warpReply={state:'available',protocol:'MASQUE',managed:true,source:'organization',message:'组织策略'};
  const centerDirectory={available:true,networks:[{id:netA,name:'美国出口'},{id:netB,name:'韩国出口'}]};
- const centerPage=await new View().render([null,null,[],centerDirectory,null,{nodes:[],node:{configured:true,fingerprint:'saved',relay_fingerprint:'core'}},warpReply]);
- assert.ok(centerPage.textContent.includes('1. 主线路账户与连接协议'));
+ let centerPage=await new View().render([null,null,[],centerDirectory,null,{nodes:[],node:{configured:true,fingerprint:'saved',relay_fingerprint:'core'}},warpReply]);
+ assert.equal(centerPage.find(e=>e.attrs.id==='rp-center-advanced').attrs['aria-label'],'主线路账户与连接协议');assert.ok(!centerPage.textContent.includes('1. 主线路账户与连接协议'));
  for(const id of ['basic','devices','dns','workers'])assert.ok(!centerPage.find(e=>e.attrs.id==='rp-center-'+id));
- for(const section of ['account','routing','devices','dns','workers'])assert.ok(centerPage.find(e=>e.tag==='a'&&e.attrs.href==='/admin/services/routepilot/cloudflare/'+section));
+ for(const section of ['account','endpoint','routing','devices','dns','workers'])assert.ok(centerPage.find(e=>e.tag==='a'&&e.attrs.href==='/admin/services/routepilot/cloudflare/'+section));
  assert.ok(centerPage.find(e=>e.attrs.id==='cbi-routepilot-main-warp_protocol'));assert.ok(!centerPage.find(e=>e.attrs.id==='cbi-routepilot-main-dns_foreign'));
  assert.ok(!centerPage.find(e=>e.attrs['aria-label']==='出口地区筛选（账户名称提示）'));
  await tick();assert.ok(centerPage.textContent.includes('实际协议'));assert.ok(!centerPage.textContent.includes('本次观测出口地区：美国'));
- const centerRoot=centerPage.find(e=>e.attrs.id==='cbi-routepilot');assert.ok(centerRoot);centerRoot.find(e=>e.attrs.id==='rp-center-advanced').open=true;
- await lastMap.renderContents();assert.equal(centerPage.find(e=>e.attrs.id==='cbi-routepilot'),centerRoot);assert.equal(centerRoot.find(e=>e.attrs.id==='rp-center-advanced').open,true);assert.ok(!centerRoot.find(e=>e.attrs.id==='cbi-routepilot-main-dns_foreign'));
- // Track the real endpoint form's asynchronous revision without committing other form edits.
- const endpointPanel=centerPage.find(e=>e.tag==='details'&&e.children.some(c=>c instanceof Element&&c.tag==='summary'&&c.textContent==='主线路入口选择与定期读取'));
+ const centerRoot=centerPage.find(e=>e.attrs.id==='cbi-routepilot');assert.ok(centerRoot);assert.equal(centerRoot.find(e=>e.attrs.id==='rp-center-advanced').tag,'section');
+ await lastMap.renderContents();assert.equal(centerPage.find(e=>e.attrs.id==='cbi-routepilot'),centerRoot);assert.equal(centerRoot.find(e=>e.attrs.id==='rp-center-advanced').tag,'section');assert.ok(!centerRoot.find(e=>e.attrs.id==='cbi-routepilot-main-dns_foreign'));
+ assert.ok(!centerPage.find(e=>e.attrs.class==='rp-guide-step rp-endpoint-card'));
  endpointResponse.candidates={entries:['162.159.197.2:443','[2606:4700:102::2]:443','162.159.197.2:8443']};
- endpointPanel.open=true;endpointPanel.listeners.toggle();await new Promise(setImmediate);
+ location.pathname='/admin/services/routepilot/cloudflare/endpoint';
+ centerPage=await new View().render([null,null,[],centerDirectory,null,{nodes:[]},warpReply]);
+ assert.ok(centerPage.find(e=>e.attrs.id==='rp-center-endpoint'));
+ assert.ok(!centerPage.find(e=>e.attrs.id==='rp-center-advanced'));
+ assert.ok(!centerPage.find(e=>e.attrs.id==='cbi-routepilot-main-warp_protocol'));
+ assert.ok(centerPage.find(e=>e.tag==='a'&&e.attrs['aria-current']==='page'&&e.textContent==='主线路入口'));
+ // Track the real endpoint form's asynchronous revision without committing other form edits.
+ const endpointPanel=centerPage.find(e=>e.tag==='section'&&e.children.some(c=>c instanceof Element&&c.tag==='h3'&&c.textContent==='入口选择与候选同步'));
+ await new Promise(setImmediate);assert.ok(endpointPanel);
  // LuCI sets every non-null attribute with setAttribute: disabled=false still disables HTML options.
  const candidates=endpointPanel.find(e=>e.tag==='select'&&e.children.some(c=>c instanceof Element&&c.attrs.value==='162.159.197.2:443'));
  const entryOptions=candidates.children.filter(c=>c instanceof Element&&c.tag==='option');
@@ -178,6 +186,8 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  endpointResponse={...endpointResponse,application:{revision:'endpoint-new',state:'applied',connected:true,exit_verified:true},recovery_block:{new_request_block:false}};await tick();assert.ok(endpointPanel.textContent.includes('原预期出口验证通过'));assert.equal(entrySave.disabled,false);
  modeControl.value='candidate';modeControl.listeners.change();candidates.value='162.159.197.2:8443';candidates.listeners.change();await entrySave.attrs.click();assert.equal(endpointInput.mode,'manual');assert.equal(endpointInput.address,'162.159.197.2:8443');
  modeControl.value='auto';modeControl.listeners.change();await entrySave.attrs.click();assert.equal(endpointInput.mode,'auto');assert.equal(endpointInput.address,'');assert.equal(candidateField.hidden,true);assert.equal(customField.hidden,true);assert.equal(JSON.stringify(config),configBeforeEndpoint);
+ location.pathname='/admin/services/routepilot/cloudflare/account';
+ centerPage=await new View().render([null,null,[],centerDirectory,null,{nodes:[]},warpReply]);
  const snapshot=JSON.parse(JSON.stringify(config));selections.organization='new-team';selections.dns_foreign='9.9.9.9';const pendingExit=selections.exit;
  await centerPage.find(e=>e.tag==='button'&&e.textContent==='保存组织名称').attrs.click();assert.equal(config.organization,'new-team');assert.equal(config.apply_nonce,'org-only');assert.equal(config.exit,snapshot.exit);assert.equal(config.dns_foreign,snapshot.dns_foreign);assert.equal(selections.exit,pendingExit);assert.equal(selections.dns_foreign,'9.9.9.9');
  for(const key of Object.keys(config))delete config[key];Object.assign(config,snapshot);registerWrites=0;
@@ -190,7 +200,7 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  const domainControl=name=>domainPage.find(e=>e.attrs['aria-label']===name),domainButton=name=>domainPage.find(e=>e.tag==='button'&&e.textContent===name);
  assert.equal(domainControl('选择账户下可用的根域名').children.length,4);assert.equal(domainControl('绑定的子域名').value,'cloud.example.com');
  assert.equal(domainButton('将新部署设为备用节点（不启用）').disabled,true);
- assert.equal(domainPage.find(e=>e.attrs['data-stage']==='relay').open,true);
+ assert.equal(domainPage.find(e=>e.attrs['data-stage']==='relay').tag,'section');
  assert.ok(domainPage.textContent.includes('当前保存的备用节点'));assert.ok(domainPage.textContent.includes('本路由器创建的云端节点'));assert.ok(domainPage.textContent.includes('✓ 已保存为当前备用'));
  const draftBefore=JSON.stringify(config),inputsBefore=cloudInputs.length,writesBefore=registerWrites;
  await domainButton('刷新账户与根域名（只读）').attrs.click();assert.equal(registerWrites,writesBefore);assert.equal(cloudInputs.length,inputsBefore);assert.equal(commandCalls.at(-1),'cloud-verify');
@@ -204,8 +214,8 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  const callsAfterManualCheck=commandCalls.length;cloudDirectoryReply={...cloudDirectoryReply,stale:true};await tick();assert.equal(commandCalls.length,callsAfterManualCheck,'background directory refresh must not replace the result of an explicit user operation');
  const chooseAccount=domainControl('选择已授权的 Cloudflare 账户');chooseAccount.value=accountB;chooseAccount.listeners.change();assert.equal(domainControl('选择账户下可用的根域名').children[1].textContent,'fourth.example');assert.equal(registerWrites,writesBefore);assert.equal(JSON.stringify(config),draftBefore);
  chooseAccount.value=accountA;chooseAccount.listeners.change();domainControl('选择账户下可用的根域名').value=zoneA;domainControl('选择账户下可用的根域名').listeners.change();
- // Manual stage selection survives polling, while valid applied/probe state can advance automatically.
- const useStage=domainPage.find(e=>e.attrs['data-stage']==='use');useStage.querySelector('summary').listeners.click();useStage.open=true;await tick();assert.equal(useStage.open,true);
+ // All settings remain visible and mounted while polling refreshes evidence.
+ const useStage=domainPage.find(e=>e.attrs['data-stage']==='use');assert.equal(useStage.tag,'section');assert.equal(useStage.querySelector('summary'),null);await tick();assert.equal(domainPage.find(e=>e.attrs['data-stage']==='use'),useStage);
  cloudReply=null;cloudDirectoryReply=null;backupNodeReply=null;registerWrites=0;
  location.pathname='/admin/services/routepilot/cloudflare/dns';
  // Private cache and DNS actions never call save/apply or change configuration.
@@ -233,13 +243,15 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
   const section={basic:'routing',advanced:'account',devices:'devices',dns:'dns',workers:'workers'}[group];assert.equal(legacyReplacement,'/admin/services/routepilot/cloudflare/'+section);assert.ok(!node.textContent.includes('[object Object]'),'nested children must not stringify into the page');assert.equal(node.attrs['data-page'],section);assert.ok(node.find(e=>e.attrs.id==='rp-center-'+group));
  }
  // Each canonical URL renders one section and polls only its own runtime data.
- const expectedReads={account:['status.json','warp-state.json','exit-observation.json'],routing:['status.json','connectivity.json','exit-observation.json'],devices:['status.json'],dns:['status.json','connectivity.json','receive.json','dns-state.json','dns-tests.json','connection-events.json'],workers:['status.json','backup-node.json','backup-test.json','cloud-state.json','backup-scan.json','relay-tests.json','relay-observed.json','exit-observation.json','connection-events.json','cloud-directory-state.json']};
- for(const [section,group] of Object.entries({account:'advanced',routing:'basic',devices:'devices',dns:'dns',workers:'workers'})){
+ const expectedReads={account:['status.json','warp-state.json','exit-observation.json'],endpoint:['status.json','exit-observation.json'],routing:['status.json','connectivity.json','exit-observation.json'],devices:['status.json'],dns:['status.json','connectivity.json','receive.json','dns-state.json','dns-tests.json','connection-events.json'],workers:['status.json','backup-node.json','backup-test.json','cloud-state.json','backup-scan.json','relay-tests.json','relay-observed.json','exit-observation.json','connection-events.json','cloud-directory-state.json']};
+ for(const [section,group] of Object.entries({account:'advanced',endpoint:'endpoint',routing:'basic',devices:'devices',dns:'dns',workers:'workers'})){
   location.pathname='/admin/services/routepilot/cloudflare/'+section;
   const before=JSON.stringify(config),node=await new View().render([null,null,[],directory]);
   assert.ok(!node.textContent.includes('[object Object]'),'nested children must not stringify into the page');assert.equal(node.attrs['data-page'],section);assert.ok(node.find(e=>e.attrs.id==='rp-center-'+group));
-  for(const other of ['advanced','basic','devices','dns','workers'].filter(x=>x!==group))assert.ok(!node.find(e=>e.attrs.id==='rp-center-'+other));
-  readCalls=[];await tick();assert.ok(!node.textContent.includes('[object Object]'),'poll updates must preserve DOM children');assert.deepEqual(readCalls.map(p=>path.basename(p)).sort(),expectedReads[section].sort());
+  for(const other of ['advanced','endpoint','basic','devices','dns','workers'].filter(x=>x!==group))assert.ok(!node.find(e=>e.attrs.id==='rp-center-'+other));
+  if(section==='endpoint')current={...current,state:'running',time:Date.now()/1000,protocol:'MASQUE'};
+  readCalls=[];await tick();if(section==='endpoint'){assert.ok(node.textContent.includes('当前使用 WARP 主线路'));assert.ok(!node.textContent.includes('状态过期，当前连接未确认'));}
+  assert.ok(!node.textContent.includes('[object Object]'),'poll updates must preserve DOM children');assert.deepEqual(readCalls.map(p=>path.basename(p)).sort(),expectedReads[section].sort());
   const previousTick=tick;location.pathname='/admin/services/routepilot/backup';readCalls=[];await previousTick();assert.deepEqual(readCalls,[],'departed page must stop polling');assert.equal(JSON.stringify(config),before);
  }
  console.log('Real view: five independent pages, scoped polling, preserved drafts/configuration, isolated DNS actions and registration single-flight passed');

@@ -1,93 +1,98 @@
-# imok · OpenWrt WARP / MASQUE 路由器分流
+# iMOK 2.0
 
-**在路由器上统一管理 Cloudflare WARP、设备分流和 DNS，让需要代理的流量走指定出口，让直连流量继续走本地宽带。**
+**把 Cloudflare WARP、设备分流、DNS 和规则更新，整理成一个清晰的路由器控制台。**
 
-OpenWrt / LuCI policy-based routing with **Cloudflare WARP (MASQUE)**, per-device / LAN rules, DNS diagnostics and a manually enabled Cloudflare Workers backup.
+面向 OpenWrt / LuCI 的网络管理插件：在路由器集中管理主线路与手动备用，按设备或 LAN 选择接管范围，区分配置、连接和检测结果，让日常使用与排障都有据可查。
 
-[下载更名版 v0.2.33-1](https://github.com/routepilot-lab/imok/releases/tag/v0.2.33-1) · [安装说明](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [中文使用指南](packages/luci-app-routepilot/README.zh-CN.md) · [常见问题](docs/FAQ.md) · [反馈问题](https://github.com/routepilot-lab/imok/issues/new/choose)
+[**下载正式版 v0.2.35-6**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.35-6) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [使用指南](packages/luci-app-routepilot/README.zh-CN.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
-## 它解决什么问题？
+OpenWrt / LuCI network management with **Cloudflare WARP / MASQUE**, per-device and LAN policies, DNS diagnostics, persistent personal rules, and a manually enabled Workers backup.
 
-- **多台设备不想逐个配置。** 在兼容路由器上按设备或整个 LAN 选择接管范围，让接入网络的手机、电脑等设备共用路由器策略。
-- **不希望所有流量都走同一条路径。** 可选国内 IP 直连、全部代理、代理名单、直连名单等模式；设备和网络范围由你决定。
-- **有 WARP、Zero Trust 或 VPS，但管理分散。** 在 LuCI 中集中查看账户、协议、入口、已部署的虚拟网络出口和当前运行状态。
-- **连不上时不知道问题在哪。** 独立查看 DNS、网站连通性、实际出口 IP / 地区、连接记录和流量观测，区分“已保存”和“已生效”。
+## 一个入口，看清自己的网络
 
-适合已有 Cloudflare 账户、兼容 OpenWrt 环境，并愿意自行管理网络线路的用户。**当前是测试版，首次部署仍需要准备运行环境，并非上传一个 IPK 就能在全新路由器上使用。**
+- **终端共享路由器策略。** 为选定设备或整个 LAN 管理受支持的 IPv4 流量，减少逐台维护配置的工作。
+- **入口与出口各司其职。** 管理连接 Cloudflare 的入口，再从账户已有虚拟网络选择出口；实际 IP 和地区通过观测确认。
+- **连接和可用性分开呈现。** 启用、配置应用、隧道连接、实际出口和网站检测分别展示，不用一个“正常”掩盖不同状态。
+- **规则由你维护。** 选择或编辑来源、设置更新间隔；搜索订阅内容，添加个人规则或长期排除条目，订阅更新保留个人覆盖。
+- **备用线路由你决定。** Workers 的部署、PROXYIP、入口优选和独立检测按阶段组织，检测后再手动启用。
 
-## 核心特点
+## 界面一览
 
-| 能力 | 对使用者的价值 |
+**总览：** 当前连接与接管范围、代理 / 直连流量、上传下载、七日趋势及出口目录，在一页清晰呈现。
+
+![iMOK 2.0 总览：连接、出口与流量观测](docs/images/imok-overview.png)
+
+**Workers：** 用阶段导航整理部署授权、PROXYIP、入口优选及导入检测，操作结果保留，复杂设置更容易找到。
+
+![iMOK 2.0 Workers：阶段导航与部署配置](docs/images/imok-workers.png)
+
+> 上述为真实前端在隔离预览中的截图，使用模拟账户、示例 IP 和流量。用于展示界面，不代表某条线路的速度或真实账户配置。
+
+## 完整的 12 个页面
+
+| 主入口 | 页面与能力 |
 | --- | --- |
-| WARP / MASQUE 主线路 | 在路由器统一管理官方客户端连接与账户出口 |
-| 按设备或 LAN 分流 | 自行决定哪些设备 / 网络接管，以及直连或代理规则 |
-| 入口与出口分开管理 | 入口支持官方自动、固定候选、手写 IPv4；出口从账户已有虚拟网络中选择 |
-| 入口应用后检测 | 短暂重连并验证原预期出口；失败尝试恢复，无法确认时保留阻断与恢复证据 |
-| 独立 DNS 管理 | 国内与代理上游、缓存状态、清缓存和解析检测，定位解析问题 |
-| 手动 Workers 备用 | 部署、域名绑定、PROXYIP、优选、独立检测和启用分别操作，切换由你决定 |
-| 五个独立设置页 | 账户与协议、出口与分流、设备、DNS、Workers 按页读取数据 |
-| 保留既有配置 | 不改写原 SSR、系统 network/firewall/dhcp 配置；开关和接管范围明确 |
+| 总览 | 独立开关、真实连接、实际出口、接管范围、流量与七日趋势、连接记录 |
+| Cloudflare 配置中心 | 账户与协议、主线路入口、出口与分流、设备、DNS、Workers 六个独立页面 |
+| 规则与更新 | 更新概况、来源与频率、规则管理、自定义分流四个独立页面 |
+| 备份迁移 | 导出 / 导入插件设置，保留 v2 / v3 兼容与原有恢复行为 |
 
-普通主线路故障时，当前策略会撤回接管并可能允许宽带直连；入口恢复无法确认时另有阻断保护。请按自己的需求理解这些行为。
+iMOK 2.0 将全部页面、表单、按钮、状态、表格和弹窗统一为克制的浅色设计。字体来源继承 Argon，字号、行高、间距及控件由插件设计系统统一管理；样式限定在插件范围，不改动 LuCI 全局主题。
 
-## 一张图看懂线路
+### 主线路与设备分流
 
-```mermaid
-flowchart LR
-    A[手机 / 电脑 / 其他设备] --> B[OpenWrt + imok]
-    B --> C[按设备或 LAN 分流]
-    C --> D[本地宽带直连]
-    C --> E[WARP / MASQUE 主线路]
-    E --> F[WARP 默认出口或已部署的 VPS 出口]
-    C -. 手动启用备用 .-> G[Cloudflare Workers 备用]
-```
+管理 WARP / MASQUE 主线路，按设备或 LAN 接管，支持国内 IP 直连、全部代理、代理名单、直连名单等现有模式。一个主客户端同时共用一个出口；VPS 出口需要先在 Cloudflare 组织端部署好路由。
 
-**入口 IP 不等于出口 IP。** 优选或固定入口影响连接 Cloudflare 的路径；实际网站看到哪个出口，取决于当前 WARP / 虚拟网络 / VPS 或备用线路。出口名称也不等于地区证明，可在页面检测实际出口。
+主线路入口支持官方自动、固定候选、手写 IPv4；定期同步读取客户端本地候选，不自动测速或换线。应用入口时才会重连、验证原预期出口；失败尝试恢复，不能确认时保留恢复保护和证据。
 
-## 更名与升级兼容
+### DNS 与诊断
 
-项目原名 **RoutePilot**，现更名为 **imok**。为了让已有用户保留注册身份与现有设置，安装包仍叫 `luci-app-routepilot`；UCI 配置、服务名、命令、目录和备份格式继续沿用 `routepilot`。这些技术标识不是漏改，无需卸载旧包或重装运行环境。LuCI 的菜单与品牌显示改为 imok。仓库地址现为 `routepilot-lab/imok`，历史版本保留。
+配置国内 / 代理上游，查看缓存，执行 DNS 解析与网站连通性检测。保留真实时间、历史标记和错误原因，区分隧道建立与目标网站可达。
 
-## 开始使用
+### 规则与个人覆盖
 
-1. **确认环境。** 本轮已验证 GL.iNet GL-MT6000、ARM64、OpenWrt 24.10。其他硬件 / 固件请先核对兼容性。
-2. **阅读安装说明。** [Release](https://github.com/routepilot-lab/imok/releases/tag/v0.2.33-1) 提供插件 IPK、公开源码和 SHA256SUMS。已有兼容运行环境可备份后升级插件；新设备需另行合法准备未注册运行环境和固件依赖。
-3. **授权自己的账户。** 在“账户与协议”完成路由器登录；在“出口与分流”选择账户已有出口与接管范围。VPS 出口需事先在组织端部署对应路由。
-4. **手动开启并验证。** 查看总览实际状态，到 DNS 页检测解析与网站连通性；需要时再配置、独立测试和手动启用 Workers 备用。
+来源地址可以选择预设，也可以编辑 HTTPS 地址；当前更新频率和执行计划清晰可见。规则支持分类、搜索、分页、个人新增、长期排除、候选确认与订阅版本回退。实际分类规则为“订阅减去排除，再加个人新增”，普通订阅更新及回退保留个人覆盖。
 
-公开包不包含 Cloudflare 客户端、Debian 运行环境、账户身份、API 令牌或私人节点。首次安装默认关闭；已有设备升级保留设置和身份，但会短暂重连。
+“始终直连 / 始终代理”在自定义分流页单独维护。当前普通设置导出不包含个人新增和排除，跨设备迁移需另行备份个人覆盖。
 
-## 当前版本和验证范围
+### Workers 手动备用
 
-**v0.2.33-1 · imok 更名版（预发布）。**
+保留私人节点导入、API 授权、账户 / 域名 / 项目选择、名称检查、部署与证书状态、PROXYIP 管理与检测、入口优选、手动启用 / 切回主线和清除授权。部署、检测和线路可用是不同状态。备用支持 IPv4 TCP，不自动故障切换。
 
-2026-11-06：维护者反馈，原 v0.2.32-2 连续日常使用数日，未发现问题。本次更名版只调整品牌显示、版本和文档，保留网络逻辑及配置兼容；该使用反馈属于原版本的实际体验，不表示新包已经在所有设备或环境完成验收。
+## 下载、安装与升级
 
-**部署进展：** 2026-11-06，imok v0.2.33-1 已安装到维护者的现有路由器。安装时核对了 40 项程序文件，配置、注册身份、入口方式和原出口保持，连续运行状态及代理 / 直连 HTTPS 检查通过。2026-11-08，维护者再次反馈“没问题了”。详见[更名版安装记录](docs/validation/2026-11-06-imok-install.json)及[使用反馈](docs/USER_FEEDBACK.md)。
+当前正式发布：**v0.2.35-6 · iMOK 2.0 完整界面版**。2.0 表示本轮 UI/UX 体系，插件包继续使用兼容版本号 `0.2.35-6`。
 
-下列原版本验收与更名版的本地回归记录继续保留：
+[Release 下载页](https://github.com/routepilot-lab/imok/releases/tag/v0.2.35-6) 提供：
 
-- 331 项 Python 测试、7 组 JavaScript、目标 LuCI 契约、资源/权限校验及可重复构建通过。
-- 现有目标设备核对 40 项程序文件，配置、身份、原入口及出口保持；连续状态、代理与直连 HTTPS 检查通过。
-- Safari 已检查五个独立页面；Opus 参与独立静态审查。
+| 文件 | 用途 |
+| --- | --- |
+| `luci-app-routepilot_0.2.35-6_all.ipk` | 已有兼容运行环境的插件升级包 |
+| `imok-0.2.35-6-public-source.zip` | 本版公开源码、文档、界面示例及许可 |
+| `SHA256SUMS` | 安装包和源码包的 SHA-256 校验值 |
 
-[验证摘要](docs/PUBLICATION_CHECKS.json)记录具体范围。长期稳定性、手机速度、其他机型、新设备完整安装、WireGuard 切换、多 LAN 真实设备和入口故障注入尚未在本轮验收。Workers 备用仅支持 IPv4 TCP，需手动启用，不自动故障切换；本项目不承诺固定带宽、任意地区或全网最优入口。
+**这不是路由器固件，也不是完整首次安装包。** 公开包不含 Cloudflare 客户端、Debian 运行环境、注册身份、Token 或私人节点。新设备需要自行合法准备运行环境和当前固件匹配的依赖，先阅读[安装说明](packages/luci-app-routepilot/INSTALL.zh-CN.md)。
 
-## English overview
+已有环境的设备：先备份配置、身份和个人规则，保存原版本 IPK；核对校验值后安装新 IPK，刷新 LuCI 页面并检查原入口、出口、接管范围和联网情况。升级会短暂重连。不要卸载旧包、重注册或覆盖运行环境来完成普通升级。
 
-imok is an **OpenWrt LuCI routing plugin** for managing a Cloudflare WARP / MASQUE primary connection, per-device or LAN-wide split tunneling, DNS upstreams and diagnostics, and a manual Cloudflare Workers backup.
+项目原名 RoutePilot。包名 `luci-app-routepilot`，以及 UCI、服务、目录和接口继续使用 `routepilot`，以保留已有配置和身份。历史版本和下载继续保留。
 
-Use it to centralize routing rules on a compatible router, choose which devices or networks are managed, keep selected traffic direct, and inspect the active connection and exit. Existing account virtual networks can be selected; a VPS exit requires routes already deployed in your Cloudflare organization. Changing a Cloudflare entry IP does not select an exit country.
+## 本版验证
 
-The current release is **the imok rebranding pre-release (v0.2.33-1)**. The maintainer reports several days of daily use of the previous v0.2.32-2 without observed issues; this is user-reported experience, not a universal stability guarantee. The rebranding package was installed on the maintainer's GL-MT6000 / ARM64 OpenWrt 24.10 router on November 6, 2026. Installation checks confirmed matching program files, preserved configuration and identity, unchanged entry settings and exit, and successful connection checks. The maintainer reported no issues again on November 8. See the deployment record and user feedback; these observations do not extend the tested hardware or network coverage. The IPK updates an existing compatible runtime; it is not a complete first-install bundle. Runtime software, Cloudflare credentials and private configurations are not distributed. Workers backup supports IPv4 TCP and must be tested and enabled manually. See [installation](packages/luci-app-routepilot/INSTALL.zh-CN.md), [FAQ](docs/FAQ.md) and [releases](https://github.com/routepilot-lab/imok/releases).
+2026-11-08，v0.2.35-6 已部署至维护者的 **GL.iNet GL-MT6000 / ARM64 / OpenWrt 24.10 / Argon 2.2.9.4** 环境，维护者确认本轮完整界面和使用体验满意。
 
-## 反馈与参与
+- 380 项 Python 测试、13 组前端测试、目标 LuCI 模块契约、资源哈希和可复现构建通过。
+- 真机 12 页加载新资源；规则动态数据加载完成后，已修复的 `null` / `undefined` 显示未再出现。
+- 安装后核对 44 个非配置程序文件，98 个受保护文件哈希一致，原身份、配置、入口、出口和个人规则保留。
+- 安装后连续状态采样稳定，代理 Google / Cloudflare 和直连百度 HTTPS 通过；升级前的 UI 验收另完成 DNS 与五站检测。
 
-遇到问题请通过 [Issues](https://github.com/routepilot-lab/imok/issues/new/choose) 提交版本、硬件、固件、复现步骤及脱敏后的错误信息。欢迎补充兼容设备的实际体验、完善文档或提交修复；请勿上传令牌、登录链接、私钥或完整设备配置。
+桌面体验优先。真实 Windows / Safari / 移动系统、其他机型、全新环境安装、WireGuard 切换和多 LAN 端到端验证不在本轮通过范围；小屏在主题侧栏展开时仍需注意可用宽度。具体证据与限制见[本版检查摘要](docs/PUBLICATION_CHECKS.json)。
 
-如果项目对你有帮助，欢迎 Star，或把仓库分享给有相同 OpenWrt / WARP 管理需求的人。
+插件不改写既有 SSR 或系统 network / firewall / dhcp 配置文件，但启用后会维护自己的运行时路由、nft、命名空间和 DNS 接管。主线路故障撤回接管时可能宽带直连；IPv6 可阻断或明确允许直连，不提供 IPv6 代理。请按自己的需求选择策略。
 
 ## 构建与检查
+
+使用 Python 3、Node.js 和系统工具，无大型前端框架，无远程字体依赖。
 
 ```sh
 python3 packages/luci-app-routepilot/tools/asset_versions.py --check
@@ -95,7 +100,17 @@ python3 packages/luci-app-routepilot/tools/build.py
 python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/target/luci.js --report .local/check-all/report.json
 ```
 
-Makefile 为版本唯一来源；测试使用 Python / Node 标准库。完整检查需自行取得目标 LuCI 核心文件，不用替身冒充真实 ABI 验收。
+Makefile 是版本来源。完整检查需自行取得目标 LuCI 核心文件，不分发设备文件，也不用替身冒充真实 ABI 检查。发布流程仅在安装包与已验收 SHA-256 一致后创建正式 Release。
+
+## English overview
+
+iMOK 2.0 brings a consistent, native LuCI interface to Cloudflare WARP / MASQUE routing: clear connection and exit status, per-device or LAN policies, DNS diagnostics, editable rule sources, persistent personal additions / exclusions, and a manually enabled Workers backup. All 12 pages share scoped styling and Argon typography.
+
+**v0.2.35-6 is the current regular release**, deployed and checked on the maintainer’s GL-MT6000 / ARM64 OpenWrt 24.10 router. UI screenshots use synthetic data. The IPK updates an existing compatible runtime; it is not firmware or a complete first-install image. Other hardware, real mobile browsers, WireGuard switching and multi-LAN end-to-end behavior have not been fully validated. Entry selection does not determine exit country. Workers backup requires independent testing and manual activation.
+
+## 反馈与参与
+
+欢迎通过 [Issues](https://github.com/routepilot-lab/imok/issues/new/choose) 提交版本、硬件、固件、复现步骤及脱敏错误。请勿上传 Token、登录链接、私钥或完整设备配置。若项目对你有帮助，欢迎 Star 或分享给有相同需求的人。
 
 ## 项目初衷与感谢 / Acknowledgements
 

@@ -12,7 +12,7 @@ class Endpoints(unittest.TestCase):
   for name,value in {'ROOT':self.p/'client','DIRECTORY':self.p,'RUN':self.p/'run','CONFIG':self.p/'cfg.json','CACHE':self.p/'cache.json','STATE':self.p/'run/state.json','INPUT':self.p/'run/input','APPLIED':self.p/'applied.json','TRANSACTION':self.p/'transaction.json','WARNING':self.p/'run/warning.json','RECOVERY':self.p/'recovery.json','PROCESS_BLOCK':self.p/'run/process-block.json'}.items():
    p=patch.object(e,name,value);p.start();self.addCleanup(p.stop)
   e.ROOT.mkdir();e.RUN.mkdir();(e.ROOT/'settings.json').write_text(json.dumps({'override_warp_endpoint':'162.159.197.2:8443'}))
-  self.calls=[];self.svc=SimpleNamespace(exit_ip='8.8.8.8',backend='masque',compiled={'ready':True},plane=SimpleNamespace(owned=True,connect=Mock(),probe=Mock(return_value='8.8.8.8')),suspend_capture=Mock(return_value=True))
+  self.calls=[];self.svc=SimpleNamespace(update_job=None,exit_ip='8.8.8.8',backend='masque',compiled={'ready':True},plane=SimpleNamespace(owned=True,connect=Mock(),probe=Mock(return_value='8.8.8.8')),suspend_capture=Mock(return_value=True))
   for p in [patch.object(worker_backend,'guard',contextlib.nullcontext),patch.object(e,'capability',return_value={'supported':True}),patch.object(masque,'output'),patch.object(mplane,'cli',side_effect=self.cli),patch.object(e,'read_config',side_effect=lambda:{'main':self.main})]:p.start();self.addCleanup(p.stop)
   self.main={'exit':'usa','vnet_usa':'00000000-0000-0000-0000-000000000001','expected_usa':'8.8.8.8'}
  def save_input(self):

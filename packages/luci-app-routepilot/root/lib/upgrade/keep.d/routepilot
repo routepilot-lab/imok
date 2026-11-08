@@ -4,3 +4,4 @@
 /etc/routepilot/endpoint-applied.json
 /etc/routepilot/endpoint-transaction.json
 /etc/routepilot/recovery-audit/
+/etc/routepilot/rule-overrides.json

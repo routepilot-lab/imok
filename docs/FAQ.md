@@ -30,7 +30,7 @@ WARP 默认线路不要求自建 VPS。要使用自己的 VPS 出口，需要先
 
 ## 速度和长期稳定性如何？
 
-当前 v0.2.32-2 已通过公开记录中的自动化检查和现有设备短期实测，进入日常稳定性观察。没有保证手机速度、固定带宽或长期不掉线。复现异常时请记录时间、网络环境和脱敏错误，通过 Issues 反馈。
+当前 v0.2.35-6（iMOK 2.0）已通过自动化检查并部署到维护者的既有路由器，作为当前正式版发布。没有保证手机速度、固定带宽或长期不掉线。复现异常时请记录时间、网络环境和脱敏错误，通过 Issues 反馈。
 
 ## 支持 WireGuard 或 IPv6 代理吗？
 
@@ -46,4 +46,4 @@ No. Entry selection controls how the router reaches Cloudflare. The active WARP 
 
 ## Does Workers backup fail over automatically?
 
-No. The backup supports IPv4 TCP and requires independent testing and manual enablement. The current release remains a pre-release under stability observation.
+No. The backup supports IPv4 TCP and requires independent testing and manual enablement. The current regular release is v0.2.35-6 (iMOK 2.0); other hardware and network environments require their own validation.

@@ -77,31 +77,38 @@ def rule_snapshot():
     RULES.mkdir(parents=True, exist_ok=True)
     with open(RULES / '.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_SH)
-        current = RULES / 'current'
-        yield current.resolve(strict=True) if current.is_symlink() else RULES
+        from rules_catalog import resolve_current
+        yield resolve_current(RULES)
 
 
-def commit_rules(pending, meta):
+def commit_rules(pending, meta, *, allow_decline=False, replace_all=False):
     """Stage a complete generation, then publish it with one rename."""
     RULES.mkdir(parents=True, exist_ok=True)
     with open(RULES / '.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         current = RULES / 'current'
-        old = current.resolve(strict=True) if current.is_symlink() else RULES
+        from rules_catalog import resolve_current
+        old = resolve_current(RULES)
         generations = RULES / '.generations'
         generations.mkdir(exist_ok=True)
         stage = Path(tempfile.mkdtemp(prefix='rules-', dir=generations))
         link = RULES / ('.current-' + uuid.uuid4().hex)
         committed = False
         try:
-            for path in old.glob('*.txt'):
-                atomic(stage / path.name, path.read_text())
+            if not replace_all:
+                for path in old.glob('*.txt'):
+                    atomic(stage / path.name, path.read_text())
             for path, text in pending:
                 atomic(stage / path.name, text)
             counts = {path.stem: sum(1 for line in path.read_text().splitlines()
                       if line.strip() and not line.startswith('#')) for path in stage.glob('*.txt')}
-            meta = dict(meta, counts=counts)
+            from rules_catalog import enrich, declines, hold_candidate, RulesDecline
+            meta = enrich(stage, old, dict(meta, counts=counts))
             atomic(stage / 'updated.json', json.dumps(meta))
+            drops = declines(stage, old)
+            if drops and not allow_decline:
+                hold_candidate(RULES, stage, meta, drops)
+                raise RulesDecline('规则数量下降超过50%，整批已暂存等待确认；继续使用上一版本')
             # All files are fsynced by atomic(); persist directory entries before publish.
             fd = os.open(stage, os.O_RDONLY)
             try:
@@ -113,8 +120,9 @@ def commit_rules(pending, meta):
             committed = True
             # Retain current and previous generations; readers hold the shared lock.
             try:
+                retained = (RULES / meta['previous_path']).resolve()
                 for candidate in generations.iterdir():
-                    if candidate.is_dir() and candidate.resolve() not in (stage.resolve(), old.resolve()):
+                    if candidate.is_dir() and candidate.resolve() not in (stage.resolve(), retained):
                         shutil.rmtree(candidate, ignore_errors=True)
             except OSError:
                 pass  # A cleanup failure must not misreport an already committed update.
@@ -128,6 +136,12 @@ def commit_rules(pending, meta):
 
 
 def update_rules():
+    from rules_catalog import operation_lock
+    with operation_lock(RULES):
+        return _update_rules()
+
+
+def _update_rules():
     cfg = read_config()
     job = os.environ.get('ROUTEPILOT_UPDATE_ID') or cfg['main'].get('update_nonce') or str(int(time.time()))
     labels = {'china': '中国 IP', 'gfw': '代理域名', 'whitelist': '直连域名', 'china_domains': '中国域名'}
@@ -137,7 +151,7 @@ def update_rules():
     except (OSError, ValueError):
         old_meta = {}
     progress = dict(state='running', request_id=job, started_at=int(time.time()), finished_at=0,
-                    phase='准备下载', percent=0, last_success_at=old_meta.get('time', 0),
+                    phase='准备下载', percent=0, last_success_at=old_meta.get('downloaded_at', old_meta.get('time', 0)),
                     counts=old_meta.get('counts', {}), ignored_regexp=old_meta.get('ignored_regexp', {}))
     def publish():
         atomic(RUN / 'update.json', json.dumps(progress, ensure_ascii=False), 0o644)
@@ -168,14 +182,25 @@ def update_rules():
         progress.update(phase='校验完成，正在替换本插件规则', percent=95)
         publish()
         now = int(time.time())
-        meta = commit_rules(pending, dict(time=now, ignored_regexp=ignored))
+        from rules_catalog import sources_fingerprint, content
+        latest_cfg = read_config()
+        if sources_fingerprint(cfg['main']) != sources_fingerprint(latest_cfg['main']):
+            raise ValueError('规则来源设置已变化，请重新更新')
+        from rules_overrides import load as load_personal, validate_required
+        with rule_snapshot() as snapshot:
+            combined = content(snapshot)
+            for path, text in pending:
+                combined[path.stem] = text.splitlines()
+            validate_required(latest_cfg, combined, load_personal(RULES))
+        meta = commit_rules(pending, dict(time=now, downloaded_at=now, ignored_regexp=ignored, sources=dict(sources), sources_fingerprint=sources_fingerprint(cfg['main']), request_id=job))
         counts = meta['counts']
         progress.update(state='success', phase='更新成功，规则已保存', percent=100, finished_at=now,
                         last_success_at=now, counts=counts, ignored_regexp=ignored)
         publish()
     except Exception as error:
         reason = str(error) if isinstance(error, ValueError) else '下载或连接失败'
-        progress.update(state='failed', phase=label + '更新失败：' + reason + '；使用最后已提交版本，可重新更新',
+        from rules_catalog import RulesDecline
+        progress.update(state='blocked' if isinstance(error, RulesDecline) else 'failed', phase=label + '更新失败：' + reason + '；使用最后已提交版本，可重新更新',
                         finished_at=int(time.time()))
         publish()
         raise
@@ -441,7 +466,11 @@ def lan_interfaces(include_inactive=False):
 
 
 def control(action, request_id=None):
-    if action in ('settings-export','settings-import'):
+    if action in ('rules-info','rules-query','rules-accept','rules-rollback','rules-edit'):
+        import rules_catalog
+        result = rules_catalog.info() if action == 'rules-info' else getattr(rules_catalog, {'rules-query':'query','rules-accept':'accept','rules-rollback':'rollback','rules-edit':'edit'}[action])(request_id)
+        print(json.dumps(result, ensure_ascii=False))
+    elif action in ('settings-export','settings-import'):
         from config_backup import export,import_settings
         print(json.dumps(export() if action=='settings-export' else import_settings(request_id),ensure_ascii=False))
     elif action in ('endpoint-info','endpoint-refresh','endpoint-save','endpoint-schedule','endpoint-recover'):
@@ -528,7 +557,7 @@ def discover_exits():
 
 def main():
     global STOP
-    if len(sys.argv) not in (2,3) or len(sys.argv)==3 and sys.argv[1] not in ('endpoint-save','settings-import','register','backup-import','cloud-save','relay-save','warp-org-save','endpoint-schedule','endpoint-recover') or sys.argv[1] not in ('run', 'settings-export', 'settings-import', 'endpoint-info', 'endpoint-refresh', 'endpoint-save', 'endpoint-schedule', 'endpoint-recover', 'warp-info', 'exit-observe', 'warp-org-save', 'backup-import', 'backup-test', 'backup-enable', 'backup-disable', 'backup-scan', 'backup-scan-apply', 'cloud-save', 'cloud-target', 'cloud-verify', 'cloud-deploy', 'cloud-check', 'cloud-promote', 'cloud-forget', 'relay-save', 'relay-test', 'relay-apply', 'relay-status', 'interfaces', 'enable', 'disable', 'prepare', 'login', 'register', 'discover', 'apply', 'cleanup', 'update-worker', 'dns-test', 'dns-clear', 'test', 'test-google', 'test-youtube', 'test-github', 'test-taobao', 'test-baidu'):
+    if len(sys.argv) not in (2,3) or len(sys.argv)==3 and sys.argv[1] not in ('endpoint-save','settings-import','register','backup-import','cloud-save','relay-save','warp-org-save','endpoint-schedule','endpoint-recover','rules-query','rules-accept','rules-rollback','rules-edit') or sys.argv[1] not in ('run', 'rules-info', 'rules-query', 'rules-accept', 'rules-rollback', 'rules-edit', 'settings-export', 'settings-import', 'endpoint-info', 'endpoint-refresh', 'endpoint-save', 'endpoint-schedule', 'endpoint-recover', 'warp-info', 'exit-observe', 'warp-org-save', 'backup-import', 'backup-test', 'backup-enable', 'backup-disable', 'backup-scan', 'backup-scan-apply', 'cloud-save', 'cloud-target', 'cloud-verify', 'cloud-deploy', 'cloud-check', 'cloud-promote', 'cloud-forget', 'relay-save', 'relay-test', 'relay-apply', 'relay-status', 'interfaces', 'enable', 'disable', 'prepare', 'login', 'register', 'discover', 'apply', 'cleanup', 'update-worker', 'dns-test', 'dns-clear', 'test', 'test-google', 'test-youtube', 'test-github', 'test-taobao', 'test-baidu'):
         raise SystemExit('Usage: routepilot run|prepare|login|register')
     os.umask(0o077)
     RUN.mkdir(parents=True, exist_ok=True)
@@ -581,11 +610,19 @@ def main():
     previous = None
     endpoint_paused = False
     pause_cleanup = {'direct':False}
-    last_update, last_nonce, update_message = 0, None, ''
+    from rules_schedule import Schedule
+    schedule = Schedule(rules=RULES, run=RUN)
+    last_nonce, update_message = schedule.data.get('last_nonce'), ''
+    update_job_id = None
     try:
         while not STOP:
             try:
                 cfg = read_config()
+                if not service.update_job:
+                    try:
+                        schedule.reconcile(cfg['main'])
+                    except OSError:
+                        pass  # A rule schedule write failure must not tear down a healthy tunnel.
                 try:
                     from request_input import reap_requests
                     reap_requests(RUN)
@@ -651,12 +688,19 @@ def main():
                         nonce = cfg['main'].get('update_nonce', '')
                         if nonce and nonce != last_nonce:
                             try:
+                                schedule.start(cfg['main'], nonce)
                                 vnet = resolve_exit(cfg['main'])
                                 if service.backend!='worker':service.plane.protocol_preference=cfg['main'].get('warp_protocol','auto')
                                 service.plane.connect(vnet)
                                 update_rules()
+                                schedule.finish(cfg['main'], True)
                                 output('preparing', '规则更新完成；设备分流仍关闭')
                             except Exception:
+                                progress = __import__('rules_schedule').read(RUN / 'update.json')
+                                if progress.get('request_id') != nonce or progress.get('state') == 'running':
+                                    atomic(RUN / 'update.json', json.dumps(dict(state='failed', request_id=nonce, phase='更新未开始：请确认登录环境和出口已就绪；保留原规则', started_at=int(schedule.data.get('last_attempt_at', time.time())), finished_at=int(time.time()), last_success_at=schedule.plan(cfg['main'])['last_success_at'], counts=progress.get('counts', {}))), 0o644)
+                                    progress = {}
+                                schedule.finish(cfg['main'], False, blocked=progress.get('state') == 'blocked', request_id=nonce)
                                 output('preparing', '更新未完成，请先完成组织登录并填写出口 ID；设备分流仍关闭')
                             last_nonce = nonce
                     else:
@@ -664,37 +708,60 @@ def main():
                         needed = {'bypass_cn': 'china.txt', 'gfw': 'gfw.txt', 'whitelist': 'whitelist.txt'}
                         policies = ([{'enabled': '1', 'mode': cfg['main'].get('lan_mode', 'bypass_cn')}] if cfg['main'].get('scope') == 'lan' else cfg['policies'])
                         with rule_snapshot() as snapshot:
-                            missing_rules = any(p.get('enabled') == '1' and p.get('mode') in needed and not (snapshot / needed[p['mode']]).exists() for p in policies)
+                            from rules_overrides import load as load_personal
+                            cfg['rule_overrides'] = load_personal(RULES)
+                            missing_rules = any(p.get('enabled') == '1' and p.get('mode') in needed and not (snapshot / needed[p['mode']]).exists() and not cfg['rule_overrides'][needed[p['mode']].removesuffix('.txt')]['added'] for p in policies)
                         if missing_rules:
                             vnet = '' if service.backend == 'worker' else resolve_exit(cfg['main'])
                             service.plane.connect(vnet)
                             update_rules()
                         # Existing valid local rules permit startup even if an update source fails.
                         with rule_snapshot() as snapshot:
+                            cfg['rule_overrides'] = load_personal(RULES)
                             digest = routing_digest(cfg, snapshot)
                             compiled = compile_config(cfg, snapshot) if digest != previous else None
+                            if compiled is not None:
+                                from rules_catalog import directory_revision
+                                from rules_overrides import effective_revision
+                                compiled['rules_revision'] = effective_revision(directory_revision(snapshot), cfg['rule_overrides'])
                         if compiled is not None:
                             compiled['dns']['generation'] = digest
                             service.apply(cfg, compiled)
                             previous = digest
                         service.health()
                         nonce = cfg['main'].get('update_nonce', '')
-                        interval = max(1, min(720, int(cfg['main'].get('update_hours', '168')))) * 3600
-                        if (nonce and nonce != last_nonce) or time.time() - last_update >= interval:
-                            if not service.update_job:
-                                service.update_job = subprocess.Popen([sys.executable, __file__, 'update-worker'],
-                                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                     start_new_session=True, env={**os.environ, 'ROUTEPILOT_UPDATE_ID': nonce if nonce and nonce != last_nonce else 'auto-' + str(int(time.time()))})
-                                update_message = '规则正在后台更新'
-                                last_nonce, last_update = nonce, time.time()
-                        if service.update_job and service.update_job.poll() is not None:
-                            update_message = '规则已更新' if service.update_job.returncode == 0 else '更新失败，继续使用现有规则'
-                            service.update_job = None
-                            finish_interrupted_update()
+                        try:
+                            if service.update_job and service.update_job.poll() is not None:
+                                succeeded = service.update_job.returncode == 0
+                                finish_interrupted_update()
+                                progress = __import__('rules_schedule').read(RUN / 'update.json')
+                                blocked = progress.get('state') == 'blocked'
+                                completed = schedule.finish(cfg['main'], succeeded, blocked=blocked, request_id=update_job_id or schedule.data.get('request_id'))
+                                update_message = '规则已保存，等待运行版本确认' if succeeded else '规则异常，等待确认' if blocked else '更新失败，保留现有规则并按计划重试'
+                                if completed is False:
+                                    update_message = '规则状态已由后续确认或回退操作更新'
+                                service.update_job = None
+                                update_job_id = None
+                            if not service.update_job and schedule.due(cfg['main']):
+                                job = nonce if nonce and nonce != schedule.data.get('last_nonce') else 'auto-' + uuid.uuid4().hex
+                                schedule.start(cfg['main'], job)
+                                update_job_id = job
+                                try:
+                                    service.update_job = subprocess.Popen([sys.executable, __file__, 'update-worker'],
+                                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         start_new_session=True, env={**os.environ, 'ROUTEPILOT_UPDATE_ID': job})
+                                except Exception:
+                                    schedule.finish(cfg['main'], False)
+                                    update_message = '更新任务未启动，保留现有规则并按计划重试'
+                                else:
+                                    update_message = '规则正在后台更新'
+                                    last_nonce = nonce
+                        except OSError:
+                            update_message = '更新计划无法持久保存，保留当前线路；请检查存储空间'
                         scope_message = ('所选局域网 ' + '、'.join(v['interface'] + ' ' + v['network'] for v in cfg['main']['lan_networks'])) if service.compiled.get('scope') == 'lan' else '仅接管所选设备'
                         output('running', ('备用线路运行中（TCP，UDP不代理）；' if service.backend == 'worker' else (service.plane.protocol or 'WARP')+' 已连接；') + scope_message + '。' + update_message,
                                service.compiled['devices'], exit=service.compiled['exit'], exit_ip=service.exit_ip,
-                               runtime_id=service.runtime_id, generation=digest, protocol='Workers' if service.backend == 'worker' else (service.plane.protocol or 'WARP'), endpoint_generation=__import__('endpoint_control').generation(), protocol_warning=getattr(service.plane,'protocol_warning',''), protocol_observed_at=getattr(service.plane,'protocol_observed_at',0), backend=service.backend, proxy_interface='rp-backup' if service.backend == 'worker' else 'rp-host', backup_name=service.plane.node['name'] if service.backend == 'worker' and service.plane.node else None, scope=service.compiled.get('scope', 'devices'), rules_updated=int(last_update), applied_nonce=cfg['main'].get('apply_nonce', ''))
+                               runtime_id=service.runtime_id, generation=digest, protocol='Workers' if service.backend == 'worker' else (service.plane.protocol or 'WARP'), endpoint_generation=__import__('endpoint_control').generation(), protocol_warning=getattr(service.plane,'protocol_warning',''), protocol_observed_at=getattr(service.plane,'protocol_observed_at',0), backend=service.backend, proxy_interface='rp-backup' if service.backend == 'worker' else 'rp-host', backup_name=service.plane.node['name'] if service.backend == 'worker' and service.plane.node else None, scope=service.compiled.get('scope', 'devices'), rules_updated=int(schedule.data.get('last_success_at', 0)), rules_revision=service.compiled.get('rules_revision', ''), applied_nonce=cfg['main'].get('apply_nonce', ''))
             except TunnelPending:
                 try:direct=service.suspend_capture()
                 except Exception:direct=service.stop(restore=False)['direct']

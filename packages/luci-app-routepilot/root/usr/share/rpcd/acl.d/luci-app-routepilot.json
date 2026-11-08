@@ -108,6 +108,9 @@
         ],
         "/var/run/routepilot/requests/organization-input-*.json": [
           "write"
+        ],
+        "/var/run/routepilot/requests/rules-input-*.json": [
+          "write"
         ]
       },
       "ubus": {

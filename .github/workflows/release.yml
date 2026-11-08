@@ -1,0 +1,36 @@
+name: Verified public release
+on:
+  push:
+    branches: [main]
+    paths: ['docs/releases/*.md']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: imok-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.repository == 'routepilot-lab/imok'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch the exact public commit
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin https://github.com/routepilot-lab/imok.git
+          git fetch --depth=1 origin "$SOURCE_COMMIT"
+          git checkout --detach FETCH_HEAD
+      - name: Check source and release protection
+        run: |
+          python3 -m unittest discover -s packages/luci-app-routepilot/tests -v
+          python3 -m unittest discover -s packages/luci-app-routepilot/server -v
+          for suite in packages/luci-app-routepilot/tests/test_*.cjs; do node "$suite" || exit 1; done
+          python3 -m unittest discover -s tools -p 'test_*.py' -v
+          python3 packages/luci-app-routepilot/tools/asset_versions.py --check
+      - name: Build, verify digests, and publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/publish_release.py --publish
