@@ -63,7 +63,9 @@ flowchart LR
 
 2026-11-06：维护者反馈，原 v0.2.32-2 连续日常使用数日，未发现问题。本次更名版只调整品牌显示、版本和文档，保留网络逻辑及配置兼容；该使用反馈属于原版本的实际体验，不表示新包已经在所有设备或环境完成验收。
 
-下列真机验收来自原 v0.2.32-2；更名包目前完成本地回归，未重新安装到路由器。
+**部署进展：** 2026-11-06，imok v0.2.33-1 已安装到维护者的现有路由器。安装时核对了 40 项程序文件，配置、注册身份、入口方式和原出口保持，连续运行状态及代理 / 直连 HTTPS 检查通过。2026-11-08，维护者再次反馈“没问题了”。详见[更名版安装记录](docs/validation/2026-11-06-imok-install.json)及[使用反馈](docs/USER_FEEDBACK.md)。
+
+下列原版本验收与更名版的本地回归记录继续保留：
 
 - 331 项 Python 测试、7 组 JavaScript、目标 LuCI 契约、资源/权限校验及可重复构建通过。
 - 现有目标设备核对 40 项程序文件，配置、身份、原入口及出口保持；连续状态、代理与直连 HTTPS 检查通过。
@@ -77,7 +79,7 @@ imok is an **OpenWrt LuCI routing plugin** for managing a Cloudflare WARP / MASQ
 
 Use it to centralize routing rules on a compatible router, choose which devices or networks are managed, keep selected traffic direct, and inspect the active connection and exit. Existing account virtual networks can be selected; a VPS exit requires routes already deployed in your Cloudflare organization. Changing a Cloudflare entry IP does not select an exit country.
 
-The current release is **the imok rebranding pre-release (v0.2.33-1)**. The maintainer reports several days of daily use of the previous v0.2.32-2 without observed issues; this is user-reported experience, not a universal stability guarantee. Previous device validation used GL-MT6000 / ARM64 OpenWrt 24.10; the rebranding package has local regression coverage and has not been reinstalled on the router. The IPK updates an existing compatible runtime; it is not a complete first-install bundle. Runtime software, Cloudflare credentials and private configurations are not distributed. Workers backup supports IPv4 TCP and must be tested and enabled manually. See [installation](packages/luci-app-routepilot/INSTALL.zh-CN.md), [FAQ](docs/FAQ.md) and [releases](https://github.com/routepilot-lab/imok/releases).
+The current release is **the imok rebranding pre-release (v0.2.33-1)**. The maintainer reports several days of daily use of the previous v0.2.32-2 without observed issues; this is user-reported experience, not a universal stability guarantee. The rebranding package was installed on the maintainer's GL-MT6000 / ARM64 OpenWrt 24.10 router on November 6, 2026. Installation checks confirmed matching program files, preserved configuration and identity, unchanged entry settings and exit, and successful connection checks. The maintainer reported no issues again on November 8. See the deployment record and user feedback; these observations do not extend the tested hardware or network coverage. The IPK updates an existing compatible runtime; it is not a complete first-install bundle. Runtime software, Cloudflare credentials and private configurations are not distributed. Workers backup supports IPv4 TCP and must be tested and enabled manually. See [installation](packages/luci-app-routepilot/INSTALL.zh-CN.md), [FAQ](docs/FAQ.md) and [releases](https://github.com/routepilot-lab/imok/releases).
 
 ## 反馈与参与
 

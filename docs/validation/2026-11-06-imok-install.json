@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-06",
+  "version": "0.2.33-1",
+  "product": "imok",
+  "result": "installed",
+  "package_sha256": "12ea3852079115c3a009946c58ece52305d4722933866f53542fa1b90635ab9a",
+  "installed_program_files_exact": 40,
+  "configuration_identity_and_endpoint_files_byte_identical": true,
+  "protocol": "MASQUE",
+  "backend": "masque",
+  "entry_mode": "auto",
+  "entry_override_unchanged": true,
+  "selected_exit_and_exit_ip_unchanged": true,
+  "system_socket_buffers_unchanged": true,
+  "stable_samples": 5,
+  "https_checks": [
+    {
+      "target": "Google generate_204",
+      "path": "proxy",
+      "http_code": 204,
+      "passed": true
+    },
+    {
+      "target": "Baidu",
+      "path": "direct",
+      "http_code": 200,
+      "passed": true
+    },
+    {
+      "target": "Cloudflare trace",
+      "path": "proxy",
+      "http_code": 200,
+      "passed": true
+    }
+  ],
+  "native_request_binding": "passed",
+  "browser": {
+    "brand": "imok",
+    "version": "0.2.33-1",
+    "connection": "connected; existing MASQUE exit observed",
+    "installed_menu_title": "imok 分流助手",
+    "old_tab_sidebar": "Old title was observed in per-tab LuCI menu cache; installed menu definition uses imok."
+  },
+  "router_rebooted": false,
+  "user_confirmation": {
+    "date": "2026-11-08",
+    "statement": "没问题了",
+    "source": "maintainer report"
+  },
+  "publication_note": "Published on 2026-11-08 from the recorded 2026-11-06 deployment results and the maintainer's confirmation; no fresh device test or router mutation was performed for this documentation update.",
+  "limits": [
+    "Service briefly reconnected during installation.",
+    "Official automatic entry settings were preserved; this does not fix the client's automatically selected peer ports.",
+    "No throughput, continuous-uptime or expanded multi-device guarantee is inferred."
+  ]
+}

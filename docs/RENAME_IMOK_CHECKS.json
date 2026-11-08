@@ -92,5 +92,7 @@
     "not_an_independent_device_test": true
   },
   "release_status": "pre-release; branding package not installed on the router",
-  "public_source_checks_passed": true
+  "public_source_checks_passed": true,
+  "record_scope": "Historical pre-install validation at publication on 2026-11-06; router_not_modified and release_status describe that stage.",
+  "deployment_followup": "validation/2026-11-06-imok-install.json"
 }
