@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import json
 from pathlib import Path
 import struct
@@ -19,7 +20,7 @@ class MasqueTests(unittest.TestCase):
         (self.rules / 'gfw.txt').write_text('example.net\n')
         (self.rules / 'whitelist.txt').write_text('example.cn\n')
         self.cfg = {'main': {'exit': 'seoul', 'vnet_seoul': '11111111-1111-4111-8111-111111111111'},
-                    'policies': [{'id': 'phone', 'enabled': '1', 'ip': '192.168.8.100',
+                    'policies': [{'id': 'phone', 'enabled': '1', 'ip': '10.77.50.100',
                                   'mac': '02:00:00:00:00:01', 'mode': 'bypass_cn'}]}
 
     def tearDown(self):
@@ -27,7 +28,7 @@ class MasqueTests(unittest.TestCase):
 
     def test_capture_requires_interface_mac_and_ip(self):
         out = config.compile_config(self.cfg, self.rules)
-        self.assertIn('iifname "br-lan" ether saddr 02:00:00:00:00:01 ip saddr 192.168.8.100', out['nft'])
+        self.assertIn('iifname "br-lan" ether saddr 02:00:00:00:00:01 ip saddr 10.77.50.100', out['nft'])
         self.assertNotIn('flush ruleset', out['nft'])
         self.assertEqual(out['dns']['policies'][0]['mark'], config.MARK)
 
@@ -81,18 +82,18 @@ class MasqueTests(unittest.TestCase):
                 config.normalize_domains(text)
 
     def test_lan_scope_needs_no_device_bindings(self):
-        self.cfg['main'].update(scope='lan', lan_network='192.168.8.0/24', lan_mode='bypass_cn')
+        self.cfg['main'].update(scope='lan', lan_network='10.77.50.0/24', lan_mode='bypass_cn')
         self.cfg['policies'] = []
         out = config.compile_config(self.cfg, self.rules)
         self.assertEqual(out['scope'], 'lan')
-        self.assertEqual(out['devices'][0]['ip'], '192.168.8.0/24')
+        self.assertEqual(out['devices'][0]['ip'], '10.77.50.0/24')
         self.assertEqual(len(out['dns']['policies']), 1)
-        self.assertIn('iifname "br-lan" ip saddr 192.168.8.0/24', out['nft'])
+        self.assertIn('iifname "br-lan" ip saddr 10.77.50.0/24', out['nft'])
         self.assertNotIn('ether saddr', out['nft'])
         self.assertIn('162.159.197.0/24', out['nft'])
 
     def test_lan_scope_ignores_old_bindings_but_preserves_them(self):
-        self.cfg['main'].update(scope='lan', lan_network='192.168.8.0/24', lan_mode='global')
+        self.cfg['main'].update(scope='lan', lan_network='10.77.50.0/24', lan_mode='global')
         original = json.loads(json.dumps(self.cfg['policies']))
         out = config.compile_config(self.cfg, self.rules)
         self.assertEqual(self.cfg['policies'], original)
@@ -107,25 +108,25 @@ class MasqueTests(unittest.TestCase):
                 config.compile_config(self.cfg, self.rules)
 
     def test_multiple_lans_have_distinct_capture_dns_and_ipv6_guards(self):
-        self.cfg['main'].update(scope='lan', lan_interfaces=['br-lan', 'br-guest'], lan_networks=[{'interface': 'br-lan', 'network': '192.168.8.0/24'}, {'interface': 'br-guest', 'network': '192.168.9.0/24'}])
+        self.cfg['main'].update(scope='lan', lan_interfaces=['br-lan', 'br-guest'], lan_networks=[{'interface': 'br-lan', 'network': '10.77.50.0/24'}, {'interface': 'br-guest', 'network': '192.168.9.0/24'}])
         old = json.loads(json.dumps(self.cfg['policies']))
         out = config.compile_config(self.cfg, self.rules)
         self.assertEqual(self.cfg['policies'], old)
-        self.assertEqual([(d['lan_interface'], d['ip']) for d in out['devices']], [('br-lan', '192.168.8.0/24'), ('br-guest', '192.168.9.0/24')])
+        self.assertEqual([(d['lan_interface'], d['ip']) for d in out['devices']], [('br-lan', '10.77.50.0/24'), ('br-guest', '192.168.9.0/24')])
         self.assertEqual([d['port'] for d in out['dns']['policies']], [12100, 12101])
-        for iface, subnet, port in [('br-lan', '192.168.8.0/24', 12100), ('br-guest', '192.168.9.0/24', 12101)]:
+        for iface, subnet, port in [('br-lan', '10.77.50.0/24', 12100), ('br-guest', '192.168.9.0/24', 12101)]:
             self.assertIn('iifname "%s" ip saddr %s' % (iface, subnet), out['nft'])
             self.assertIn('redirect to :%d' % port, out['nft'])
             self.assertIn('iifname "%s" meta nfproto ipv6 reject' % iface, out['nft'])
 
     def test_multilan_rejects_empty_duplicate_overlapping_or_unresolved_choices(self):
-        for selected, resolved in [([], []), (['br-lan', 'br-lan'], []), (['br-lan', 'br-guest'], [{'interface': 'br-lan', 'network': '192.168.8.0/24'}]), (['br-lan', 'br-guest'], [{'interface': 'br-lan', 'network': '192.168.8.0/24'}, {'interface': 'br-guest', 'network': '192.168.8.0/25'}])]:
+        for selected, resolved in [([], []), (['br-lan', 'br-lan'], []), (['br-lan', 'br-guest'], [{'interface': 'br-lan', 'network': '10.77.50.0/24'}]), (['br-lan', 'br-guest'], [{'interface': 'br-lan', 'network': '10.77.50.0/24'}, {'interface': 'br-guest', 'network': '10.77.50.0/25'}])]:
             self.cfg['main'].update(scope='lan', lan_interfaces=selected, lan_networks=resolved)
             with self.assertRaises(ValueError):
                 config.compile_config(self.cfg, self.rules)
 
     def test_device_binding_uses_its_selected_lan_and_rejects_unselected_subnet(self):
-        self.cfg['main'].update(lan_interfaces=['br-lan', 'br-guest'], lan_networks=[{'interface': 'br-lan', 'network': '192.168.8.0/24'}, {'interface': 'br-guest', 'network': '192.168.9.0/24'}])
+        self.cfg['main'].update(lan_interfaces=['br-lan', 'br-guest'], lan_networks=[{'interface': 'br-lan', 'network': '10.77.50.0/24'}, {'interface': 'br-guest', 'network': '192.168.9.0/24'}])
         self.cfg['policies'][0]['ip'] = '192.168.9.20'
         out = config.compile_config(self.cfg, self.rules)
         self.assertEqual(out['devices'][0]['lan_interface'], 'br-guest')

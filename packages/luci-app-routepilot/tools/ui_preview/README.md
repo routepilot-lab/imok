@@ -10,7 +10,7 @@ python3 -B packages/luci-app-routepilot/tools/ui_preview/server.py
 
 访问 http://127.0.0.1:8767/cgi-bin/luci/admin/services/routepilot/overview 。场景选择器可查看连接、网站检测失败、关闭、等待应用、过期、空数据、异常连接、权限失败、读取中断、异常JSON和手动备用。开关只修改预览内存。
 
-主题CSS需要预先放在 `.local/ui-v2/argon-cascade.css`。本次已通过只读GET缓存实际Argon 2.2.9.4样式。缓存不入Git、不打包进插件，没有另行安装或分发字体。复现时应使用同一授权主题文件；服务不会自动访问生产设备取配置。
+主题CSS需要预先放在 `.local/fixtures/argon-cascade.css`。本次已通过只读GET缓存实际Argon 2.2.9.4样式。缓存不入Git、不打包进插件，没有另行安装或分发字体。复现时应使用同一授权主题文件；服务不会自动访问生产设备取配置。
 
 预览 `?baseline=1` 从 `pre-imok-ui-v2-20261108` Git标记读取原始view/CSS，使用同一适配器对照。切勿把该模拟预览当作线上安装版本。
 
@@ -27,8 +27,10 @@ ego-browser nodejs < packages/luci-app-routepilot/tools/ui_preview/interaction-a
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 packages/luci-app-routepilot/tools/check_all.py \
-  --luci-core /已授权缓存的/luci.js \
+  --luci-core .local/fixtures/luci.js \
   --report .local/ui-v2/checks-final/report.json
 ```
 
 不要运行opkg安装、服务启停、生产开关、DNS清理、Cloudflare写操作或恢复流程来验证此预览。
+
+`.local/fixtures/` 保存复测必需的既有 LuCI 核心与 Argon 样式输入，不能当历史测试缓存删除；新截图和检查结果仍写入各自的证据目录。

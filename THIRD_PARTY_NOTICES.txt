@@ -3,3 +3,6 @@ Worker derivative: GPL-2.0. Upstream cmliu/edgetunnel commit a8ab11125ece9bc2798
 Cloudflare WARP / One Agent is a separate third-party client, not relicensed by RoutePilot. Public source / public release excludes that binary and the Debian runtime. Obtain and use it under the vendor terms: https://www.cloudflare.com/cloudflareone/application/terms/ .
 The personal complete-install archive includes the previously prepared, unregistered runtime for the recipient's own compatible devices. It is not intended as a public GitHub redistribution grant. Debian component copyright and common-license notices remain inside that runtime.
 Workers services and API access remain subject to Cloudflare terms and quotas. No Cloudflare endorsement is implied.
+
+Offline QR encoder: qrcode-generator 2.0.4, MIT. License and pinned source metadata are included under packages/luci-app-routepilot/root/usr/share/routepilot/clients/.
+Native LuCI modal test fixture retains its upstream license under packages/luci-app-routepilot/tests/fixtures/.

@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import copy
 import io
 import json
@@ -59,7 +60,7 @@ class ExitTests(unittest.TestCase):
     def test_uuid_compiles_with_same_policy_as_legacy_mapping(self):
         with tempfile.TemporaryDirectory() as folder:
             (Path(folder)/'china.txt').write_text('1.0.1.0/24\n')
-            cfg={'main':{'exit':'usa','vnet_usa':IDS[-1]},'policies':[{'id':'one','enabled':'1','ip':'192.168.8.100','mac':'02:00:00:00:00:01','mode':'global'}]}
+            cfg={'main':{'exit':'usa','vnet_usa':IDS[-1]},'policies':[{'id':'one','enabled':'1','ip':'10.77.50.100','mac':'02:00:00:00:00:01','mode':'global'}]}
             old=masque_config.compile_config(cfg, Path(folder))
             cfg['main']['exit']=IDS[-1]
             new=masque_config.compile_config(cfg, Path(folder))
@@ -96,4 +97,4 @@ class ExitTests(unittest.TestCase):
         self.assertNotIn('/usr/libexec/routepilot',acl['read']['file'])
         menu=json.loads((ROOT/'root/usr/share/luci/menu.d/luci-app-routepilot.json').read_text())
         children=[k.rsplit('/',1)[1] for k in menu if k.count('/')==3]
-        self.assertEqual(set(children),{'overview','basic','devices','dns','rules','advanced','diagnostics','backup','workers','cloudflare'})
+        self.assertEqual(set(children),{'overview','basic','devices','dns','rules','advanced','diagnostics','backup','workers','cloudflare','clients'})

@@ -19,7 +19,7 @@ from asset_versions import validate
 _makefile=(ROOT/'Makefile').read_text()
 VERSION = re.search(r'^PKG_VERSION:=(.+)$',_makefile,re.M)[1]+'-'+re.search(r'^PKG_RELEASE:=(.+)$',_makefile,re.M)[1]
 DEPENDENCIES = ('luci-base, python3-light, python3-urllib, python3-logging, '
-                'python3-ctypes, python3-openssl, python3-uuid, ip-full, nftables-json, '
+                'python3-ctypes, python3-openssl, python3-uuid, python3-codecs, openssl-util, ip-full, nftables-json, '
                 'kmod-tun, kmod-veth, conntrack, curl, ca-bundle')
 
 
@@ -54,7 +54,7 @@ def build(destination=None):
             if not path.is_file() or '__pycache__' in path.parts or path.suffix == '.pyc':
                 continue
             name = prefix + path.relative_to(source).as_posix()
-            mode = 0o755 if name in ('etc/init.d/routepilot', 'usr/libexec/routepilot', 'usr/libexec/routepilot-exits', 'usr/libexec/routepilot-observe', 'usr/libexec/routepilot-traffic', 'usr/libexec/routepilot-backup-list') else 0o644
+            mode = 0o755 if name in ('etc/init.d/routepilot', 'usr/libexec/routepilot', 'usr/libexec/routepilot-exits', 'usr/libexec/routepilot-observe', 'usr/libexec/routepilot-traffic', 'usr/libexec/routepilot-backup-list', 'usr/libexec/routepilot-clients', 'usr/libexec/routepilot-clients-list') else 0o644
             if name == 'etc/config/routepilot':
                 mode = 0o600
             data.append((name, path.read_bytes(), mode))
@@ -68,7 +68,7 @@ Priority: optional
 License: MIT, GPL-2.0 (Worker template)
 Depends: {DEPENDENCIES}
 Installed-Size: {installed}
-Description: Experimental isolated Cloudflare One MASQUE per-device routing
+Description: imOK isolated Cloudflare MASQUE routing and mobile client access
 '''
     postinst = '''#!/bin/sh
 [ -n "$IPKG_INSTROOT" ] && exit 0

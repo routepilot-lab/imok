@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import hashlib,json,sys,tempfile,unittest,contextlib
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,7 +39,7 @@ class Endpoints(unittest.TestCase):
  def test_malformed_candidate_retains_cache(self):
   e.CACHE.write_text('{}');(e.ROOT/'conf.json').write_text(json.dumps({'tunnel_key_data':{'tunnel_type':'masque'},'endpoints':[{'v4':'127.0.0.1:443'}]}));e.refresh();self.assertEqual(e.CACHE.read_text(),'{}')
  def test_rejects_local_multicast_injection_and_ipv6_application(self):
-  for addr in ['127.0.0.1:443','100.96.0.22:443','224.0.0.1:443','192.168.8.1:443','169.254.169.254:80','8.8.8.8:443;id','8.8.8.8:0','domain.com:443','[2606:4700:102::2]:443']:
+  for addr in ['127.0.0.1:443','100.96.55.22:443','224.0.0.1:443','10.77.50.1:443','169.254.169.254:80','8.8.8.8:443;id','8.8.8.8:0','domain.com:443','[2606:4700:102::2]:443']:
    with self.subTest(addr=addr),self.assertRaises(ValueError):e.validate({'mode':'manual','address':addr})
  def test_symlink_source_rejected(self):
   target=self.p/'other';target.write_text('{}');(e.ROOT/'conf.json').symlink_to(target);e.refresh();self.assertEqual(e.info()['collection']['state'],'error')

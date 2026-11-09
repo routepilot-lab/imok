@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 from input_fixture import stage
 import contextlib,hashlib,json,sys,tempfile,unittest
 from pathlib import Path
@@ -79,7 +80,7 @@ class WarpTest(unittest.TestCase):
   import masque_config as c
   with tempfile.TemporaryDirectory() as folder:
    root=Path(folder);(root/'china.txt').write_text('1.0.1.0/24\n')
-   cfg=dict(main=dict(exit='11111111-1111-4111-8111-111111111111',scope='lan',lan_network='192.168.8.0/24'),policies=[])
+   cfg=dict(main=dict(exit='11111111-1111-4111-8111-111111111111',scope='lan',lan_network='10.77.50.0/24'),policies=[])
    first=c.compile_config(cfg,root)
    for protocol in ['MASQUE','WireGuard','auto']:
     cfg['main']['warp_protocol']=protocol;result=c.compile_config(cfg,root);self.assertEqual(result['nft'],first['nft']);self.assertEqual(result['vnet'],first['vnet'])

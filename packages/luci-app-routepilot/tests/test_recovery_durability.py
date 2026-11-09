@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import contextlib,json,sys,shutil,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch,Mock
@@ -60,7 +61,7 @@ class Durability(unittest.TestCase):
     count[0]+=1
     if count[0]>=5:m.STOP=True
    cfg={'main':dict(t.main,enabled='1',backend='masque'),'policies':[]}
-   with patch.object(e,'durable',side_effect=save),patch.object(m,'RUN',e.RUN),patch.object(m.sys,'argv',['routepilot','run']),patch.object(m,'Service',return_value=svc),patch.object(m,'STOP',False),patch.object(m,'read_config',return_value=cfg),patch.object(m,'selected_lans',return_value=['br-lan']),patch.object(m,'lan_interfaces',return_value=[{'name':'br-lan','up':True,'network':'192.168.8.0/24'}]),patch.object(m.signal,'signal'),patch.object(m.time,'sleep',side_effect=sleep):m.main()
+   with patch.object(e,'durable',side_effect=save),patch.object(m,'RUN',e.RUN),patch.object(m.sys,'argv',['routepilot','run']),patch.object(m,'Service',return_value=svc),patch.object(m,'STOP',False),patch.object(m,'read_config',return_value=cfg),patch.object(m,'selected_lans',return_value=['br-lan']),patch.object(m,'lan_interfaces',return_value=[{'name':'br-lan','up':True,'network':'10.77.50.0/24'}]),patch.object(m.signal,'signal'),patch.object(m.time,'sleep',side_effect=sleep):m.main()
    self.assertEqual(count[0],5);self.assertEqual(svc.plane.start.call_count,1);self.assertEqual(t.calls.count(('disconnect',)),1);self.assertTrue(e.PROCESS_BLOCK.exists());self.assertTrue(e.classify_recovery(t.main)['startup_pause'])
  def test_ram_evidence_blocks_a_new_controller_process(self):
   with case() as t:

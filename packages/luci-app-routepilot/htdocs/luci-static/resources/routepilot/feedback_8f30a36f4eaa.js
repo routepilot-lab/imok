@@ -17,8 +17,12 @@ return baseclass.extend({
   return result;
  },
 
+ diagnosticValid: function(test) {
+  if(!test||typeof test!=='object'||!['running','done'].includes(test.state)||!Array.isArray(test.results)||test.results.length>5)return false;
+  var seen={};return test.results.every(function(row){if(!row||typeof row!=='object'||!['google','youtube','github','taobao','baidu'].includes(row.id)||seen[row.id]||!['pending','ok','failed','restricted'].includes(row.state))return false;seen[row.id]=true;return true;});
+ },
  wizardTestToken: function(test) {
-  if(!test)return 'none';
+  if(!this.diagnosticValid(test))return 'none';
   return JSON.stringify([test.started_at,test.finished_at,test.state,test.exit,test.exit_ip,test.runtime_id,test.generation,test.applied_nonce,(test.results||[]).map(function(r){return [r.id,r.state,r.http,r.ms];}).sort(function(a,b){return String(a[0]).localeCompare(String(b[0]));})]);
  },
  wizardProxyVerification: function(test,status,config,now) {
@@ -30,7 +34,7 @@ return baseclass.extend({
  wizardVerification: function(test, status, config, now) {
   if (!this.fresh(status, now) || status.state !== 'running') return 'pending';
   if (status.applied_nonce !== config.nonce || status.exit !== config.exit) return 'stale';
-  if (!test || this.diagnosticStale(test, status, now)) return 'stale';
+  if (!this.diagnosticValid(test) || this.diagnosticStale(test, status, now)) return 'stale';
   if (this.diagnosticRunning(test, now)) return 'busy';
   var age=now/1000-Number(test.finished_at), ids=['google','youtube','github','taobao','baidu'];
   if (test.state !== 'done' || !Number.isFinite(age) || age < -5 || age > 300 || !Array.isArray(test.results) || test.results.length !== ids.length) return 'stale';
@@ -57,12 +61,15 @@ return baseclass.extend({
   if(!data||data.schema!==1||!Array.isArray(data.policies))return 'unavailable';
   var age=now/1000-Number(data.time);
   if(!Number.isFinite(age)||age < -1||age>5||!data.runtime_id||!data.generation||!data.process_instance||data.runtime_id!==status.runtime_id||data.generation!==status.generation)return 'stale';
-  if(data.state!=='running'||!data.policies.length||data.policies.length>8||!data.upstreams||!data.policies.every(function(p){return ['cache_entries','cache_hits','requests','errors'].every(function(k){return Number.isSafeInteger(p[k])&&p[k]>=0;});}))return 'unavailable';
+  if(data.state!=='running'||!data.policies.length||data.policies.length>8||!data.upstreams||!data.policies.every(function(p){return p&&typeof p==='object'&&['cache_entries','cache_hits','requests','errors'].every(function(k){return Number.isSafeInteger(p[k])&&p[k]>=0;});}))return 'unavailable';
   return 'running';
+ },
+ dnsTestValid:function(test){
+  return !!test&&typeof test==='object'&&['running','done'].includes(test.state)&&Array.isArray(test.results)&&test.results.length<=32&&test.results.every(function(row){return !!row&&typeof row==='object'&&Number.isSafeInteger(row.policy)&&['domestic','proxy'].includes(row.target)&&['udp','tcp'].includes(row.protocol);});
  },
  dnsTestState:function(test,status,dns,now){
   if(!test)return this.dnsState(dns,status,now)==='running'?'pending':'unavailable';
-  if(this.dnsState(dns,status,now)!=='running'||this.diagnosticStale(test,status,now)||test.process_instance!==dns.process_instance)return 'stale';
+  if(!this.dnsTestValid(test)||this.dnsState(dns,status,now)!=='running'||this.diagnosticStale(test,status,now)||test.process_instance!==dns.process_instance)return 'stale';
   var age=now/1000-Number(test.started_at);
   if(test.state==='running')return Number.isFinite(age)&&age>=-5&&age<50?'busy':'stale';
   var finishedAge=now/1000-Number(test.finished_at);

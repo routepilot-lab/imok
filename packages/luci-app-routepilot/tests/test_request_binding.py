@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import hashlib,json,sys,unittest
 from pathlib import Path
 from unittest.mock import patch,Mock
@@ -60,7 +61,7 @@ class SupervisorPause(unittest.TestCase):
    count[0]+=1
    if count[0]>=5:m.STOP=True
   cfg={'main':dict(t.main,enabled='1',backend='masque'),'policies':[]}
-  with patch.object(m,'RUN',e.RUN),patch.object(m.sys,'argv',['routepilot','run']),patch.object(m,'Service',return_value=svc),patch.object(m,'STOP',False),patch.object(m,'read_config',return_value=cfg),patch.object(m,'selected_lans',return_value=['br-lan']),patch.object(m,'lan_interfaces',return_value=[{'name':'br-lan','up':True,'network':'192.168.8.0/24'}]),patch.object(m.signal,'signal'),patch.object(m.time,'sleep',side_effect=sleep):m.main()
+  with patch.object(m,'RUN',e.RUN),patch.object(m.sys,'argv',['routepilot','run']),patch.object(m,'Service',return_value=svc),patch.object(m,'STOP',False),patch.object(m,'read_config',return_value=cfg),patch.object(m,'selected_lans',return_value=['br-lan']),patch.object(m,'lan_interfaces',return_value=[{'name':'br-lan','up':True,'network':'10.77.50.0/24'}]),patch.object(m.signal,'signal'),patch.object(m.time,'sleep',side_effect=sleep):m.main()
   self.assertEqual(count[0],5);svc.plane.start.assert_not_called();self.assertEqual(svc.stop.call_count,3);self.assertEqual(t.calls,[])
  def test_active_recoverable_transaction_is_not_paused(self):
   t=endpoint_tests.Endpoints();t.setUp();self.addCleanup(t.doCleanups);t.config();r={'revision':'one','previous':'162.159.197.2:8443','target':'162.159.197.2:443','baseline':'8.8.8.8','vnet':t.main['vnet_usa'],'phase':'apply'};e.TRANSACTION.write_text(json.dumps(r));self.assertEqual(e.pause_reason(t.main),'');r['phase']='unknown';e.TRANSACTION.write_text(json.dumps(r));self.assertTrue(e.pause_reason(t.main));e.TRANSACTION.unlink();e.APPLIED.write_text('{"state":"applied"}');self.assertTrue(e.pause_reason(t.main))

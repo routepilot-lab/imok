@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import json
 from pathlib import Path
 import sys
@@ -13,7 +14,7 @@ class IPv6ChoiceTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory()
         self.rules = Path(self.folder.name)
         self.cfg = {'main': {'exit': 'usa', 'vnet_usa': '11111111-1111-4111-8111-111111111111'}, 'policies': [
-            {'id': 'one', 'enabled': '1', 'ip': '192.168.8.10', 'mac': '02:00:00:00:00:01', 'mode': 'global'}]}
+            {'id': 'one', 'enabled': '1', 'ip': '10.77.50.10', 'mac': '02:00:00:00:00:01', 'mode': 'global'}]}
 
     def tearDown(self):
         self.folder.cleanup()
@@ -37,7 +38,7 @@ class IPv6ChoiceTests(unittest.TestCase):
         self.assertNotIn(' accept', guard.replace('policy accept;', ''))
 
     def test_same_lan_mixed_mac_modes_are_independent(self):
-        self.cfg['policies'].append(dict(self.cfg['policies'][0], id='two', ip='192.168.8.11', mac='02:00:00:00:00:02', ipv6_mode='direct'))
+        self.cfg['policies'].append(dict(self.cfg['policies'][0], id='two', ip='10.77.50.11', mac='02:00:00:00:00:02', ipv6_mode='direct'))
         result = self.compile()
         self.assertIn('ether saddr 02:00:00:00:00:01 meta nfproto ipv6 reject', result['nft'])
         self.assertNotIn('ether saddr 02:00:00:00:00:02 meta nfproto ipv6 reject', result['nft'])
@@ -49,13 +50,13 @@ class IPv6ChoiceTests(unittest.TestCase):
         self.assertTrue(self.compile()['dns']['policies'][0]['block_aaaa'])
 
     def test_whole_lan_group_ignores_saved_device_override(self):
-        self.cfg['main'].update(scope='lan', ipv6_mode='direct', lan_network='192.168.8.0/24', lan_mode='global')
+        self.cfg['main'].update(scope='lan', ipv6_mode='direct', lan_network='10.77.50.0/24', lan_mode='global')
         self.cfg['policies'][0]['ipv6_mode'] = 'invalid-unused-device-value'
         self.assertFalse(self.compile()['dns']['policies'][0]['block_aaaa'])
 
     def test_multiple_lans_follow_group_choice(self):
         self.cfg['main'].update(scope='lan', lan_interfaces=['br-lan','br-guest'], lan_networks=[
-            {'interface':'br-lan','network':'192.168.8.0/24'}, {'interface':'br-guest','network':'192.168.9.0/24'}], lan_mode='global')
+            {'interface':'br-lan','network':'10.77.50.0/24'}, {'interface':'br-guest','network':'192.168.9.0/24'}], lan_mode='global')
         for mode, count, blocked in [('block',2,True),('direct',0,False)]:
             self.cfg['main']['ipv6_mode'] = mode
             result = self.compile()

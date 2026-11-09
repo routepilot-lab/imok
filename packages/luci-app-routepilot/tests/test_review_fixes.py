@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import json
 from pathlib import Path
 import sys
@@ -147,8 +148,8 @@ class RuleGenerationTests(unittest.TestCase):
     def test_failed_phone_pause_is_retried_despite_existing_journal(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(masque, 'RUN', Path(folder)), patch.object(masque, 'uci_value', return_value='1'):
             marker = Path(folder) / 'phone-paused'; marker.write_text('intent')
-            compiled = {'nft': '', 'vnet': 'test', 'exit': 'usa', 'devices': [{'mode': 'global', 'ip': '192.168.8.10', 'mac': '02:00:00:00:00:01'}]}
-            cfg = {'main': {'legacy_phone_ip': '192.168.8.10', 'legacy_phone_mac': '02:00:00:00:00:01'}}
+            compiled = {'nft': '', 'vnet': 'test', 'exit': 'usa', 'devices': [{'mode': 'global', 'ip': '10.77.50.10', 'mac': '02:00:00:00:00:01'}]}
+            cfg = {'main': {'legacy_phone_ip': '10.77.50.10', 'legacy_phone_mac': '02:00:00:00:00:01'}}
             service = masque.Service(); service.plane = Mock(); service.plane.probe.return_value = '192.0.2.1'
             attempts = []
             def command(args, **kw):
@@ -192,7 +193,7 @@ class RuleGenerationTests(unittest.TestCase):
 
     def test_successful_apply_refreshes_runtime_identity(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(masque, 'RUN', Path(folder)), patch.object(masque, 'uci_value', return_value='0'), patch.object(masque, 'net'), patch.object(masque.time, 'sleep'):
-            compiled = {'nft': '', 'vnet': 'test', 'exit': 'usa', 'dns': {}, 'devices': [{'mode': 'global', 'ip': '192.168.8.10', 'mac': '02:00:00:00:00:01'}]}
+            compiled = {'nft': '', 'vnet': 'test', 'exit': 'usa', 'dns': {}, 'devices': [{'mode': 'global', 'ip': '10.77.50.10', 'mac': '02:00:00:00:00:01'}]}
             service = masque.Service(); service.plane = Mock(); service.plane.probe.return_value = '192.0.2.1'
             service.dns = Mock(); service.dns.alive.return_value = True
             def command(args, **kw):

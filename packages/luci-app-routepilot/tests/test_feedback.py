@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 import json
 from pathlib import Path
 import sys
@@ -16,13 +17,13 @@ class FeedbackTests(unittest.TestCase):
     def test_lan_choices_exclude_wan_tunnels_and_public_addresses(self):
         def addr(name, ip, prefix=24, flags=None):
             return {'ifname': name, 'flags': flags or ['UP'], 'addr_info': [{'family': 'inet', 'scope': 'global', 'local': ip, 'prefixlen': prefix}]}
-        items = [addr('br-lan', '192.168.8.1'), addr('eth1', '192.168.0.119'), addr('br-guest', '10.10.0.1'), addr('warp_test', '172.16.0.2', 32), addr('vpn', '10.0.2.1', flags=['UP', 'POINTOPOINT']), addr('public', '8.8.8.8')]
+        items = [addr('br-lan', '10.77.50.1'), addr('eth1', '192.168.0.119'), addr('br-guest', '10.10.0.1'), addr('warp_test', '172.16.0.2', 32), addr('vpn', '10.0.2.1', flags=['UP', 'POINTOPOINT']), addr('public', '8.8.8.8')]
         responses = [SimpleNamespace(stdout=json.dumps(items)), SimpleNamespace(stdout=json.dumps([{'dev': 'eth1'}]))]
         with patch.object(masque, 'command', side_effect=responses):
-            self.assertEqual(masque.lan_interfaces(), [{'name': 'br-lan', 'network': '192.168.8.0/24', 'up': True}, {'name': 'br-guest', 'network': '10.10.0.0/24', 'up': True}])
+            self.assertEqual(masque.lan_interfaces(), [{'name': 'br-lan', 'network': '10.77.50.0/24', 'up': True}, {'name': 'br-guest', 'network': '10.10.0.0/24', 'up': True}])
 
     def test_guest_dns_permission_is_scoped_and_does_not_open_lan_interforwarding(self):
-        devices = [{'scope': 'lan', 'lan_interface': 'br-lan', 'ip': '192.168.8.0/24', 'mode': 'global'}, {'scope': 'lan', 'lan_interface': 'br-guest', 'ip': '192.168.9.0/24', 'mode': 'global'}]
+        devices = [{'scope': 'lan', 'lan_interface': 'br-lan', 'ip': '10.77.50.0/24', 'mode': 'global'}, {'scope': 'lan', 'lan_interface': 'br-guest', 'ip': '192.168.9.0/24', 'mode': 'global'}]
         def cmd(args, **kwargs):
             return SimpleNamespace(stdout=json.dumps([{'dev': 'eth1'}]) if args[0] == 'ip' else '')
         with patch.object(mplane, 'command', side_effect=cmd) as call:

@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 from input_fixture import stage
 import copy,json,tempfile,time,unittest,sys
 from pathlib import Path
@@ -72,7 +73,7 @@ class WorkerIntegration(unittest.TestCase):
  def test_backup_compiles_without_a_cloudflare_virtual_network(self):
   with tempfile.TemporaryDirectory() as d:
    p=Path(d);(p/'china.txt').write_text('1.0.1.0/24\n')
-   cfg={'main':{'backend':'worker','exit':'not-a-vnet'},'policies':[{'id':'test','enabled':'1','ip':'192.168.8.4','mac':'02:11:22:33:44:55','mode':'bypass_cn'}]}
+   cfg={'main':{'backend':'worker','exit':'not-a-vnet'},'policies':[{'id':'test','enabled':'1','ip':'10.77.50.4','mac':'02:11:22:33:44:55','mode':'bypass_cn'}]}
    out=masque_config.compile_config(cfg,p);self.assertEqual(out['exit'],'worker');self.assertEqual(out['vnet'],'');self.assertEqual(cfg['main']['exit'],'not-a-vnet')
  def test_manual_control_changes_only_backend_and_submission_nonce(self):
   import masque,io

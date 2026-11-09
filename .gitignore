@@ -1,12 +1,30 @@
-# Local secrets, test artifacts and builds
 .local/
 .env
 .env.*
 !.env.example
-**/__pycache__/
-*.py[cod]
-**/dist/
-*.ipk
-*.tgz
-**/runtime/
 .DS_Store
+__pycache__/
+
+# Generated router packages and private runtime
+**/dist/
+releases/*.zip
+*.tgz
+*.ipk
+**/runtime/
+
+# Private evidence, historical captures and generated release bundles
+/releases/
+docs/validation/
+docs/history/
+docs/reviews/
+docs/CLOUDFLARE_DEPLOYMENT_FINDINGS.md
+docs/WARP_PROTOCOL_AND_COUNTRY.md
+**/node_modules/
+**/.pytest_cache/
+*.pyc
+*.log
+*.db
+*.sqlite*
+*.pem
+*.key
+*cookie*.json

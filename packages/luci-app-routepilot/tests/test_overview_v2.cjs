@@ -18,7 +18,7 @@ const cases=String.raw`
  assert.ok(node.textContent.includes('隧道已连接'));assert.ok(facts.textContent.includes('所测网站存在失败'),'website failure cannot become a tunnel failure or success');
  current={...current,time:Date.now()/1000-120};await tick();assert.ok(node.textContent.includes('状态未知'));assert.ok(facts.textContent.includes('尚无有效检测'));
  traffic={...traffic,days:{},total:{}};await tick();assert.ok(node.textContent.includes('此时段没有采集数据'));
- const off=node.find(e=>e.tag==='button'&&e.textContent==='关闭 imok');off.attrs.click();await new Promise(setImmediate);assert.deepEqual(powerCalls,['disable'],'one click invokes only existing disable command');current={...current,time:Date.now()/1000,state:'disabled',applied_nonce:'power-one'};await tick();assert.ok(facts.textContent.includes('当前配置已确认应用'),'display binds the acknowledged power request without changing the power handler');
+ const off=node.find(e=>e.tag==='button'&&e.textContent==='关闭 imOK');off.attrs.click();await new Promise(setImmediate);assert.deepEqual(powerCalls,['disable'],'one click invokes only existing disable command');current={...current,time:Date.now()/1000,state:'disabled',applied_nonce:'power-one'};await tick();assert.ok(facts.textContent.includes('当前配置已确认应用'),'display binds the acknowledged power request without changing the power handler');
  console.log('Overview v2: independent status, unknown/stale data, all four totals, display-only range and single power command passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 `;

@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 from input_fixture import stage
 import contextlib, json, os, sys, tempfile, unittest
 from pathlib import Path
@@ -23,7 +24,7 @@ class RelayTest(unittest.TestCase):
   row=dict(address=ROWS[0]['address'],fingerprint=w.relay_fingerprint(NODE),boot='boot',finished_uptime=100,forced=True,profile=r.PROFILE,checks=[{'ok':True},{'ok':True}]);row.update(changes);return row
  def test_public_addresses_and_bounded_pool(self):
   self.assertEqual(r.address(' Relay.Example.com:0443 '),'relay.example.com:443')
-  for bad in ['127.0.0.1:443','192.168.8.1:443','100.64.1.2:443','192.0.2.1:443','https://example.com:443','example.com:0','example.com:65536','[::1]:443']:
+  for bad in ['127.0.0.1:443','10.77.50.1:443','100.64.1.2:443','192.0.2.1:443','https://example.com:443','example.com:0','example.com:65536','[::1]:443']:
    with self.subTest(bad=bad),self.assertRaises(ValueError):r.address(bad)
   for bad in [[],ROWS*4,[ROWS[0],ROWS[0]],[{**ROWS[0],'enabled':False}],[{**ROWS[0],'enabled':'false'}],[{**ROWS[0],'source_url':'https://example.com/?token=private'}],[{**ROWS[0],'source_url':'http://example.com/'}]]:
    with self.subTest(bad=bad),self.assertRaises(ValueError):r.spec(bad)

@@ -53,7 +53,7 @@ def reap_requests(run, now=None):
     prepare_requests(run)
     directory=Path(run)/'requests'
     for path in directory.iterdir():
-        if not re.fullmatch(r'(auth-input|backup-input|cloud-input|relay-input|organization-input|rules-input)-[a-f0-9]{32}\.json',path.name):continue
+        if not re.fullmatch(r'(auth-input|backup-input|cloud-input|relay-input|organization-input|rules-input|client-input)-[a-f0-9]{32}\.json',path.name):continue
         try:
             age=now-path.lstat().st_mtime
             if age>300 or age < -5:path.unlink()

@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 from input_fixture import stage
 import contextlib,io,json,tempfile,unittest,sys,hashlib
 from pathlib import Path
@@ -162,11 +163,11 @@ class CloudTest(unittest.TestCase):
 
 class EntryScanTest(unittest.TestCase):
  def test_only_cf_public_ipv4_is_eligible(self):
-  for value in ['127.0.0.1','192.168.8.1','1.1.1.1','not-an-ip','::1']:self.assertFalse(scan.cf_ip(value))
+  for value in ['127.0.0.1','10.77.50.1','1.1.1.1','not-an-ip','::1']:self.assertFalse(scan.cf_ip(value))
   self.assertTrue(scan.cf_ip('104.21.39.117'))
  def test_candidates_are_bounded_and_do_not_trust_private_dns(self):
-  with patch.object(scan.socket,'getaddrinfo',return_value=[(2,1,6,'',('192.168.8.1',443))]):
-   rows=scan.candidates(NODE);self.assertLessEqual(len(rows),8);self.assertNotIn('192.168.8.1',rows);self.assertEqual(rows[0],NODE['address'])
+  with patch.object(scan.socket,'getaddrinfo',return_value=[(2,1,6,'',('10.77.50.1',443))]):
+   rows=scan.candidates(NODE);self.assertLessEqual(len(rows),8);self.assertNotIn('10.77.50.1',rows);self.assertEqual(rows[0],NODE['address'])
  def test_no_recommendation_without_both_real_sites(self):
   rows=[{'ip':'104.16.0.1','checks':[{'ok':True,'ms':1},{'ok':False,'ms':1}]},{'ip':'104.17.0.1','checks':[{'ok':True,'ms':20},{'ok':True,'ms':20}]}]
   self.assertEqual(scan.rank(rows)[0]['ip'],'104.17.0.1')

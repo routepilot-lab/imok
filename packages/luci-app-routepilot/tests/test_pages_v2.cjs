@@ -23,7 +23,7 @@ const cases=String.raw`
  location.pathname='/admin/services/routepilot/cloudflare/dns';const dns=await new View().render([null,null,[],directory]);
  const diagnostics=dns.find(e=>e.attrs.class==='imok-diagnostics');assert.equal(diagnostics.tag,'details');assert.ok(diagnostics.textContent.includes('WARP 客户端 UDP 接收观测'));
  const settings=dns.find(e=>e.attrs.class==='imok-panel');assert.ok(!settings.find(e=>e.tag==='details'),'editable DNS settings stay directly visible');
- const view=new View();await view.render([null,null,[],directory]);let modalClasses;const nativeModal=ui.showModal;ui.showModal=function(title,children,...classes){modalClasses=classes;return nativeModal(title,children);};uci.save=()=>Promise.resolve();view.map.save=()=>Promise.resolve();await view.applySettings();assert.deepEqual(modalClasses,['imok-dialog'],'only iMOK modal requests its owner class');assert.ok(lastModal.find(e=>e.tag==='button'&&e.textContent==='关闭'),'original close action retained');
+ const view=new View();await view.render([null,null,[],directory]);let modalClasses;const nativeModal=ui.showModal;ui.showModal=function(title,children,...classes){modalClasses=classes;return nativeModal(title,children);};uci.save=()=>Promise.resolve();view.map.save=()=>Promise.resolve();await view.applySettings();assert.deepEqual(modalClasses,['imok-dialog'],'only imOK modal requests its owner class');assert.ok(lastModal.find(e=>e.tag==='button'&&e.textContent==='关闭'),'original close action retained');
  console.log('Pages v2: stage selection, polling stability, retained drafts/actions and read-only diagnostics passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 `;

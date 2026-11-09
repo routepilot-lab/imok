@@ -1,5 +1,5 @@
 """Release protection tests use a fake API and temporary files, never a live repository."""
-import hashlib,tempfile,unittest
+import hashlib,tempfile,unittest,zipfile
 from pathlib import Path
 from unittest.mock import patch
 import publish_release as release
@@ -32,4 +32,27 @@ class ReleaseProtection(unittest.TestCase):
         with patch.object(release,'api',side_effect=[{'object':{'type':'commit','sha':self.head}},public]) as api:
             self.assertEqual(release.publish('0.2.35-6',[self.file],self.head,'notes'),public)
             self.assertTrue(all(c.args[0]=='GET' for c in api.call_args_list))
+    def test_public_archive_allowlist_excludes_private_and_internal_material(self):
+        public=['README.md','packages/luci-app-routepilot/root/usr/lib/routepilot/client_access.py','docs/CLIENT_ACCESS.md','docs/images/imok-clients.png']
+        private=['.local/receipt.json','releases/runtime.tgz','AGENTS.md','scripts/opus.sh','docs/client-access/LIVE_ENROLLMENT.md','packages/luci-app-routepilot/.env','packages/luci-app-routepilot/test.key','../README.md']
+        self.assertEqual(release.public_paths(public+private),sorted(public))
+    def test_install_kit_is_deterministic_and_every_attachment_has_a_checksum(self):
+        root=Path(self.folder.name);(root/'docs/releases').mkdir(parents=True)
+        for path in ['docs/INSTALL_KIT.md','docs/releases/v1.2.3-1.md','LICENSE','THIRD_PARTY_NOTICES.txt']:
+            (root/path).write_text('reviewed public '+path)
+        source=root/'imOK-1.2.3-1-public-source.zip';source.write_bytes(b'public source fixture')
+        with patch.object(release,'ROOT',root):
+            kit=release.install_kit(root,'1.2.3-1',self.file,source);first=kit.read_bytes()
+            self.assertEqual(release.install_kit(root,'1.2.3-1',self.file,source).read_bytes(),first)
+        with zipfile.ZipFile(kit) as archive:
+            self.assertIsNone(archive.testzip());prefix='imOK-1.2.3-1/'
+            names=set(archive.namelist());checks=archive.read(prefix+'SHA256SUMS').decode().splitlines()
+            self.assertEqual(len(checks),len(names)-1)
+            for line in checks:
+                checksum,name=line.split('  ',1);self.assertEqual(checksum,hashlib.sha256(archive.read(prefix+name)).hexdigest())
+            self.assertFalse(any('runtime' in name or '.local' in name for name in names))
+    def test_dirty_workspace_is_rejected_before_any_build_or_upload(self):
+        with patch.object(release.subprocess,'check_output',return_value=b' M README.md'):
+            with self.assertRaisesRegex(AssertionError,'Commit reviewed source'):
+                release.prepare()
 if __name__=='__main__':unittest.main()

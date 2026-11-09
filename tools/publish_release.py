@@ -8,30 +8,73 @@ API='https://api.github.com/repos/'+REPOSITORY
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
+PUBLIC_DOCS = {'docs/CLIENT_ACCESS.md', 'docs/FAQ.md', 'docs/INSTALL_KIT.md', 'docs/PUBLICATION_CHECKS.json',
+               'docs/USER_FEEDBACK.md', 'docs/WORKERS_SETUP.md', 'docs/quality/system-audit-20261109.md'}
+PUBLIC_TOP = {'README.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.txt', '.gitignore',
+              'tools/publish_release.py', 'tools/test_publish_release.py'}
+PUBLIC_IMAGES = {'docs/images/imok-overview.png', 'docs/images/imok-clients.png', 'docs/images/imok-workers.png'}
+
+
+def public_paths(names):
+    """Explicit public scope; never infer safety from .gitignore alone."""
+    result = []
+    for name in sorted(set(names)):
+        p = Path(name)
+        if p.is_absolute() or any(part in {'.git', '.local', 'dist', 'runtime', '__pycache__', 'node_modules', '..'} or part.startswith('.env') for part in p.parts):
+            continue
+        if p.suffix.lower() in {'.key', '.pem', '.db', '.sqlite', '.sqlite3', '.pyc', '.ipk', '.tgz'}:
+            continue
+        if name in PUBLIC_TOP | PUBLIC_DOCS | PUBLIC_IMAGES or name.startswith(('packages/luci-app-routepilot/', '.github/')) or re.fullmatch(r'docs/releases/v[0-9.-]+\.md', name):
+            result.append(name)
+    return result
+
+
+def write_zip(target, entries):
+    with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for name, data, mode in sorted(entries):
+            item = zipfile.ZipInfo(name, date_time=(2026, 11, 9, 0, 0, 0))
+            item.create_system = 3; item.compress_type = zipfile.ZIP_DEFLATED
+            item.external_attr = (stat.S_IFREG | mode) << 16
+            archive.writestr(item, data)
+
+
+def install_kit(out, version, ipk, source):
+    prefix = 'imOK-' + version + '/'
+    entries = [(prefix + ipk.name, ipk.read_bytes(), 0o644), (prefix + source.name, source.read_bytes(), 0o644)]
+    for name, origin in [('开始阅读.md', ROOT/'docs/INSTALL_KIT.md'), ('本版更新.md', ROOT/'docs/releases'/('v'+version+'.md')),
+                         ('LICENSE', ROOT/'LICENSE'), ('THIRD_PARTY_NOTICES.txt', ROOT/'THIRD_PARTY_NOTICES.txt')]:
+        entries.append((prefix + name, origin.read_bytes(), 0o644))
+    sums = ''.join(hashlib.sha256(data).hexdigest()+'  '+name.removeprefix(prefix)+'\n' for name, data, _ in entries)
+    entries.append((prefix+'SHA256SUMS', sums.encode(), 0o644))
+    target = out/('imOK-'+version+'-install-kit.zip'); write_zip(target, entries); return target
+
+
 def prepare():
+    assert not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT).strip(), 'Commit reviewed source before preparing a public release'
     package=ROOT/'packages/luci-app-routepilot'
     sys.path.insert(0,str(package/'tools'))
     spec=importlib.util.spec_from_file_location('release_build',package/'tools/build.py')
     builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
     checks=json.loads((ROOT/'docs/PUBLICATION_CHECKS.json').read_text())
     assert checks['version']==builder.VERSION and checks['all_passed'],'Unreviewed package version'
-    out=ROOT/'.local/release';out.mkdir(parents=True,exist_ok=True)
+    version=builder.VERSION;out=ROOT/'.local/release'/version;out.mkdir(parents=True,exist_ok=True)
     ipk=builder.build(out)
-    assert digest(ipk)==checks['integrity']['package_sha256'],'IPK differs from the reviewed router package'
-    version=builder.VERSION;archive=out/('imok-'+version+'-public-source.zip')
-    names=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
-    with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-        for name in sorted(n for n in names if n):
-            path=Path(name)
-            assert not any(p in ['.git','.local','dist','runtime','__pycache__','node_modules'] for p in path.parts),name
-            assert not any(p.startswith('.env') for p in path.parts),name
-            f=ROOT/path;assert f.is_file() and not f.is_symlink(),name
-            item=zipfile.ZipInfo('imok-'+version+'/'+name,date_time=(2026,11,8,0,0,0))
-            item.create_system=3;item.compress_type=zipfile.ZIP_DEFLATED
-            item.external_attr=(stat.S_IFREG|stat.S_IMODE(f.stat().st_mode))<<16
-            z.writestr(item,f.read_bytes())
-    sums=out/'SHA256SUMS';sums.write_text(''.join(digest(p)+'  '+p.name+'\n' for p in [ipk,archive]))
-    return version,out,[ipk,archive,sums]
+    assert digest(ipk)==checks['integrity']['package_sha256'],'IPK differs from the reviewed package'
+    archive=out/('imOK-'+version+'-public-source.zip')
+    records=subprocess.check_output(['git','ls-files','--stage','-z'],cwd=ROOT).decode().split('\0')
+    modes={}
+    for record in records:
+        if not record:continue
+        info,name=record.split('\t',1);mode,_,stage=info.split();assert stage=='0','Unresolved index'
+        modes[name]=int(mode,8)
+    entries=[]
+    for name in public_paths(modes):
+        f=ROOT/name;assert f.is_file() and not f.is_symlink(),name
+        entries.append(('imOK-'+version+'/'+name,f.read_bytes(),modes[name]&0o777))
+    write_zip(archive,entries)
+    kit=install_kit(out,version,ipk,archive)
+    sums=out/'SHA256SUMS';sums.write_text(''.join(digest(p)+'  '+p.name+'\n' for p in [ipk,archive,kit]))
+    return version,out,[ipk,archive,kit,sums]
 
 def api(method,path,payload=None,data=None,content_type='application/json'):
     assert os.environ.get('GITHUB_REPOSITORY')==REPOSITORY,'Publishing is limited to the upstream repository'
@@ -65,7 +108,7 @@ def publish(version,files,head,body):
     if release:
         assert release['target_commitish']==head and not release.get('prerelease'),'Unrelated draft release'
     else:
-        release=api('POST','/releases',{'tag_name':tag,'target_commitish':head,'name':'iMOK 2.0 · 完整界面版（'+tag+'）','body':body,'draft':True,'prerelease':False,'make_latest':'false'})
+        release=api('POST','/releases',{'tag_name':tag,'target_commitish':head,'name':'imOK 2.0 · 客户端接入与稳定性版（'+tag+'）','body':body,'draft':True,'prerelease':False,'make_latest':'false'})
     existing={a['name']:a for a in release.get('assets',[])}
     assert set(existing)<={p.name for p in files},'Unexpected draft attachments'
     for p in files:

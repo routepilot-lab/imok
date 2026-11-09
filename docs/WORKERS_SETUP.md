@@ -1,6 +1,6 @@
 # Workers 备用线路完整设置（0.2.24）
 
-入口：LuCI → 服务 → imok → Cloudflare 配置中心 → Workers 备用与 API 授权。已有主线路、出口与分流不变，备用不自动接管。分为部署、PROXYIP、优选和独立测试四步；默认展开第一个尚需处理的步骤，手动回看会保留。
+入口：LuCI → 服务 → RoutePilot → Cloudflare 配置中心 → Workers 备用与 API 授权。已有主线路、出口与分流不变，备用不自动接管。分为部署、PROXYIP、优选和独立测试四步；默认展开第一个尚需处理的步骤，手动回看会保留。
 
 ## 节点和每一步结果在哪里
 
@@ -60,6 +60,6 @@
 
 ## 边界与来源
 
-本版没有为了发布而重新创建云端资源；用户应通过页面只读检查与独立测试确认自己的部署。
+0.2.21 已使用路由器实际保存的令牌验证账户 / 域名读取、托管 Worker 创建、域名绑定和 HTTPS，并通过独立数据面测试。未启用新节点或改变当前主线路。具体结果见本批次验收记录。
 
 内置 Worker 源自 cmliu/edgetunnel `a8ab11125ece9bc27983f609a6359be81b21050c`，GPL-2.0；完整源码、许可证和来源哈希在包内 `/usr/share/routepilot/workers/`。修改包括关闭特殊测速响应、使用原生 `cloudflare:sockets`，保留公开 `/health`、UUID 授权的实例记录 `/relay-status` 和验证 UUID 的 `/tunnel`（兼容 `/test-ws`），不开放管理与订阅面板。连接仍是 Workers/公共 PROXYIP 模式，不用自有 VPS，不保证固定出口。备用仅支持 IPv4 TCP，IPv6 和国内直连沿用现有选择。

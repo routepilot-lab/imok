@@ -1,12 +1,9 @@
 {
-  "version": "0.2.35-6",
-  "product": "iMOK 2.0",
-  "date": "2026-11-08",
   "checks": [
     {
       "check": "python-main",
       "exit": 0,
-      "tests": 375
+      "tests": 466
     },
     {
       "check": "python-server",
@@ -25,6 +22,26 @@
     },
     {
       "check": "test_center_scope",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_access",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_modal_native",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_subscription_worker",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_diagnostics_contract",
       "exit": 0,
       "tests": null
     },
@@ -89,48 +106,116 @@
       "tests": null
     }
   ],
-  "all_passed": true,
   "integrity": {
-    "version": "0.2.35-6",
-    "syntax_files": 47,
+    "version": "0.2.36-1",
+    "syntax_files": 53,
     "worker_hash": true,
     "reproducible": true,
-    "package_sha256": "8c46a22d3a649d53d5af0f305df689b3df7053b52478785820f2e876269671ff",
-    "package_files": 45
+    "package_sha256": "84597d9a2ba4b6bdf58b416262e363a08d14c14904279cc58a791959365d6ac7",
+    "package_files": 54,
+    "manifest": {
+      "./etc/config/routepilot": "10ecc397d4c4b7c2d5c34f20a81c97532b56fe5a92dac7881b91bc4303ec0a7b",
+      "./etc/init.d/routepilot": "1ec92ef4172f02c91bc35e6da514fea85dac5377adbbde25c4d63b089c505283",
+      "./lib/upgrade/keep.d/routepilot": "0a91a2078f78fe259b498102102b4f198097fe60211b946e16c4f1c0855aa8ac",
+      "./usr/lib/routepilot/auth_control.py": "2a2bbcdbebf53b86768b0bf148559d5c046a76dd203944a21edecd9211f33578",
+      "./usr/lib/routepilot/client_access.py": "81bb4289940847c48b3fa5f73d09fd7c22ec16f972e8774ee86906b7f6dedc8b",
+      "./usr/lib/routepilot/client_provider.py": "8f356cf50b9552fa7d2776dec013d664b3acfa8c6747e5545c0b21317ad948d9",
+      "./usr/lib/routepilot/client_subscriptions.py": "471e480fa063ffcf7806db55a7addfd9107b9970a65adc4cd7408907b0226cdf",
+      "./usr/lib/routepilot/cloud_health.py": "fcc6587bfed704e360ac29c5e58b7cd8636ecf1caa60b306d3e71a31c6bad68a",
+      "./usr/lib/routepilot/cloud_worker.py": "04e0823a053d103e8998fa1903b704febc1bbb7e27f6680618585b8b5a2b4a18",
+      "./usr/lib/routepilot/compiler.py": "ab304ea13fb5481130fbf1d9c4d6b4e07c0dfaa88d69165e664c9c47c556df0e",
+      "./usr/lib/routepilot/config_backup.py": "d039b8b3e56953ad4422f2000a0e3b8904b6deb9a7ce2660790369944794f3a1",
+      "./usr/lib/routepilot/diagnostics.py": "40911ad9873b56711635b647a0a7c51ed2daa4d9e4ed1db4a0c5a00e1a627b32",
+      "./usr/lib/routepilot/dns_diagnostics.py": "f85685862f759c9c893867b5cb69453fa9b6bee78df75ad71ebe496559af139a",
+      "./usr/lib/routepilot/dns_runtime.py": "99473381e2a97039f7a99cfdc1735a0236727c13594758d94708a95c7cfe8eda",
+      "./usr/lib/routepilot/endpoint_control.py": "12b196e4154704522a62c2b4dbdff0d1cf73794665a6fa7b834f19260b043bb3",
+      "./usr/lib/routepilot/exits.py": "a0d341082d102b3de9e4db93866cb37638c6ec695a8ac60f11b260ed0226ea09",
+      "./usr/lib/routepilot/masque.py": "a5e3502e9b1f22c31fe26c85c5c5ae5da99c3c8d36da391df2aeb5a341ea176d",
+      "./usr/lib/routepilot/masque_config.py": "b080a8735bdaf7b3a4d27eb7f0be6357eb77d8f1517a8fc98f1597baad0281f5",
+      "./usr/lib/routepilot/mplane.py": "7b0c4c7a57f56388f80adce75ccadaf14ece6ad0cfcf3ede73db7e135bb53c4a",
+      "./usr/lib/routepilot/native.py": "606cd4cd2aec731cf2766ac6dd5d3fe0de8865149efde107cabef1fefacba4a6",
+      "./usr/lib/routepilot/public_errors.py": "33240dc5b5ae53a40a8bc4a924723e78d02538c0f6f3acb2b2e4f46c73db9884",
+      "./usr/lib/routepilot/receive_observer.py": "c8289c27a91eb6fb826f7ae7990c115ce3705f341fee09e6a0d7e5c938f6e703",
+      "./usr/lib/routepilot/relay_pool.py": "a15c07864dbe94c57cae325817fa3c117d677b849e3be2f25b3037a81182a85b",
+      "./usr/lib/routepilot/request_input.py": "086880fe7c63e4a44d62637f6b1b2dc11f312ef2caaffc151d6a7b9be98dd50d",
+      "./usr/lib/routepilot/rules_catalog.py": "db4687b687702d80514ae35e56cd115f6f0aae1ea93885882a92fd61c7c48f12",
+      "./usr/lib/routepilot/rules_overrides.py": "a7d95651013c3fec6c451dc8c411c875a576b86583625097eaf70f637159d272",
+      "./usr/lib/routepilot/rules_schedule.py": "544ef1b5f7589515a629957bacc000d2c82c55ebe0610f56d062fa8bcda98c43",
+      "./usr/lib/routepilot/rules_sources.py": "41829673f054a3e3658d738576530b368e1cbba058c89e58885cbb463a423e5b",
+      "./usr/lib/routepilot/runtime.py": "2c84dea86fafad9c6e4695e28655af4e29ec80a807028fa54d7ff0ac34b175b6",
+      "./usr/lib/routepilot/traffic_observer.py": "363559cddf5ec5436ab61f4c1e622cc7b0921a62ae1461d9666200f2ca19f2eb",
+      "./usr/lib/routepilot/udp_buffers.py": "ec89b6d3ac33e2817a5b852577e9effdfe76c116aada5ec3f3aac9780dfc66b6",
+      "./usr/lib/routepilot/warp_control.py": "0cd6b615fd8db7a382285cd79ab2c42549a4310fd7124fcdb789acbd34103cb9",
+      "./usr/lib/routepilot/worker_backend.py": "1c1cadd396afc7f6ddd254bad043c6a2efad5c21f3b5c7d15c387c0a656f3394",
+      "./usr/lib/routepilot/worker_scan.py": "df1e9add895780c0c7df576381e4ac1a4e41711612f8425126f506a6b45f6267",
+      "./usr/libexec/routepilot": "f50546630cb76e7effa2da0e82ef71b16ade005ac48809d81dd1eeac9a7fa1bf",
+      "./usr/libexec/routepilot-backup-list": "ff467ddc6af7825084d3637ce713e338c1f211f6850dc582a633cf182dbdb471",
+      "./usr/libexec/routepilot-clients": "fc1df3577c93c4e2922dbe8ea53985039daa66b44150c81ecb01b13b2a25f18e",
+      "./usr/libexec/routepilot-clients-list": "e9132cf1b89d53d2880e9960596f7f41020a413f23175a7cdd3d0d3272767ca1",
+      "./usr/libexec/routepilot-exits": "44dd40ca41dd81d216257d9d10c2f231caa309b081955538b0102dde4772646a",
+      "./usr/libexec/routepilot-observe": "14b782828a7ee7eb2daaf453162969844a4b2efd17759fa75c00bb68c9323674",
+      "./usr/libexec/routepilot-traffic": "0a463c0e5fce7acecfe1dd0dd934936fd78921ea1214ab05720ff7575bba4caf",
+      "./usr/share/luci/menu.d/luci-app-routepilot.json": "59534c456600c9b9f6cf54b37d558cbd4505be20aeb46c669a1d59341fdb0d29",
+      "./usr/share/routepilot/client-subscription/worker.mjs": "44939f99f960da2d6828585911ec5d69dd70f5a486bd48c16337f5da15a3d833",
+      "./usr/share/routepilot/clients/QR-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+      "./usr/share/routepilot/clients/SOURCE.json": "b4c0774be03328e4e7a6257863b4e8206e93e5ef699a3ecbbe53ff2b517fb500",
+      "./usr/share/routepilot/version.json": "9b862cb627c835ab4434fa1c03f853fcb1435cc4c2f44f969ff3f0b77d5e3ea0",
+      "./usr/share/routepilot/workers/LICENSE-GPL-2.0": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "./usr/share/routepilot/workers/SOURCE.json": "c9377ec4ed5fad33acefa9d9220fe61cbb75fe2a6c2036eb9ca7bd3413b1db7c",
+      "./usr/share/routepilot/workers/worker.mjs": "742dfb3243585a5045796e790a8b6ed77bd7d07dcf24029afca6991d634a994f",
+      "./usr/share/rpcd/acl.d/luci-app-routepilot.json": "21ca6ab465229ca6f89bf1d1839db33afc400cf90becd7ae99f6d732f30fd918",
+      "./www/luci-static/resources/routepilot/clients_8846630fd080.js": "8846630fd080573c44c8382b70274bfcb8244aeaca213a5f81355124fba8c8c6",
+      "./www/luci-static/resources/routepilot/feedback_8f30a36f4eaa.js": "8f30a36f4eaa2b2a73312e923e294d1db4baccdc212c7f4c517a87c43598eead",
+      "./www/luci-static/resources/routepilot/style_20c80b44a32e.css": "20c80b44a32e70f3209c7585b8bfc7b5f8816651517c1e106f3de5944c9b2d60",
+      "./www/luci-static/resources/view/routepilot_masque_039585e7bb19.js": "039585e7bb19f8b1f1776a0d3f357de89ff903fd17bf57691e5352d5696913f1"
+    }
   },
-  "installed_target": {
-    "router": "GL.iNet GL-MT6000",
-    "architecture": "ARM64",
-    "firmware_family": "OpenWrt 24.10",
-    "theme": "Argon 2.2.9.4",
-    "version": "0.2.35-6"
+  "all_passed": true,
+  "no_router_or_cloud_operations": true,
+  "version": "0.2.36-1",
+  "product": "imOK 2.0",
+  "date": "2026-11-09",
+  "release_protection": {
+    "tests": 7,
+    "passed": true
   },
-  "installed_program_files_verified": 44,
-  "protected_files_unchanged": 98,
-  "entry_exit_protocol_scope_preserved": true,
-  "personal_rules_preserved": true,
-  "stable_runtime_samples": 12,
-  "stable_seconds": 33,
-  "https_checks": [
-    "proxy Google 204",
-    "proxy Cloudflare 200",
-    "direct Baidu 200"
-  ],
-  "live_ui": {
-    "pages": 12,
-    "new_asset_loaded": true,
-    "null_or_undefined_text": 0,
-    "rules_pages_rechecked_after_load": 3
+  "ui": {
+    "pages": 13,
+    "viewports": [
+      1440,
+      768,
+      375
+    ],
+    "layout_checks": 39,
+    "synthetic_scenarios": 18,
+    "browser": "Chromium on macOS",
+    "data": "synthetic; real frontend modules",
+    "font_source": "Argon inheritance"
   },
-  "screenshots": "Synthetic data from the actual source view in isolated preview; not production credentials or speed evidence",
-  "release_protection_tests": 4,
+  "router_verification": {
+    "source_commit": "1666831",
+    "method": "static program overlay before release packaging",
+    "fresh_masque_running": true,
+    "protected_configuration_identity_subscription_processes_preserved": true,
+    "private_permission_issues": 0,
+    "new_ipk_hooks_executed": false,
+    "services_restarted": false,
+    "later_release_only_changes": [
+      "imOK display capitalization",
+      "package version metadata"
+    ]
+  },
   "limits": [
-    "No real Windows/Safari/mobile-OS acceptance this round",
-    "Desktop first; narrow viewport with Argon sidebar open can be constrained",
-    "No full new-device runtime installation tested",
-    "No WireGuard switch acceptance",
-    "No multi-LAN client end-to-end acceptance",
-    "No production rollback drill",
-    "No full OpenWrt SDK build"
-  ]
+    "Public share kit excludes Cloudflare WARP binary and Debian runtime.",
+    "No new production package install or route switch for this release.",
+    "No full fresh-device install, real Windows/iOS/Android browser acceptance or long-term load guarantee.",
+    "Independent phone direct access confirmed previously; actual fixed-subscription import needs separate confirmation."
+  ],
+  "publication_privacy": {
+    "screenshots": "synthetic preview; all IP, tenant and identity display fields hidden",
+    "private_source_scope": "explicit allowlist excludes runtime, private evidence and internal enrollment records",
+    "known_personal_identifiers_found": false,
+    "router_credentials_included": false,
+    "documentation": "No fixed private router management address; test-only addresses use a separate synthetic subnet."
+  }
 }

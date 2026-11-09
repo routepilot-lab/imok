@@ -1,3 +1,4 @@
+# Synthetic unit-test addresses; no live router, tenant or user configuration.
 """Exercise persistent overlays, source updates and actual routing compilation."""
 import contextlib
 import copy
@@ -25,7 +26,7 @@ class PersonalRulesTests(unittest.TestCase):
         self.root = Path(self.tmp.name); self.rules = self.root/'rules'; self.run = self.root/'run'
         self.rules.mkdir(); self.run.mkdir()
         self.cfg = {'main':dict(enabled='1',exit='usa',vnet_usa='11111111-1111-4111-8111-111111111111',scope='devices',update_hours='24',gfw_url='https://example.com/gfw'),
-                    'policies':[dict(id='phone',enabled='1',mode='gfw',ip='192.168.8.100',mac='02:00:00:00:00:01')]}
+                    'policies':[dict(id='phone',enabled='1',mode='gfw',ip='10.77.50.100',mac='02:00:00:00:00:01')]}
         self.stack=contextlib.ExitStack();self.addCleanup(self.stack.close)
         self.stack.enter_context(patch.object(core,'RULES',self.rules));self.stack.enter_context(patch.object(core,'RUN',self.run));self.stack.enter_context(patch.object(core,'read_config',side_effect=lambda:self.cfg))
         self.publish({'china':'1.0.1.0/24\n','gfw':'a.example.com\nb.example.com\n','whitelist':'direct.example.com\n','china_domains':'china.example.com\n'})
@@ -112,7 +113,7 @@ class PersonalRulesTests(unittest.TestCase):
 
     def test_invalid_entries_capacity_and_unknown_fields_do_not_write(self):
         before=list(self.root.iterdir())
-        for changes in [dict(value='https://example.com/'),dict(value='regexp:.*'),dict(value='bad example.com'),dict(value='../secret'),dict(kind='../../bad'),dict(kind='china',value='192.168.8.0/24'),dict(kind='china',value='::1'),dict(action='flush'),dict(extra=True)]:
+        for changes in [dict(value='https://example.com/'),dict(value='regexp:.*'),dict(value='bad example.com'),dict(value='../secret'),dict(kind='../../bad'),dict(kind='china',value='10.77.50.0/24'),dict(kind='china',value='::1'),dict(action='flush'),dict(extra=True)]:
             with self.subTest(changes=changes),self.assertRaises(ControlError):self.edit(**changes)
         self.assertFalse(personal.path(self.rules).exists())
         with patch.object(personal,'MAX_ENTRIES',1):

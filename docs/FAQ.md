@@ -1,8 +1,8 @@
-# imok 常见问题 / FAQ
+# imOK 常见问题 / FAQ
 
 ## 这是给谁用的？
 
-适合希望在兼容 OpenWrt 路由器上统一管理 Cloudflare WARP、按设备或 LAN 分流，以及排查 DNS / 出口问题的用户。当前首次部署需要自行准备运行环境，适合愿意维护自己线路的用户。
+适合希望在兼容 OpenWrt 路由器上统一管理 Cloudflare WARP、按设备或 LAN 分流，以及排查 DNS / 出口问题的用户。当前首次部署仍需自行准备兼容运行环境，适合愿意维护自己线路的用户。
 
 ## 下载 IPK 就能在新路由器上使用吗？
 
@@ -30,7 +30,7 @@ WARP 默认线路不要求自建 VPS。要使用自己的 VPS 出口，需要先
 
 ## 速度和长期稳定性如何？
 
-当前 v0.2.35-6（iMOK 2.0）已通过自动化检查并部署到维护者的既有路由器，作为当前正式版发布。没有保证手机速度、固定带宽或长期不掉线。复现异常时请记录时间、网络环境和脱敏错误，通过 Issues 反馈。
+当前 v0.2.36-1（imOK 2.0）已通过自动化检查并部署到维护者的既有路由器，作为当前正式版发布。没有保证手机速度、固定带宽或长期不掉线。复现异常时请记录时间、网络环境和脱敏错误，通过 Issues 反馈。
 
 ## 支持 WireGuard 或 IPv6 代理吗？
 
@@ -46,4 +46,4 @@ No. Entry selection controls how the router reaches Cloudflare. The active WARP 
 
 ## Does Workers backup fail over automatically?
 
-No. The backup supports IPv4 TCP and requires independent testing and manual enablement. The current regular release is v0.2.35-6 (iMOK 2.0); other hardware and network environments require their own validation.
+No. The backup supports IPv4 TCP and requires independent testing and manual enablement. The current regular release is v0.2.36-1 (imOK 2.0); other hardware and network environments require their own validation.

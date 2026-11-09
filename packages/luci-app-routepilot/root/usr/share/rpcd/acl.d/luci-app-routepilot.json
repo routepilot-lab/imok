@@ -65,6 +65,9 @@
         ],
         "/var/run/routepilot/cloud-directory-state.json": [
           "read"
+        ],
+        "/usr/libexec/routepilot-clients-list": [
+          "exec"
         ]
       },
       "ubus": {
@@ -110,6 +113,12 @@
           "write"
         ],
         "/var/run/routepilot/requests/rules-input-*.json": [
+          "write"
+        ],
+        "/usr/libexec/routepilot-clients": [
+          "exec"
+        ],
+        "/var/run/routepilot/requests/client-input-*.json": [
           "write"
         ]
       },

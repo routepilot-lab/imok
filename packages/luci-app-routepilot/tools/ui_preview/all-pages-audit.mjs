@@ -1,5 +1,5 @@
 // Run with ego-browser nodejs. Uses only the loopback synthetic preview.
-const fs=await import('node:fs/promises'),task=await taskSpace('iMOK 2.0 全页面隔离验收'),page=task.page('p1');
+const fs=await import('node:fs/promises'),task=await taskSpace('imOK 2.0 全页面隔离验收'),page=task.page('p1');
 const origin='http://127.0.0.1:8767',folder=(await(await fetch(origin+'/meta.json')).json()).evidence_directory;
 const routes=['overview','cloudflare/account','cloudflare/endpoint','cloudflare/routing','cloudflare/devices','cloudflare/dns','cloudflare/workers','rules/overview','rules/sources','rules/manage','rules/custom','backup'];
 const report={environment:'Ego Chromium on macOS; cached Argon 2.2.9.4; synthetic data and lightweight form adapter',pages:[],scenarios:[],productionMutations:0};

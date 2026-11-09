@@ -41,6 +41,15 @@ def stylesheet(root, text):
     return root / RESOURCES / 'routepilot' / matches[0]
 
 
+def client_module(root, text):
+    names = re.findall(r"L.require\('routepilot\.(clients_[a-f0-9]{12})'\)", text)
+    if not names:
+        return None
+    if len(names) != 1:
+        raise ValueError('Expected one lazy client module')
+    return root / RESOURCES / 'routepilot' / (names[0] + '.js')
+
+
 def sync(root=ROOT):
     menu, view, text, helper, old_helper = paths(root)
     css = stylesheet(root, text)
@@ -50,6 +59,11 @@ def sync(root=ROOT):
     helper_name = 'feedback_' + digest(helper.read_bytes())
     text = text.replace("'require routepilot." + old_helper + " as feedback';",
                         "'require routepilot." + helper_name + " as feedback';")
+    client = client_module(root, text)
+    if client:
+        new_client = client.with_name('clients_' + digest(client.read_bytes()) + '.js')
+        text = text.replace(client.stem, new_client.stem)
+        client.rename(new_client)
     view_name = 'routepilot_masque_' + digest(text.encode('utf-8'))
     new_helper = helper.with_name(helper_name + '.js')
     new_view = view.with_name(view_name + '.js')
@@ -78,7 +92,15 @@ def validate(root=ROOT):
         raise ValueError('Obsolete imok view modules remain')
     if set(helper.parent.glob('feedback*.js')) != {helper}:
         raise ValueError('Obsolete feedback modules remain')
-    return {'view': view.stem, 'feedback': helper.stem, 'css': css.name}
+    result = {'view': view.stem, 'feedback': helper.stem, 'css': css.name}
+    client = client_module(root, text)
+    if client:
+        if client.stem != 'clients_' + digest(client.read_bytes()):
+            raise ValueError('Client module changed: run tools/asset_versions.py')
+        if set(client.parent.glob('clients_*.js')) != {client}:
+            raise ValueError('Obsolete client modules remain')
+        result['clients'] = client.stem
+    return result
 
 
 if __name__ == '__main__':

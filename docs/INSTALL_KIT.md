@@ -1,0 +1,36 @@
+# imOK 完整插件安装包：开始阅读
+
+这个 ZIP 适合保存、备份或分享，包含本版全部插件功能，不是增量补丁。以 IPK 文件名中的版本号为准。
+
+## 文件
+
+- `luci-app-routepilot_版本_all.ipk`：完整插件安装／升级包。
+- `imok-版本-public-source.zip`：公开源码、测试、使用与安装文档。
+- `本版更新.md`：新增功能、验证情况与边界。
+- `LICENSE`、`THIRD_PARTY_NOTICES.txt`：许可和第三方说明。
+- `SHA256SUMS`：本安装目录所有附件（校验文件自身除外）的 SHA-256。
+
+公开包与截图不包含维护者真实租户、出口 IP、账号、私钥、Token、手机私密订阅、VPS 节点或用户配置，也不捆绑第三方 Cloudflare WARP 客户端／Debian 运行环境。它不是路由器固件。
+
+## 已经在使用 imOK 的路由器
+
+1. 保存旧版本 IPK，先备份配置、个人规则和私人身份；备份中有凭据，不要一起分享。
+2. 在电脑或路由器校验附件：`sha256sum -c SHA256SUMS`。macOS 可用 `shasum -a 256 -c SHA256SUMS`。
+3. 只在兼容 OpenWrt 路由器，通过软件包管理上传并安装本版 IPK，或管理员 shell 执行 `opkg install /路径/本版.ipk`。不要在 Mac／Windows 执行安装。
+4. 刷新 LuCI 页面，核对原入口、出口、接管范围和联网情况。升级可能短暂重连。
+5. 如需回退，使用保留的旧 IPK 和针对该版本的备份方案；不要清空原注册目录或系统网络配置。
+
+已有环境只升级插件，不要运行首次环境安装流程，不要卸载或重新申请身份来完成普通升级。
+
+## 全新路由器
+
+已验证环境是 GL.iNet GL-MT6000／ARM64／OpenWrt 24.10／Argon 2.2.9.4。需先自行准备兼容、未注册的 WARP 运行环境，以及与本机固件匹配的依赖；公开包没有通用环境生成器，不能承诺任意型号解压即用。
+
+完整安装与恢复文档在源码包的 `packages/luci-app-routepilot/INSTALL.zh-CN.md`。新装默认关闭，用自己的 Cloudflare 组织完成授权、准备已部署出口，核对设置后再手动启用。
+
+项目与最新版：https://github.com/routepilot-lab/imok
+问题反馈：https://github.com/routepilot-lab/imok/issues
+
+## 分享到网盘时
+
+直接分享原 ZIP 和对应官方 SHA-256，保留本说明与许可证。不附上路由器整机备份、私人配置、运行日志、客户端二维码或订阅链接。历史版本保留在 GitHub Release；如自行重新打包，请说明来源与改动，不冒用官方校验值。

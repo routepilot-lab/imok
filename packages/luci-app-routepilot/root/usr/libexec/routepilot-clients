@@ -1,0 +1,22 @@
+#!/usr/bin/python3
+"""Write-only ACL entry. Credentials arrive in claimed 0600 request files."""
+import json
+import sys
+sys.path.insert(0, '/usr/lib/routepilot')
+from client_provider import ClientError
+from public_errors import ControlError
+try:
+    if len(sys.argv) == 2 and sys.argv[1] == 'prepare':
+        from client_access import prepare
+        print(json.dumps(prepare()))
+        raise SystemExit(0)
+    if len(sys.argv) != 3:
+        raise ClientError('客户端请求参数无效')
+    from client_access import dispatch
+    print(json.dumps(dispatch(sys.argv[1], sys.argv[2]), ensure_ascii=False))
+except (ClientError, ControlError) as error:
+    print(json.dumps({'error': str(error)}, ensure_ascii=False))
+    raise SystemExit(1) from None
+except Exception:
+    print(json.dumps({'error': '客户端操作未能确认，请刷新核对；未改动主线路'}, ensure_ascii=False))
+    raise SystemExit(1) from None
