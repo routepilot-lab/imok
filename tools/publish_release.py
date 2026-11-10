@@ -9,7 +9,8 @@ API='https://api.github.com/repos/'+REPOSITORY
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 PUBLIC_DOCS = {'docs/CLIENT_ACCESS.md', 'docs/FAQ.md', 'docs/INSTALL_KIT.md', 'docs/PUBLICATION_CHECKS.json',
-               'docs/USER_FEEDBACK.md', 'docs/WORKERS_SETUP.md', 'docs/quality/system-audit-20261109.md'}
+               'docs/USER_FEEDBACK.md', 'docs/WARP_RUNTIME.md', 'docs/WORKERS_SETUP.md', 'docs/quality/system-audit-20261109.md',
+               'docs/quality/warp-maintenance-0.2.37-1.md'}
 PUBLIC_TOP = {'README.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.txt', '.gitignore',
               'tools/publish_release.py', 'tools/test_publish_release.py'}
 PUBLIC_IMAGES = {'docs/images/imok-overview.png', 'docs/images/imok-clients.png', 'docs/images/imok-workers.png'}
@@ -96,19 +97,29 @@ def verify_assets(release,files):
         a=assets[p.name]
         assert a.get('state')=='uploaded' and a.get('size')==p.stat().st_size and a.get('digest')=='sha256:'+digest(p),'Release asset mismatch: '+p.name
 
-def publish(version,files,head,body):
+def release_options(version, checks):
+    value = checks.get('release', {'name': 'imOK 2.0 · 客户端接入与稳定性版（v'+version+'）', 'prerelease': False})
+    assert set(value) == {'name', 'prerelease'}, 'Unsupported publication metadata'
+    assert type(value['prerelease']) is bool, 'Release kind must be a boolean'
+    assert isinstance(value['name'], str) and value['name'].startswith('imOK ') and 1 <= len(value['name']) <= 120 and '\n' not in value['name'], 'Invalid release title'
+    return dict(value)
+
+
+def publish(version,files,head,body,*,name=None,prerelease=False):
     assert re.fullmatch('[0-9a-f]{40}',head),'Invalid source commit'
+    assert type(prerelease) is bool, 'Release kind must be explicit'
+    name=name or 'imOK 2.0 · 客户端接入与稳定性版（v'+version+'）'
     tag='v'+version;ref=api('GET','/git/ref/tags/'+tag)
     assert not ref or ref['object']['type']=='commit' and ref['object']['sha']==head,'Refuse to replace an existing tag'
     release=api('GET','/releases/tags/'+tag)
     if release and not release.get('draft'):
-        assert ref and not release.get('prerelease'),'Existing public release differs'
+        assert ref and release.get('prerelease') is prerelease,'Existing public release differs'
         verify_assets(release,files)
         return release
     if release:
-        assert release['target_commitish']==head and not release.get('prerelease'),'Unrelated draft release'
+        assert release['target_commitish']==head and release.get('prerelease') is prerelease,'Unrelated draft release'
     else:
-        release=api('POST','/releases',{'tag_name':tag,'target_commitish':head,'name':'imOK 2.0 · 客户端接入与稳定性版（'+tag+'）','body':body,'draft':True,'prerelease':False,'make_latest':'false'})
+        release=api('POST','/releases',{'tag_name':tag,'target_commitish':head,'name':name,'body':body,'draft':True,'prerelease':prerelease,'make_latest':'false'})
     existing={a['name']:a for a in release.get('assets',[])}
     assert set(existing)<={p.name for p in files},'Unexpected draft attachments'
     for p in files:
@@ -118,20 +129,21 @@ def publish(version,files,head,body):
         uploaded=api('POST',url,data=p.read_bytes(),content_type='application/zip' if p.suffix=='.zip' else 'application/octet-stream')
         verify_assets({'assets':[uploaded]},[p])
     staged=api('GET','/releases/'+str(release['id']));verify_assets(staged,files)
-    final=api('PATCH','/releases/'+str(release['id']),{'draft':False,'prerelease':False,'make_latest':'true'})
+    final=api('PATCH','/releases/'+str(release['id']),{'draft':False,'prerelease':prerelease,'make_latest':'false' if prerelease else 'true'})
     verify_assets(final,files)
     final_ref=api('GET','/git/ref/tags/'+tag)
-    assert final_ref['object']['sha']==head and not final['draft'] and not final['prerelease'],'Publication state mismatch'
+    assert final_ref['object']['sha']==head and not final['draft'] and final['prerelease'] is prerelease,'Publication state mismatch'
     return final
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--publish',action='store_true');args=parser.parse_args()
     version,out,files=prepare()
-    report={'version':version,'assets':[{ 'name':p.name,'sha256':digest(p),'size':p.stat().st_size} for p in files]}
+    options=release_options(version,json.loads((ROOT/'docs/PUBLICATION_CHECKS.json').read_text()))
+    report={'version':version,'release':options,'assets':[{ 'name':p.name,'sha256':digest(p),'size':p.stat().st_size} for p in files]}
     if args.publish:
         head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
         assert head==os.environ.get('GITHUB_SHA'),'Checkout differs from the triggering commit'
-        release=publish(version,files,head,(ROOT/'docs/releases'/('v'+version+'.md')).read_text())
+        release=publish(version,files,head,(ROOT/'docs/releases'/('v'+version+'.md')).read_text(),**options)
         report.update(url=release['html_url'],published=True,source_commit=head)
     (out/'receipt.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(json.dumps(report,ensure_ascii=False))
 if __name__=='__main__':main()

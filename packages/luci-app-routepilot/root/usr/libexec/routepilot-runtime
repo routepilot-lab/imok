@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+"""Write ACL: maintenance requires a caller-bound input and explicit plan."""
+import json
+import sys
+sys.path.insert(0, '/usr/lib/routepilot')
+from public_errors import ControlError
+import runtime_maintenance as maintenance
+try:
+    if len(sys.argv) == 2 and sys.argv[1] == 'prepare':
+        result = maintenance.prepare()
+    elif len(sys.argv) == 2 and sys.argv[1] == 'watch':
+        maintenance.watch()
+        raise SystemExit(0)
+    elif len(sys.argv) == 4 and sys.argv[1] == '_job':
+        maintenance.job(sys.argv[2], sys.argv[3])
+        raise SystemExit(0)
+    elif len(sys.argv) == 3:
+        result = maintenance.dispatch(sys.argv[1], sys.argv[2])
+    else:
+        raise ControlError('维护参数无效')
+    print(json.dumps(result, ensure_ascii=False))
+except ControlError as e:
+    print(json.dumps({'error': str(e)}, ensure_ascii=False))
+    raise SystemExit(1) from None
+except Exception:
+    print(json.dumps({'error': '维护请求未完成，请刷新检查状态；未输出私人配置'}, ensure_ascii=False))
+    raise SystemExit(1) from None

@@ -6,3 +6,4 @@
 /etc/routepilot/recovery-audit/
 /etc/routepilot/rule-overrides.json
 /etc/routepilot/clients/
+/etc/routepilot/warp-maintenance/settings.json

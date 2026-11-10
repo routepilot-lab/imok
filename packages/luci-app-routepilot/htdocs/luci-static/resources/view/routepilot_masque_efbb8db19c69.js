@@ -11,7 +11,7 @@
 'require routepilot.feedback_8f30a36f4eaa as feedback';
 var commitConfig = rpc.declare({object:'uci',method:'commit',params:['config'],expect:{'':{}}});
 
-function refreshMenuIndex(){return ui.menu.load().then(function(tree){var node=tree;['admin','services','routepilot'].forEach(function(k){node=node&&node.children&&node.children[k];});if(node&&node.children&&(!node.children.cloudflare||['basic','devices','dns','advanced','workers'].some(function(k){return node.children[k]&&node.children[k].title;})))ui.menu.flushCache();}).catch(function(){});}
+function refreshMenuIndex(){return ui.menu.load().then(function(tree){var node=tree;['admin','services','routepilot'].forEach(function(k){node=node&&node.children&&node.children[k];});if(node&&node.children&&(!node.children.cloudflare||!node.children.runtime||['basic','devices','dns','advanced','workers'].some(function(k){return node.children[k]&&node.children[k].title;})))ui.menu.flushCache();}).catch(function(){});}
 function readExitDirectory() { return fs.exec('/usr/libexec/routepilot-exits',[]).then(function(r){if(r.code)throw Error('directory');var v=JSON.parse(r.stdout);if(!v.available||!Array.isArray(v.networks))throw Error('directory');v.read_at=Date.now();v.last_success_at=v.read_at;return v;}).catch(function(){return {available:false,networks:[],read_at:Date.now()};}); }
 function normalizedID(value){return String(value||'').toLowerCase();}
 function configuredExit(){var value=uci.get('routepilot','main','exit');return value==null?'seoul':value;}
@@ -22,7 +22,7 @@ var legacyPages={basic:'routing',devices:'devices',dns:'dns',diagnostics:'dns',a
 var groupSections={advanced:'account',endpoint:'endpoint',basic:'routing',devices:'devices',dns:'dns',workers:'workers'};
 var ruleSections={'rules-overview':'overview','rules-sources':'sources','rules-manage':'manage','rules-custom':'custom'},ruleSectionNames={overview:'更新概况',sources:'来源与频率',manage:'规则管理',custom:'自定义分流'};
 var activeRender=0;
-var imokStylesheet='routepilot/style_20c80b44a32e.css';
+var imokStylesheet='routepilot/style_be95655e8317.css';
 function routeLeaf(){var parts=window.location.pathname.split('/').filter(Boolean),leaf=parts.pop();if(parts[parts.length-1]==='rules'&&Object.keys(ruleSectionNames).indexOf(leaf)>=0)return 'rules-'+leaf;if(leaf==='rules')return 'rules-overview';if(leaf==='routepilot')return 'overview';if(leaf==='cloudflare')return groupSections[(window.location.hash||'').replace('#rp-center-','')]||'account';return parts[parts.length-1]==='cloudflare'&&sectionGroups[leaf]?leaf:legacyPages[leaf]||leaf;}
 return view.extend({
  exitOptions: function(current,mapping,catalog) {
@@ -35,11 +35,14 @@ return view.extend({
  load: function() {
   var parts=window.location.pathname.split('/').filter(Boolean),raw=parts[parts.length-1],leaf=routeLeaf();
   if((legacyPages[raw]&&parts[parts.length-2]!=='cloudflare'||raw==='cloudflare'&&window.location.hash)&&typeof window.location.replace==='function')window.location.replace(L.url('admin/services/routepilot/cloudflare/'+leaf));
+  if(leaf==='runtime')return L.require('routepilot.runtime_9c815026873f').then(function(runtimeView){return runtimeView.load().then(function(runtimeData){return {runtimeView:runtimeView,runtimeData:runtimeData};});});
   if(leaf==='clients')return L.require('routepilot.clients_8846630fd080').then(function(clientView){return clientView.load().then(function(clientData){return {clientsView:clientView,clientsData:clientData};});});
   var devices=leaf==='devices',interfaces=devices||leaf==='routing';
-  return Promise.all([uci.load('routepilot'),devices?Promise.resolve().then(function(){return typeof L.probeSystemFeatures==='function'?L.probeSystemFeatures():null;}).then(function(){return network.getHostHints();}).catch(function(){return null;}):Promise.resolve(null),interfaces?fs.exec('/usr/libexec/routepilot',['interfaces']).then(function(r){return r.code?[]:JSON.parse(r.stdout);}).catch(function(){return [];}):Promise.resolve([]),Promise.resolve({available:false,networks:[],skipped:!['overview','account','routing'].includes(leaf)}),refreshMenuIndex(),leaf==='workers'?fs.exec('/usr/libexec/routepilot-backup-list',[]).then(function(r){return r.code?{nodes:[]}:JSON.parse(r.stdout);}).catch(function(){return {nodes:[]};}):Promise.resolve({nodes:[]}),Promise.resolve(null),fs.read('/usr/share/routepilot/version.json').then(JSON.parse).catch(function(){return null;})]);
+  var runtimeRead=leaf==='overview'?Promise.resolve().then(function(){return fs.exec('/usr/libexec/routepilot-runtime-status',[]);}).then(function(r){var d=r.code?null:JSON.parse(r.stdout);return d&&d.schema===1&&typeof d.installed==='boolean'?d:null;}).catch(function(){return null;}):Promise.resolve(null);
+  return Promise.all([uci.load('routepilot'),devices?Promise.resolve().then(function(){return typeof L.probeSystemFeatures==='function'?L.probeSystemFeatures():null;}).then(function(){return network.getHostHints();}).catch(function(){return null;}):Promise.resolve(null),interfaces?fs.exec('/usr/libexec/routepilot',['interfaces']).then(function(r){return r.code?[]:JSON.parse(r.stdout);}).catch(function(){return [];}):Promise.resolve([]),Promise.resolve({available:false,networks:[],skipped:!['overview','account','routing'].includes(leaf)}),refreshMenuIndex(),leaf==='workers'?fs.exec('/usr/libexec/routepilot-backup-list',[]).then(function(r){return r.code?{nodes:[]}:JSON.parse(r.stdout);}).catch(function(){return {nodes:[]};}):Promise.resolve({nodes:[]}),Promise.resolve(null),fs.read('/usr/share/routepilot/version.json').then(JSON.parse).catch(function(){return null;})]).then(function(data){data.runtimeRead=runtimeRead;return data;});
  },
  render: function(data) {
+  if(data&&data.runtimeView){this.handleSaveApply=null;this.handleSave=null;return data.runtimeView.render(data.runtimeData,L.resource(imokStylesheet),boundRequest);}
   if(data&&data.clientsView){this.handleSaveApply=null;this.handleSave=null;return data.clientsView.render(data.clientsData,L.resource(imokStylesheet),boundRequest);}
   var pages=[['account','账户与协议','登录身份与主线路连接协议'],['endpoint','主线路入口','入口选择、候选读取与定期同步'],['routing','出口与分流','直接选择账户出口与接管范围'],['devices','设备','独立设备策略'],['dns','DNS','解析、缓存与联网检测'],['workers','Workers','手动备用的部署、转发与检测'],['overview','总览','开关与当前运行状态'],['rules-overview','更新概况','更新状态、运行版本与订阅变化'],['rules-sources','来源与频率','选择或编辑订阅地址，设置自动更新间隔'],['rules-manage','规则管理','浏览规则，维护长期保留的个人新增和排除'],['rules-custom','自定义分流','独立维护始终直连和始终代理的规则'],['backup','备份迁移','导入或导出本插件配置']];
   var leaf=routeLeaf(),page=pages.some(function(p){return p[0]===leaf;})?leaf:'overview';
@@ -469,6 +472,7 @@ return view.extend({
   if(page!=='overview')connectionDirectory.appendChild(E('details',{class:'rp-stat-details'},[E('summary',{},_('账户目录时间与刷新')),nodeTime,nodeRefresh]));
   var versionInfo=E('p',{class:'rp-help'},_('客户端版本正在读取…'));
   var quickCard=E('section',{class:'cbi-section','aria-label':_('快捷操作')},[E('div',{class:'rp-quick-grid'},[['cloudflare/routing','↗',_('出口与分流'),_('查看当前出口和接管范围')],['cloudflare/dns','◎',_('DNS 与联网检测'),_('检查解析、网页并清理缓存')],['cloudflare/workers','⌁',_('Workers 备用'),_('部署、优选和独立检测')]].map(function(q){return E('a',{class:'rp-quick-tile',href:base+'/'+q[0]},[E('span',{class:'rp-quick-icon','aria-hidden':'true'},q[1]),E('span',{},[E('strong',{},q[2]),E('small',{},q[3])])]);}))]);
+  if(page==='overview'&&data.runtimeRead)data.runtimeRead.then(function(info){if(!isCurrentView()||!info||!(info.update_available||!info.installed||info.check&&info.check.state==='failed'))return;quickCard.appendChild(E('p',{class:'rp-help'},[info.update_available?_('WARP 有新版本可供检查与手动升级。'):!info.installed?_('首次使用请先安装路由器的 WARP 运行环境。'):_('WARP 版本检查失败，最新版本暂未确认。'),E('a',{href:base+'/runtime'},_(' 前往 WARP 安装与更新'))]));});
   function bytes(n){if(!Number.isFinite(n)||n<0)return '—';var units=['B','KiB','MiB','GiB','TiB'],i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return (i?n.toFixed(n<10?2:1):String(Math.round(n)))+' '+units[i];}
   function validTrafficCounts(v){return v&&['proxy_up','proxy_down','direct_up','direct_down'].every(function(k){return Number.isSafeInteger(v[k])&&v[k]>=0;});}
   function updateTraffic(v){

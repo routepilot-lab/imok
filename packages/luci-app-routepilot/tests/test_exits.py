@@ -91,10 +91,10 @@ class ExitTests(unittest.TestCase):
         self.assertEqual(cli.call_count,1)
         self.assertEqual(cli.call_args.args,('vnet','--no-paginate'))
 
-    def test_read_acl_is_separate_from_mutating_executable_and_top_tabs_cover_eight_pages(self):
+    def test_read_acl_is_separate_from_mutating_executable_and_top_tabs_include_runtime_installation(self):
         acl=json.loads((ROOT/'root/usr/share/rpcd/acl.d/luci-app-routepilot.json').read_text())['luci-app-routepilot']
         self.assertEqual(acl['read']['file']['/usr/libexec/routepilot-exits'],['exec'])
         self.assertNotIn('/usr/libexec/routepilot',acl['read']['file'])
         menu=json.loads((ROOT/'root/usr/share/luci/menu.d/luci-app-routepilot.json').read_text())
         children=[k.rsplit('/',1)[1] for k in menu if k.count('/')==3]
-        self.assertEqual(set(children),{'overview','basic','devices','dns','rules','advanced','diagnostics','backup','workers','cloudflare','clients'})
+        self.assertEqual(set(children),{'overview','basic','devices','dns','rules','advanced','diagnostics','backup','workers','cloudflare','clients','runtime'})

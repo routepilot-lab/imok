@@ -3,7 +3,7 @@
     {
       "check": "python-main",
       "exit": 0,
-      "tests": 466
+      "tests": 521
     },
     {
       "check": "python-server",
@@ -96,6 +96,11 @@
       "tests": null
     },
     {
+      "check": "test_runtime_ui",
+      "exit": 0,
+      "tests": null
+    },
+    {
       "check": "test_wizard",
       "exit": 0,
       "tests": null
@@ -104,19 +109,24 @@
       "check": "test_worker_template",
       "exit": 0,
       "tests": null
+    },
+    {
+      "check": "python-release-protection",
+      "exit": 0,
+      "tests": 11
     }
   ],
   "integrity": {
-    "version": "0.2.36-1",
-    "syntax_files": 53,
+    "version": "0.2.37-1",
+    "syntax_files": 59,
     "worker_hash": true,
     "reproducible": true,
-    "package_sha256": "84597d9a2ba4b6bdf58b416262e363a08d14c14904279cc58a791959365d6ac7",
-    "package_files": 54,
+    "package_sha256": "2b17f9c40e88f0a7ea79a393f852657650723a634d62cf97671d605eded21926",
+    "package_files": 60,
     "manifest": {
       "./etc/config/routepilot": "10ecc397d4c4b7c2d5c34f20a81c97532b56fe5a92dac7881b91bc4303ec0a7b",
-      "./etc/init.d/routepilot": "1ec92ef4172f02c91bc35e6da514fea85dac5377adbbde25c4d63b089c505283",
-      "./lib/upgrade/keep.d/routepilot": "0a91a2078f78fe259b498102102b4f198097fe60211b946e16c4f1c0855aa8ac",
+      "./etc/init.d/routepilot": "faf8e80044bdc1d1217cc062299966750d83be9e3b4851c3cd7a2080439fd3ec",
+      "./lib/upgrade/keep.d/routepilot": "647d44cccbe6c19ffc411953be23b8a3df61265337094f28af1a4d37936024f8",
       "./usr/lib/routepilot/auth_control.py": "2a2bbcdbebf53b86768b0bf148559d5c046a76dd203944a21edecd9211f33578",
       "./usr/lib/routepilot/client_access.py": "81bb4289940847c48b3fa5f73d09fd7c22ec16f972e8774ee86906b7f6dedc8b",
       "./usr/lib/routepilot/client_provider.py": "8f356cf50b9552fa7d2776dec013d664b3acfa8c6747e5545c0b21317ad948d9",
@@ -132,17 +142,20 @@
       "./usr/lib/routepilot/exits.py": "a0d341082d102b3de9e4db93866cb37638c6ec695a8ac60f11b260ed0226ea09",
       "./usr/lib/routepilot/masque.py": "a5e3502e9b1f22c31fe26c85c5c5ae5da99c3c8d36da391df2aeb5a341ea176d",
       "./usr/lib/routepilot/masque_config.py": "b080a8735bdaf7b3a4d27eb7f0be6357eb77d8f1517a8fc98f1597baad0281f5",
-      "./usr/lib/routepilot/mplane.py": "7b0c4c7a57f56388f80adce75ccadaf14ece6ad0cfcf3ede73db7e135bb53c4a",
+      "./usr/lib/routepilot/mplane.py": "33fd878551434f71dfd854e53879a5b6bac3bdbb04970becb20b9db46b750ffa",
       "./usr/lib/routepilot/native.py": "606cd4cd2aec731cf2766ac6dd5d3fe0de8865149efde107cabef1fefacba4a6",
       "./usr/lib/routepilot/public_errors.py": "33240dc5b5ae53a40a8bc4a924723e78d02538c0f6f3acb2b2e4f46c73db9884",
       "./usr/lib/routepilot/receive_observer.py": "c8289c27a91eb6fb826f7ae7990c115ce3705f341fee09e6a0d7e5c938f6e703",
       "./usr/lib/routepilot/relay_pool.py": "a15c07864dbe94c57cae325817fa3c117d677b849e3be2f25b3037a81182a85b",
-      "./usr/lib/routepilot/request_input.py": "086880fe7c63e4a44d62637f6b1b2dc11f312ef2caaffc151d6a7b9be98dd50d",
+      "./usr/lib/routepilot/request_input.py": "2fa56c6b51f64857d737e6d590154d9992b914f2cf17e476bc6f179d32e7a6de",
       "./usr/lib/routepilot/rules_catalog.py": "db4687b687702d80514ae35e56cd115f6f0aae1ea93885882a92fd61c7c48f12",
       "./usr/lib/routepilot/rules_overrides.py": "a7d95651013c3fec6c451dc8c411c875a576b86583625097eaf70f637159d272",
       "./usr/lib/routepilot/rules_schedule.py": "544ef1b5f7589515a629957bacc000d2c82c55ebe0610f56d062fa8bcda98c43",
       "./usr/lib/routepilot/rules_sources.py": "41829673f054a3e3658d738576530b368e1cbba058c89e58885cbb463a423e5b",
       "./usr/lib/routepilot/runtime.py": "2c84dea86fafad9c6e4695e28655af4e29ec80a807028fa54d7ff0ac34b175b6",
+      "./usr/lib/routepilot/runtime_bootstrap.py": "a075b49764cc14f2fad1559a05a13cc15260effa97c1c137c17ad07ce9617d50",
+      "./usr/lib/routepilot/runtime_guard.py": "419a2465505afae4229baac65a815b2c0bf075730162a7cfbecacc373b8cafe2",
+      "./usr/lib/routepilot/runtime_maintenance.py": "b559d1a6d5c7f8f04cd6a4ca7a7a5ebb17542bde8afd710ec069aeb61acb0a20",
       "./usr/lib/routepilot/traffic_observer.py": "363559cddf5ec5436ab61f4c1e622cc7b0921a62ae1461d9666200f2ca19f2eb",
       "./usr/lib/routepilot/udp_buffers.py": "ec89b6d3ac33e2817a5b852577e9effdfe76c116aada5ec3f3aac9780dfc66b6",
       "./usr/lib/routepilot/warp_control.py": "0cd6b615fd8db7a382285cd79ab2c42549a4310fd7124fcdb789acbd34103cb9",
@@ -154,68 +167,40 @@
       "./usr/libexec/routepilot-clients-list": "e9132cf1b89d53d2880e9960596f7f41020a413f23175a7cdd3d0d3272767ca1",
       "./usr/libexec/routepilot-exits": "44dd40ca41dd81d216257d9d10c2f231caa309b081955538b0102dde4772646a",
       "./usr/libexec/routepilot-observe": "14b782828a7ee7eb2daaf453162969844a4b2efd17759fa75c00bb68c9323674",
+      "./usr/libexec/routepilot-runtime": "55141292ec102d7b87da1f915ad10e6c715e19d84a0bfa6a578edddf4e4a6d87",
+      "./usr/libexec/routepilot-runtime-status": "16cb2f1ba68c580840a6d9991c40d6917cd35df9e9e574e5104a384249f7e686",
       "./usr/libexec/routepilot-traffic": "0a463c0e5fce7acecfe1dd0dd934936fd78921ea1214ab05720ff7575bba4caf",
-      "./usr/share/luci/menu.d/luci-app-routepilot.json": "59534c456600c9b9f6cf54b37d558cbd4505be20aeb46c669a1d59341fdb0d29",
+      "./usr/share/luci/menu.d/luci-app-routepilot.json": "43b14cdbd13250e84b62a449f306125ebd24f63dc91a6b4b902b15c24d078366",
       "./usr/share/routepilot/client-subscription/worker.mjs": "44939f99f960da2d6828585911ec5d69dd70f5a486bd48c16337f5da15a3d833",
       "./usr/share/routepilot/clients/QR-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
       "./usr/share/routepilot/clients/SOURCE.json": "b4c0774be03328e4e7a6257863b4e8206e93e5ef699a3ecbbe53ff2b517fb500",
-      "./usr/share/routepilot/version.json": "9b862cb627c835ab4434fa1c03f853fcb1435cc4c2f44f969ff3f0b77d5e3ea0",
+      "./usr/share/routepilot/version.json": "6cb3431eeca1e4f5879fe48ca45c866dc2f133cdf14fff9518f6e3452c8309c2",
       "./usr/share/routepilot/workers/LICENSE-GPL-2.0": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
       "./usr/share/routepilot/workers/SOURCE.json": "c9377ec4ed5fad33acefa9d9220fe61cbb75fe2a6c2036eb9ca7bd3413b1db7c",
       "./usr/share/routepilot/workers/worker.mjs": "742dfb3243585a5045796e790a8b6ed77bd7d07dcf24029afca6991d634a994f",
-      "./usr/share/rpcd/acl.d/luci-app-routepilot.json": "21ca6ab465229ca6f89bf1d1839db33afc400cf90becd7ae99f6d732f30fd918",
+      "./usr/share/rpcd/acl.d/luci-app-routepilot.json": "a5a95253a8ca3844ba42353d68c5ddccc2a973d64f489dd679b3d757e6a9245e",
       "./www/luci-static/resources/routepilot/clients_8846630fd080.js": "8846630fd080573c44c8382b70274bfcb8244aeaca213a5f81355124fba8c8c6",
       "./www/luci-static/resources/routepilot/feedback_8f30a36f4eaa.js": "8f30a36f4eaa2b2a73312e923e294d1db4baccdc212c7f4c517a87c43598eead",
-      "./www/luci-static/resources/routepilot/style_20c80b44a32e.css": "20c80b44a32e70f3209c7585b8bfc7b5f8816651517c1e106f3de5944c9b2d60",
-      "./www/luci-static/resources/view/routepilot_masque_039585e7bb19.js": "039585e7bb19f8b1f1776a0d3f357de89ff903fd17bf57691e5352d5696913f1"
+      "./www/luci-static/resources/routepilot/runtime_9c815026873f.js": "9c815026873f61a5b88c89fd5f464cce6ac2b3946e0609be1627970da397804e",
+      "./www/luci-static/resources/routepilot/style_be95655e8317.css": "be95655e831781889f4969473b8db1bb9f317d1ac1c33e53cb7ed336105175ca",
+      "./www/luci-static/resources/view/routepilot_masque_efbb8db19c69.js": "efbb8db19c69a8709491bc1fb1ab67d05a478d311795a76dfb902564963356ec"
     }
   },
   "all_passed": true,
-  "no_router_or_cloud_operations": true,
-  "version": "0.2.36-1",
-  "product": "imOK 2.0",
-  "date": "2026-11-09",
-  "release_protection": {
-    "tests": 7,
-    "passed": true
+  "version": "0.2.37-1",
+  "date": "2026-11-10",
+  "release": {
+    "name": "imOK 2.0 · WARP 安装与更新（v0.2.37-1 预发布）",
+    "prerelease": true
   },
-  "ui": {
-    "pages": 13,
-    "viewports": [
-      1440,
-      768,
-      375
-    ],
-    "layout_checks": 39,
-    "synthetic_scenarios": 18,
-    "browser": "Chromium on macOS",
-    "data": "synthetic; real frontend modules",
-    "font_source": "Argon inheritance"
-  },
-  "router_verification": {
-    "source_commit": "1666831",
-    "method": "static program overlay before release packaging",
-    "fresh_masque_running": true,
-    "protected_configuration_identity_subscription_processes_preserved": true,
-    "private_permission_issues": 0,
-    "new_ipk_hooks_executed": false,
-    "services_restarted": false,
-    "later_release_only_changes": [
-      "imOK display capitalization",
-      "package version metadata"
-    ]
-  },
-  "limits": [
-    "Public share kit excludes Cloudflare WARP binary and Debian runtime.",
-    "No new production package install or route switch for this release.",
-    "No full fresh-device install, real Windows/iOS/Android browser acceptance or long-term load guarantee.",
-    "Independent phone direct access confirmed previously; actual fixed-subscription import needs separate confirmation."
-  ],
-  "publication_privacy": {
-    "screenshots": "synthetic preview; all IP, tenant and identity display fields hidden",
-    "private_source_scope": "explicit allowlist excludes runtime, private evidence and internal enrollment records",
-    "known_personal_identifiers_found": false,
-    "router_credentials_included": false,
-    "documentation": "No fixed private router management address; test-only addresses use a separate synthetic subnet."
+  "isolated_checks_no_router_or_cloud_writes": true,
+  "validation_scope": {
+    "existing_runtime_plugin_update": "maintainer-recorded ARM64 OpenWrt 24.10 file update; standard IPK hooks not rerun",
+    "live_version_checks_and_daily_scheduler": true,
+    "original_network_processes_exit_settings_and_identities_preserved": true,
+    "continuity_samples": 90,
+    "screenshots": "synthetic and anonymized only",
+    "fresh_warp_install_apt_upgrade_runtime_restore": "not yet hardware-validated",
+    "cross_os_and_long_load": "not fully verified"
   }
 }

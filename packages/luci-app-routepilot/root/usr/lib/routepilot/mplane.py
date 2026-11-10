@@ -11,6 +11,7 @@ import time
 
 from runtime import command, atomic, RUN
 from udp_buffers import tune
+from runtime_guard import guarded_start, release_plane
 
 ROOT = Path('/opt/routepilot/runtime')
 NS = 'routepilot'
@@ -87,6 +88,7 @@ class Plane:
     def exists(self):
         return any(line.split()[0] == NS for line in command(['ip', 'netns', 'list']).stdout.splitlines() if line.split())
 
+    @guarded_start
     def start(self):
         if self.owned and self.exists():
             return
@@ -272,3 +274,4 @@ class Plane:
             pass
         (RUN / 'masque-owner.json').unlink(missing_ok=True)
         self.owned = False
+        release_plane(self)

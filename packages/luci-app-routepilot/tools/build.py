@@ -54,7 +54,7 @@ def build(destination=None):
             if not path.is_file() or '__pycache__' in path.parts or path.suffix == '.pyc':
                 continue
             name = prefix + path.relative_to(source).as_posix()
-            mode = 0o755 if name in ('etc/init.d/routepilot', 'usr/libexec/routepilot', 'usr/libexec/routepilot-exits', 'usr/libexec/routepilot-observe', 'usr/libexec/routepilot-traffic', 'usr/libexec/routepilot-backup-list', 'usr/libexec/routepilot-clients', 'usr/libexec/routepilot-clients-list') else 0o644
+            mode = 0o755 if name in ('etc/init.d/routepilot', 'usr/libexec/routepilot', 'usr/libexec/routepilot-exits', 'usr/libexec/routepilot-observe', 'usr/libexec/routepilot-traffic', 'usr/libexec/routepilot-backup-list', 'usr/libexec/routepilot-clients', 'usr/libexec/routepilot-clients-list', 'usr/libexec/routepilot-runtime', 'usr/libexec/routepilot-runtime-status') else 0o644
             if name == 'etc/config/routepilot':
                 mode = 0o600
             data.append((name, path.read_bytes(), mode))

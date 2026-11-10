@@ -489,3 +489,37 @@
 .rp-layout[data-page=clients] .imok-client-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;min-width:0;align-items:start}
 .rp-layout[data-page=clients] .imok-client-methods .imok-client-fields{grid-template-columns:1fr;gap:.5rem}
 @media(max-width:76rem){.rp-layout[data-page=clients] .imok-client-methods{grid-template-columns:1fr}}
+
+/* WARP maintenance uses the existing Argon font and imOK component tokens. */
+.rp-layout[data-page=runtime] .imok-runtime-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--imok-space-4)}
+.rp-layout[data-page=runtime] .imok-panel{min-width:0;margin-bottom:0}
+.rp-layout[data-page=runtime] .imok-runtime-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--imok-space-4);margin:var(--imok-space-4) 0}
+.rp-layout[data-page=runtime] .imok-runtime-facts div{min-width:0}
+.rp-layout[data-page=runtime] .imok-runtime-facts dt{color:var(--imok-text-secondary);font-size:var(--imok-text-small)}
+.rp-layout[data-page=runtime] .imok-runtime-facts dd{margin:.25em 0 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rp-layout[data-page=runtime] .imok-runtime-field{display:grid;gap:var(--imok-space-2);margin:var(--imok-space-4) 0;max-width:42rem}
+.rp-layout[data-page=runtime] .imok-runtime-field input,.rp-layout[data-page=runtime] .imok-runtime-field select{width:100%}
+.rp-layout[data-page=runtime] .imok-runtime-steps{padding-left:1.3em;margin:var(--imok-space-4) 0;display:grid;gap:var(--imok-space-2)}
+.rp-layout[data-page=runtime] .imok-runtime-notice{padding:var(--imok-space-3) var(--imok-space-4);border:1px solid var(--imok-border);border-radius:var(--imok-radius-control);overflow-wrap:anywhere}
+.rp-layout[data-page=runtime] .imok-runtime-notice:empty{display:none}
+.rp-layout[data-page=runtime] [data-tone=danger]{color:var(--imok-danger);background:var(--imok-danger-bg)}
+.rp-layout[data-page=runtime] [data-tone=warning]{color:var(--imok-warning);background:var(--imok-warning-bg)}
+.rp-layout[data-page=runtime] [data-tone=success]{color:var(--imok-success);background:var(--imok-success-bg)}
+.imok-runtime-dialog .imok-runtime-ack{display:flex;align-items:flex-start;gap:var(--imok-space-2);margin:var(--imok-space-4) 0}
+.imok-runtime-dialog .imok-runtime-ack input{flex:none;margin-top:.25em}
+.imok-runtime-dialog .imok-runtime-modal-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--imok-space-2)}
+@media(max-width:767px){.rp-layout[data-page=runtime] .imok-runtime-grid{grid-template-columns:minmax(0,1fr)}.rp-layout[data-page=runtime] .imok-runtime-facts{grid-template-columns:minmax(0,1fr)}}
+
+.rp-layout[data-page=runtime] .rp-page-content{display:grid;gap:var(--imok-space-4)}
+.rp-layout[data-page=runtime] .imok-runtime-history-controls{display:flex;align-items:flex-end;gap:var(--imok-space-4);flex-wrap:wrap;margin-bottom:var(--imok-space-3)}
+.rp-layout[data-page=runtime] .imok-runtime-history-controls .imok-runtime-field{flex:1 1 20rem;margin:0}
+.rp-layout[data-page=runtime] .rp-status-badge{display:inline-flex;padding:.25em .625em;border-radius:var(--imok-radius-control);font-size:var(--imok-text-small);font-weight:500}
+
+.imok-runtime-dialog .cbi-button-apply{transition:none;background:var(--imok-accent);border:1px solid var(--imok-accent);color:var(--imok-on-accent)}
+.imok-runtime-dialog .cbi-button-apply:not(:disabled):hover{background:var(--imok-accent-hover);border-color:var(--imok-accent-hover)}
+.imok-runtime-dialog button:disabled{background:var(--imok-neutral-bg);color:var(--imok-text-secondary);border-color:var(--imok-border);opacity:1;cursor:not-allowed}
+.imok-runtime-dialog :is(button,input,select):focus-visible{outline:var(--imok-focus);outline-offset:2px}
+
+/* Argon forces apply-button text white !important, including disabled controls.
+   Override only this owned dialog state so its label stays readable. */
+.imok-runtime-dialog button.cbi-button-apply:disabled{color:var(--imok-text-secondary)!important}

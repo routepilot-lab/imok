@@ -50,6 +50,13 @@ def client_module(root, text):
     return root / RESOURCES / 'routepilot' / (names[0] + '.js')
 
 
+def runtime_module(root, text):
+    names = re.findall(r"L.require\('routepilot\.(runtime_[a-f0-9]{12})'\)", text)
+    if not names:return None
+    if len(names) != 1:raise ValueError('Expected one lazy runtime module')
+    return root / RESOURCES / 'routepilot' / (names[0] + '.js')
+
+
 def sync(root=ROOT):
     menu, view, text, helper, old_helper = paths(root)
     css = stylesheet(root, text)
@@ -64,6 +71,11 @@ def sync(root=ROOT):
         new_client = client.with_name('clients_' + digest(client.read_bytes()) + '.js')
         text = text.replace(client.stem, new_client.stem)
         client.rename(new_client)
+    runtime = runtime_module(root, text)
+    if runtime:
+        new_runtime = runtime.with_name('runtime_' + digest(runtime.read_bytes()) + '.js')
+        text = text.replace(runtime.stem, new_runtime.stem)
+        runtime.rename(new_runtime)
     view_name = 'routepilot_masque_' + digest(text.encode('utf-8'))
     new_helper = helper.with_name(helper_name + '.js')
     new_view = view.with_name(view_name + '.js')
@@ -100,6 +112,11 @@ def validate(root=ROOT):
         if set(client.parent.glob('clients_*.js')) != {client}:
             raise ValueError('Obsolete client modules remain')
         result['clients'] = client.stem
+    runtime = runtime_module(root, text)
+    if runtime:
+        if runtime.stem != 'runtime_' + digest(runtime.read_bytes()):raise ValueError('Runtime module changed: run tools/asset_versions.py')
+        if set(runtime.parent.glob('runtime_*.js')) != {runtime}:raise ValueError('Obsolete runtime modules remain')
+        result['runtime'] = runtime.stem
     return result
 
 

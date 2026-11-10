@@ -16,7 +16,8 @@ class Handler(BaseHTTPRequestHandler):
     prefix='packages/luci-app-routepilot/';menu=json.loads(read(prefix+'root/usr/share/luci/menu.d/luci-app-routepilot.json'));name=menu['admin/services/routepilot']['action']['path'];view=read(prefix+'htdocs/luci-static/resources/view/'+name+'.js');import re
     helper=re.search(r'require routepilot\.(feedback_[a-f0-9]+)',view)[1];css=re.search(r"routepilot/(style_[a-f0-9]+\.css)",view)[1]
     client=re.search(r"L.require\('routepilot\.(clients_[a-f0-9]{12})'\)",view)
-    data=json.dumps(dict(view=view,helper=read(prefix+'htdocs/luci-static/resources/routepilot/'+helper+'.js'),clients=read(prefix+'htdocs/luci-static/resources/routepilot/'+client[1]+'.js') if client else None,css=read(prefix+'htdocs/luci-static/resources/routepilot/'+css),version=json.loads(read(prefix+'root/usr/share/routepilot/version.json')),baseline=baseline)).encode();kind='application/json'
+    runtime=re.search(r"L.require\('routepilot\.(runtime_[a-f0-9]{12})'\)",view)
+    data=json.dumps(dict(runtime=read(prefix+'htdocs/luci-static/resources/routepilot/'+runtime[1]+'.js') if runtime else None,view=view,helper=read(prefix+'htdocs/luci-static/resources/routepilot/'+helper+'.js'),clients=read(prefix+'htdocs/luci-static/resources/routepilot/'+client[1]+'.js') if client else None,css=read(prefix+'htdocs/luci-static/resources/routepilot/'+css),version=json.loads(read(prefix+'root/usr/share/routepilot/version.json')),baseline=baseline)).encode();kind='application/json'
    elif path=='/gallery':data=(PROJECT/'docs/ui-v2-all/gallery.html').read_bytes();kind='text/html'
    elif path.startswith('/evidence/') and __import__('re').fullmatch(r'[a-z0-9-]+\.png',path.removeprefix('/evidence/')):data=(PROJECT/'docs/ui-v2-all/screenshots'/path.removeprefix('/evidence/')).read_bytes();kind='image/png'
    elif path=='/theme.css':data=(PROJECT/'.local/fixtures/argon-cascade.css').read_bytes();kind='text/css'

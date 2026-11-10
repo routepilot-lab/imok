@@ -68,6 +68,9 @@
         ],
         "/usr/libexec/routepilot-clients-list": [
           "exec"
+        ],
+        "/usr/libexec/routepilot-runtime-status": [
+          "exec"
         ]
       },
       "ubus": {
@@ -119,6 +122,15 @@
           "exec"
         ],
         "/var/run/routepilot/requests/client-input-*.json": [
+          "write"
+        ],
+        "/usr/libexec/routepilot-runtime": [
+          "exec"
+        ],
+        "/var/run/routepilot/requests/runtime-input-*.json": [
+          "write"
+        ],
+        "/opt/routepilot/runtime-uploads/runtime.tgz": [
           "write"
         ]
       },
