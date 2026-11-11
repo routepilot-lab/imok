@@ -77,6 +77,9 @@
         "file": [
           "read",
           "exec"
+        ],
+        "luci-rpc": [
+          "getHostHints"
         ]
       }
     },

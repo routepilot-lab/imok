@@ -31,6 +31,47 @@ def spec():
 
 
 class DNSBatchTests(unittest.TestCase):
+    def test_binary_dns_labels_are_canonical_without_suffix_injection(self):
+        def packet(labels):
+            return struct.pack('!6H',7,256,1,0,0,0)+b''.join(bytes([len(x)])+x for x in labels)+b'\0'+struct.pack('!2H',1,1)
+        q=packet([b'Photo Studio',b'\xff',b'EXAMPLE',b'com'])
+        ident,name,kind,finish=native.question(q)
+        self.assertEqual((ident,kind,finish),(7,1,len(q)))
+        self.assertEqual(name,r'photo\032studio.\255.example.com')
+        self.assertTrue(native.suffix_match({name},{'example.com'}))
+        disguised=packet([b'www.example.com'])
+        escaped=native.question(disguised)[1]
+        self.assertEqual(escaped,r'www\046example\046com')
+        self.assertFalse(native.suffix_match({escaped},{'example.com'}))
+        backslash=packet([b'www\\046example',b'com'])
+        self.assertIn(r'\092046',native.question(backslash)[1])
+
+    def test_dns_name_limit_uses_wire_octets_not_escaped_display_length(self):
+        def wire(last):return b''.join(bytes([len(x)])+x for x in [b'\xff'*63]*3+[b'\xff'*last])+b'\0'
+        name,end=native.read_name(wire(61),0)
+        self.assertEqual(end,255)
+        self.assertGreater(len(name),253)
+        with self.assertRaises(native.DNSFormatError):native.read_name(wire(62),0)
+        for invalid in [b'\x40'+b'x'*64+b'\0',b'\xc0\x00',b'\x03ab']:
+            with self.assertRaises(native.DNSFormatError):native.read_name(invalid,0)
+
+    def test_special_label_forward_cache_and_failure_preserve_original_question(self):
+        raw=b'Photo Studio';q=struct.pack('!6H',27,256,1,0,0,0)+bytes([len(raw)])+raw+b'\x07example\x03com\0'+struct.pack('!2H',1,1)
+        policy=dr.DNSRuntime(spec()).policies[0]
+        with patch('native.socket.socket') as sock,patch('native.populate_sets') as classify:
+            conn=sock.return_value.__enter__.return_value
+            conn.recv.return_value=answer(q,60)
+            first=native.upstream(q,policy)
+            second=native.upstream(q,policy)
+            self.assertEqual(sock.call_count,1)
+            self.assertEqual(conn.send.call_args.args[0],q)
+            self.assertEqual(first[12:len(q)],q[12:])
+            self.assertEqual(second[12:len(q)],q[12:])
+            self.assertIn(r'photo\032studio.example.com',classify.call_args.args[1])
+        failed=native.failure(q)
+        self.assertEqual(struct.unpack('!H',failed[2:4])[0]&15,2)
+        self.assertEqual(failed[12:],q[12:])
+
     def test_ttl_rrset_opt_dnssec_and_negative_soa_are_preserved(self):
         q=query();a=answer(q)
         # Two records from one RRset with unequal original TTLs.

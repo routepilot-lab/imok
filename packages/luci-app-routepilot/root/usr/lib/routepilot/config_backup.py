@@ -33,7 +33,8 @@ def validate(document):
             if key.startswith('.'):continue
             if not re.fullmatch('[a-z_][a-z0-9_]{0,63}',key):raise ControlError('备份字段无效')
             values=value if isinstance(value,list) else [value]
-            if len(values)>256 or not all(isinstance(x,str) and len(x)<=2048 and not any(ord(c)<32 or ord(c)==127 for c in x) for x in values):
+            limit=2000 if key in ('custom_direct_domains','custom_proxy_domains','custom_direct_ips','custom_proxy_ips') else 256
+            if len(values)>limit or not all(isinstance(x,str) and len(x)<=2048 and not any(ord(c)<32 or ord(c)==127 for c in x) for x in values):
                 raise ControlError('备份字段值无效')
             item[key]=value
         item['enabled']='0'
@@ -55,7 +56,12 @@ def export():
         for name,value in values.items():
             row=dict(value);row['.name']=name
             if row.get('.type') in ('main','policy'):rows.append(row)
-        return dict(format='routepilot-masque-v3',sections=rows,endpoint={k:cfg[k] for k in ('mode','address','hours')})
+        document=dict(format='routepilot-masque-v3',sections=rows,endpoint={k:cfg[k] for k in ('mode','address','hours')})
+        validate(document)
+        # Match the existing UTF-8 file limit, including the CLI's final newline.
+        if len(json.dumps(document,ensure_ascii=False).encode())+1>262144:
+            raise ControlError('配置备份超过当前 256 KiB 导入上限，未生成无法恢复的文件；现有设置未改动')
+        return document
 
 
 def quote(value):

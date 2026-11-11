@@ -317,11 +317,70 @@
  .rp-layout:not([data-page=overview]) .imok-settings-section .cbi-value{grid-template-columns:1fr;gap:.375rem}
 }
 
-/* Device policies and DNS: configuration, live state and diagnostics remain distinct. */
-.rp-layout[data-page=devices] .imok-device-grid{overflow-x:auto;max-width:100%;padding-bottom:.5rem}
-.rp-layout[data-page=devices] .imok-device-grid>.cbi-section{margin:0;padding:0;border:0;box-shadow:none;background:none}
-.rp-layout[data-page=devices] .cbi-section-table .cbi-value-field{min-width:8rem}
-.rp-layout[data-page=devices] .cbi-section-table :is(input,select){max-width:100%}
+/* Device policies use the native LuCI table and form actions. */
+.rp-layout[data-page=devices] .imok-device-panel .imok-panel-heading {
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.375rem 1rem;align-items:center;
+}
+.imok-device-panel .imok-panel-heading .rp-help {grid-column:1;margin:0;font-size:var(--imok-text-small)}
+.imok-device-panel .imok-panel-heading .cbi-section-create {grid-area:1/2/3/3;margin:0}
+.imok-device-panel .imok-panel-heading .cbi-section-create>button {margin:0;white-space:nowrap}
+.imok-device-grid {container-type:inline-size;min-width:0;overflow-x:auto;border:1px solid var(--imok-border);border-radius:var(--imok-radius-control)}
+.imok-device-grid>.cbi-section {margin:0;padding:0;border:0;box-shadow:none;background:none}
+.imok-device-grid .cbi-section-table {display:table;width:100%;min-width:0;margin:0;border:0;border-collapse:collapse;table-layout:auto}
+.imok-device-grid .cbi-section-table .tr {display:table-row;margin:0;background:var(--imok-surface);box-shadow:none}
+.imok-device-grid .cbi-section-table .tr::before {display:none}
+.imok-device-grid .cbi-section-table .tr>:is(.th,.td) {
+ display:table-cell;width:auto;min-width:0;padding:.625rem .75rem;vertical-align:middle;
+ border:0;border-bottom:1px solid var(--imok-border);text-align:left!important;
+}
+.imok-device-grid .cbi-section-table .tr[data-sid]:last-child>.td,
+.imok-device-grid .cbi-section-table .placeholder>.td {border-bottom:0}
+.imok-device-grid .cbi-section-table .td::before {display:none}
+.imok-device-grid .cbi-section-table .td[data-name=name] {font-weight:600;overflow-wrap:anywhere}
+.imok-device-grid .cbi-section-table .td:is([data-name=mac],[data-name=ip]) {
+ font-variant-numeric:tabular-nums;color:var(--imok-text-secondary);overflow-wrap:anywhere;
+}
+.imok-device-grid .cbi-section-table .tr>.cbi-section-actions {text-align:right!important;white-space:nowrap}
+.imok-device-grid .cbi-section-actions>div {display:flex;gap:.375rem;justify-content:flex-end}
+.rp-layout[data-page=devices] .imok-device-grid .cbi-section-actions .cbi-button {min-height:2rem;margin:0;padding:.25rem .625rem;font-size:var(--imok-text-small)}
+/* Argon marks edit and remove text white with !important. */
+.rp-layout[data-page=devices] .imok-device-grid .cbi-button-edit {
+ color:var(--imok-text)!important;background:var(--imok-surface);border-color:var(--imok-border);
+}
+.rp-layout[data-page=devices] .imok-device-grid .cbi-button-edit:hover {background:var(--imok-surface-subtle);border-color:var(--imok-control-border)}
+.rp-layout[data-page=devices] .imok-device-grid .cbi-button-remove {
+ color:var(--imok-danger)!important;background:var(--imok-surface);border-color:var(--imok-border);
+}
+.rp-layout[data-page=devices] .imok-device-grid .cbi-button-remove:hover {background:var(--imok-danger-bg);border-color:var(--imok-danger)}
+.imok-device-state {
+ display:inline-block;padding:.125rem .5rem;border-radius:var(--imok-radius-control);white-space:nowrap;
+ background:var(--imok-neutral-bg);color:var(--imok-neutral);font-weight:500;
+}
+.imok-device-state[data-enabled=true] {background:var(--imok-success-bg);color:var(--imok-success)}
+.imok-device-empty {display:block;padding:.75rem 0;color:var(--imok-text-secondary)}
+.rp-layout[data-page=devices] .imok-device-panel .imok-device-note {margin-top:.75rem;color:var(--imok-text-secondary);font-size:var(--imok-text-small)}
+@container (max-width:45rem) {
+ .imok-device-grid .cbi-section-table,.imok-device-grid .cbi-section-table tbody {display:block}
+ .imok-device-grid .cbi-section-table .cbi-section-table-titles {display:none}
+ .imok-device-grid .cbi-section-table .cbi-section-table-row {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.625rem 1rem;padding:.875rem;
+  border-bottom:1px solid var(--imok-border);
+ }
+ .imok-device-grid .cbi-section-table .cbi-section-table-row:last-child {border-bottom:0}
+ .imok-device-grid .cbi-section-table .cbi-section-table-row>.td {display:block;padding:0;border:0;min-width:0;max-width:none}
+ .imok-device-grid .cbi-section-table .td[data-title]::before {
+  display:block;content:attr(data-title);width:auto;margin:0 0 .125rem;padding:0;border:0;
+  color:var(--imok-text-secondary);font-weight:400;
+ }
+ .imok-device-grid .cbi-section-table .cbi-section-table-row>:is(.cbi-section-actions,.placeholder>.td) {grid-column:1/-1}
+ .imok-device-grid .cbi-section-table .cbi-section-table-row>.cbi-section-actions {width:auto;padding-top:.5rem;border-top:1px solid var(--imok-border)}
+ .rp-layout[data-page=devices] .imok-device-grid .cbi-section-actions .cbi-button {min-height:2.5rem}
+}
+@media(max-width:30rem) {
+ .rp-layout[data-page=devices] .imok-device-panel .imok-panel-heading {grid-template-columns:minmax(0,1fr)}
+ .imok-device-panel .imok-panel-heading .cbi-section-create {grid-area:auto;justify-self:start;margin-top:.25rem}
+}
+
 .rp-layout[data-page=dns] .rp-center-body>.imok-settings-pair>.cbi-section,.rp-layout[data-page=dns] .imok-diagnostics>.cbi-section{margin:0;padding:1.5rem;background:var(--imok-surface);border:1px solid var(--imok-border);border-radius:var(--imok-radius-panel);box-shadow:none}
 .rp-layout[data-page=dns] .cbi-section h3{margin:0 0 1rem;padding:0;background:none;box-shadow:none}
 .rp-layout[data-page=dns] .imok-dns-settings .cbi-value{grid-template-columns:1fr;gap:.375rem}
@@ -424,8 +483,6 @@
 .rp-layout:not([data-page=overview]) :is(table,.table){font-size:var(--imok-text-small)!important}
 
 .rp-layout:not([data-page=overview]) .cbi-section>p:empty{display:none}
-.rp-layout[data-page=devices] .imok-device-grid .table{min-width:52rem}
-.rp-layout[data-page=devices] .imok-device-grid .cbi-section-table-row{box-shadow:none}
 .rp-layout[data-page=backup] input[type=file]::file-selector-button{font-family:inherit;font-size:inherit;line-height:inherit}
 
 .rp-layout:not([data-page=overview]) :where(input[type=text],input[type=password],input[type=search],input[type=url],select,textarea){box-sizing:border-box;min-height:2.5rem;max-width:100%;border:1px solid var(--imok-control-border);border-radius:var(--imok-radius-control);background:var(--imok-surface);color:var(--imok-text);padding:.5rem .625rem;box-shadow:none}

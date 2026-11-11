@@ -28,7 +28,7 @@ class DNSFormatError(ValueError):
 
 
 def read_name(packet, offset):
-    labels, seen, end = [], set(), None
+    labels, seen, end, wire_size = [], set(), None, 1
     for _ in range(128):
         if offset >= len(packet) or offset in seen:
             raise DNSFormatError('Invalid DNS name')
@@ -49,18 +49,23 @@ def read_name(packet, offset):
         offset += 1
         if not size:
             name = '.'.join(labels).lower()
-            if len(name) > 253:
-                raise DNSFormatError('DNS name too long')
             return name, end if end is not None else offset
         if offset + size > len(packet):
             raise DNSFormatError('Truncated DNS label')
-        try:
-            label = packet[offset:offset + size].decode('ascii')
-        except UnicodeDecodeError:
-            raise DNSFormatError('Invalid DNS label') from None
-        # DNS allows underscores (service discovery); not used in nft syntax.
-        if not re.fullmatch(r'[A-Za-z0-9_*-]+', label):
-            raise DNSFormatError('Invalid DNS label')
+        wire_size += size + 1
+        if wire_size > 255:
+            raise DNSFormatError('DNS name too long')
+        # RFC 2181 section 11 permits arbitrary label octets, not only hostnames.
+        # Escape special octets for internal comparisons; literal dots/backslashes
+        # must never become suffix separators or impersonate configured domains.
+        raw = packet[offset:offset + size]
+        if re.fullmatch(rb'[A-Za-z0-9_*-]+', raw):
+            label = raw.decode('ascii').lower()
+        else:
+            label = ''.join(chr(value).lower() if (65 <= value <= 90 or
+                            97 <= value <= 122 or 48 <= value <= 57 or
+                            value in (45, 95, 42)) else '\\%03d' % value
+                            for value in raw)
         labels.append(label)
         offset += size
     raise DNSFormatError('DNS pointer depth exceeded')

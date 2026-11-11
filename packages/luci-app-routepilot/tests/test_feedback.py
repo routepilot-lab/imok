@@ -10,6 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'root/usr/lib/routepilot'))
 import masque
 import mplane
+import diagnostics
 from diagnostics import classify
 
 
@@ -49,6 +50,38 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(classify(0, '403 0.200')['state'], 'restricted')
         self.assertEqual(classify(28, '000 10.00')['message'], '超时')
         self.assertEqual(classify(6, '000 0.01')['message'], 'DNS 解析失败')
+
+    # Regression: ISSUE-001 — an HTTP status cannot override a failed transfer.
+    # Found by /qa on 2026-11-10; report: .local/imok-qa-20261110/report.md
+    def test_https_transfer_errors_are_not_overridden_by_received_http_status(self):
+        for code,http,message in [(28,200,'超时'),(60,301,'证书验证失败'),
+                                  (18,200,'响应传输未完成'),(47,302,'重定向次数超限'),
+                                  (28,403,'超时')]:
+            with self.subTest(code=code,http=http):
+                result=classify(code,str(http)+' 0.123')
+                self.assertEqual(result['state'],'failed')
+                self.assertEqual(result['message'],message)
+                self.assertEqual(result['http'],http)
+                self.assertEqual(result['ms'],123)
+
+    # Regression: ISSUE-002 — bad disposable progress must not block future tests.
+    # Found by /qa on 2026-11-10; report: .local/imok-qa-20261110/report.md
+    def test_https_detection_recovers_bad_progress_without_modifying_settings(self):
+        cases=[('{',1),('[]',1),('null',1),
+               ('{"state":"running","started_at":"soon"}',1),
+               ('{"state":"running","started_at":true}',1),
+               ('{"state":"running","started_at":1500}',1),
+               ('{"state":"running","started_at":1000}',0),
+               ('{"state":"running","started_at":970}',1)]
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);cache=root/'connectivity.json'
+            for content,expected in cases:
+                with self.subTest(content=content):
+                    cache.write_text(content);before=cache.read_bytes()
+                    with patch.object(diagnostics,'RUN',root),patch.object(diagnostics.time,'time',return_value=1001),patch.object(diagnostics.subprocess,'Popen') as spawn:
+                        diagnostics.start()
+                    self.assertEqual(spawn.call_count,expected)
+                    self.assertEqual(cache.read_bytes(),before,'the worker owns progress publication')
 
     def test_action_nonces_do_not_restart_the_routing_generation(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(masque, 'RULES', Path(folder)):

@@ -59,6 +59,30 @@ class ConfigBackup(unittest.TestCase):
   e.CONFIG.write_text(json.dumps({'mode':'manual','address':'162.159.197.2:443','hours':6,'revision':'request'}));values={'main':self.doc['sections'][0]}
   with patch.object(b,'command',return_value=SimpleNamespace(stdout=json.dumps({'values':values}))):d=b.export()
   self.assertEqual(set(d['endpoint']),{'mode','address','hours'});self.assertNotIn('revision',d['endpoint']);self.assertEqual(d['format'],'routepilot-masque-v3')
+ # Regression: ISSUE-003 — configured custom lists must survive export/import.
+ # Found by /qa on 2026-11-10; report: .local/imok-qa-20261110/report.md
+ def test_supported_custom_list_sizes_roundtrip_export_validation(self):
+  for key in ('custom_direct_domains','custom_proxy_domains','custom_direct_ips','custom_proxy_ips'):
+   for count in (257,2000):
+    with self.subTest(key=key,count=count):
+     entries=['site'+str(i)+'.example.com' for i in range(count)] if key.endswith('domains') else ['8.1.'+str(i//256)+'.'+str(i%256) for i in range(count)]
+     values={'main':{'.type':'main','enabled':'1',key:entries}}
+     with patch.object(b,'command',return_value=SimpleNamespace(stdout=json.dumps({'values':values}))):document=b.export()
+     restored,_=b.validate(document)
+     self.assertEqual(restored[0][key],entries)
+     self.assertEqual(restored[0]['enabled'],'0')
+  for key,count in [('custom_direct_domains',2001),('unknown_list',257)]:
+   document=json.loads(json.dumps(self.doc));document['sections'][0][key]=['x']*count
+   with self.assertRaises(ValueError):b.validate(document)
+
+ # Regression: export must not produce a file the existing import UI rejects.
+ def test_export_checks_existing_file_size_boundary_without_truncating(self):
+  entries=[('a'*50)+'.'+('b'*50)+'.'+('c'*50)+str(i)+'.example.com' for i in range(2000)]
+  values={'main':{'.type':'main','enabled':'1','custom_direct_domains':entries}}
+  with patch.object(b,'command',return_value=SimpleNamespace(stdout=json.dumps({'values':values}))):
+   with self.assertRaisesRegex(ValueError,'256 KiB'):b.export()
+  self.assertEqual(len(values['main']['custom_direct_domains']),2000)
+
  def test_firmware_restore_is_staged_without_replaying_journal(self):
   e.CONFIG.write_text(json.dumps({'mode':'manual','address':'162.159.197.2:443','revision':'old'}));e.stage_restored_preferences();self.assertTrue(e.settings()['staged']);self.assertEqual(e.settings()['revision'],'')
  def test_normal_restart_keeps_applied_preference(self):

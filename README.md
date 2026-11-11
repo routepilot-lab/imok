@@ -1,14 +1,14 @@
 # imOK 2.0
 
-> **v0.2.37-1 预发布：WARP 安装与更新。** 自动检测环境、从官方来源准备文件；默认每日检查新版，安装与升级单独确认。现有环境的插件更新和版本检查已实测，全新 WARP 安装／升级／恢复仍待实机验收。[使用说明](docs/WARP_RUNTIME.md)。
+> **最新预发布 v0.2.37-3**。选择在线设备即可填写 MAC 和 IPv4，设备策略页新增中文状态与窄屏布局。包含此前的 DNS、加载和备份兼容修复。[本版更新](docs/releases/v0.2.37-3.md)
 
 ### 借助 Cloudflare 全球网络，让路由器和手机的接入更灵活、全球出口更可控。
 
 **imOK 是面向 OpenWrt / LuCI 的开源网络管理插件。** 它把 Cloudflare WARP / MASQUE、已有云端出口、设备分流、DNS、规则更新和手机独立接入，整合成一个清晰的控制台。
 
-家里的设备按需分流，外出的手机使用独立身份；入口、端口和出口分别管理，配置变化看得明白，遇到问题也有状态和诊断可查。
+我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
-[**下载 v0.2.37-1 预发布**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-1) · [v0.2.36-1 正式版](https://github.com/routepilot-lab/imok/releases/tag/v0.2.36-1) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
+[**下载 v0.2.37-3 预发布**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-3) · [v0.2.36-1 正式版](https://github.com/routepilot-lab/imok/releases/tag/v0.2.36-1) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
 **Cloudflare WARP / MASQUE management for OpenWrt:** per-device and LAN routing, independent mobile identities, private subscriptions, DNS diagnostics and persistent personal rules.
 
@@ -16,20 +16,25 @@
 
 Cloudflare 提供了全球网络和加密隧道，但把“路由器怎么接、哪些设备走代理、手机用哪个出口、规则怎么更新”整理成日常可用的系统，仍有不少工作。
 
-imOK 负责把这些工作变得集中、清楚、可控。**不是再给你一堆节点，而是把自己已有的网络资源用起来。**
+imOK 把入口、出口、规则和客户端放到一个页面体系里，方便配置自己的网络资源和排查连接问题。
 
 - **第一次使用知道先做什么。** 独立的 WARP 安装与更新入口，自动识别受支持环境、准备官方组件，下载与确认安装分开；已有环境无需重装。
 - **持续维护更清楚。** 默认每天检查 WARP 版本，发现新版提示，不自动升级；维护有明确确认、校验和恢复副本。
 - **借助 Cloudflare 的连接路径。** 本地先接入 Cloudflare，再按组织路由到达已部署出口，减少对本地直连某台 VPS 的依赖；在合适的网络条件下，有机会改善跨网访问体验。
-- **家里一次配置，选定设备共同使用。** 可按设备或 LAN 接管；国内直连、全部代理、代理名单等策略各有适用范围。
-- **家里和手机可以分别管理。** 手机使用独立 MASQUE 身份、地址与出口选择，不复制路由器私钥，也不要求路由器跟着手机换线。
-- **一个私密订阅地址，持续更新参数。** 在 imOK 保存入口 IP、端口或 DNS 后同步订阅；手机更新订阅即可获取，无需每次传新链接。直接导入和二维码也保留。
 - **入口灵活，出口明确。** 入口决定如何连到 Cloudflare；出口决定从哪里访问网站。可使用账户中已部署的美国、首尔等出口，地区以实际观测为准。
 - **规则更新不冲掉个人选择。** 可编辑来源与更新频率，搜索规则、添加个人条目、长期排除不需要的条目，订阅更新保留个人覆盖。
 - **连接情况说清楚。** 已保存、已应用、隧道连接、网站检测、手机连接是不同状态，避免一个绿色“正常”掩盖问题。
 - **复杂功能也能找到。** 统一的 14 个页面、清晰分组、可见选中状态、桌面优先排版，以及独立的 Workers 手动备用。
 
 实际速度取决于本地运营商、Cloudflare 路径、出口服务器和目标站点；项目不提供免费节点、固定带宽或“永不掉线”的保证。
+
+## 家里的设备按台分流，独立客户端各选出口
+
+**家里最多同时启用 8 台设备的分流策略。** 比如 Mac mini 用「全部代理」，另一台电脑用「国内 IP 直连，其余代理」，电视继续走原来的网络。也可以用域名名单选择哪些网站走代理。选中在线设备即可带入 MAC 和 IPv4。受管设备可以使用不同规则，代理流量共用路由器当前选择的出口。想让整个局域网使用统一策略，也可以切换接管范围。
+
+**一台 imOK 路由器最多管理 32 条独立客户端配置。** 实际可注册数量取决于 Cloudflare 团队的权限和配额。每台独立客户端使用自己的 MASQUE 身份，从团队已部署的出口中单独选择。比如家里路由器走美国，自己的 iPhone 走首尔，另一部手机走美国。给其中一部手机换出口后，让那部手机重连即可。
+
+**入口、端口和 DNS 也可以逐台设置。** 首次接入可以直接导入、扫码，或使用固定私密订阅。以后调整入口 IP、端口或 DNS，在 imOK 更新订阅内容，手机刷新原订阅再重连即可。停用旧设备时可以单独撤销它的身份。[客户端接入说明](docs/CLIENT_ACCESS.md)
 
 ## 先看效果
 
@@ -84,15 +89,15 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 下载和安装
 
-当前预发布：**v0.2.37-1 · WARP 安装与更新**；保留 v0.2.36-1 正式版。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
+当前预发布为 **v0.2.37-3 · 设备自动填写与排版**。v0.2.36-1 正式版仍可下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
 
-[前往预发布下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-1)：
+[前往预发布下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-3)：
 
 | 文件 | 用途 |
 | --- | --- |
-| `imOK-0.2.37-1-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
-| `luci-app-routepilot_0.2.37-1_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
-| `imOK-0.2.37-1-public-source.zip` | 公开源码、测试、文档与许可 |
+| `imOK-0.2.37-3-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
+| `luci-app-routepilot_0.2.37-3_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
+| `imOK-0.2.37-3-public-source.zip` | 公开源码、测试、文档与许可 |
 | `SHA256SUMS` | 上述安装、源码与分享包的校验值 |
 
 **新设备先读安装说明。** 公开分享包不是路由器固件，不含第三方 WARP 客户端 / Debian 运行环境、账户、私钥或任何现成节点。先安装插件，在“WARP 安装与更新”检测环境；本版提供受支持平台的官方组件自动准备实验流程，首次安装仍待独立实机验收。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。不要卸载、重注册或覆盖运行环境来完成普通升级。
@@ -101,12 +106,11 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 本版做了哪些验证？
 
-- 主 Python 521 项、服务端 5 项、18 组前端、目标 LuCI 契约、资源哈希与可复现构建通过；发布保护 11 项测试单独运行。
-- 新 WARP 页面在 1440 / 768 / 375 / 320 隔离预览检查；真实桌面 Argon 检查总览、WARP 页面、导航与按钮，实际提交版本检查并得到新结果。
-- 现有路由器的进程、出口设置、配置、身份和 WARP 二进制保留；90 次连续采样、更新前后的代理与直连 HTTPS 检查通过。
-- 维护者采用受控文件更新保留当前连接。**普通 IPK 安装可能短暂重连；本次没有在生产设备重新执行该升级钩子。**
+- 528 项插件 Python 测试、5 项服务端测试、11 项发布保护测试、19 组前端检查通过。另验证了目标 LuCI 契约、资源哈希和可重复构建。
+- 在路由器上实际试选设备，MAC 和 IPv4 自动填入。添加和编辑弹窗正常，设备策略页覆盖 1440、1024、375 和 320 像素布局。
+- 设备页面通过受控文件更新验证，隧道和 DNS 持续运行。常规 IPK 升级可能短暂重连。
 
-全新 WARP 安装、APT 升级和运行环境恢复没有完成独立实机验收，本版因此使用预发布标记。热更新后，新增启动保护在下次正常启动插件时加载；维护前应准备独立本地管理连接。其他系统、浏览器、组织策略及长期负载仍有验证边界。详见[公开检查摘要](docs/PUBLICATION_CHECKS.json)与[验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
+全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收，因此沿用预发布标记。详见[本版检查摘要](docs/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
 
 主线路故障撤回接管时可能使用宽带直连；本插件不提供 IPv6 代理，可阻断 IPv6 或明确允许其直连。普通“导出配置”不包含客户端私钥、手机订阅、个人规则覆盖及第三方授权，迁移前请阅读说明。
 
@@ -124,12 +128,6 @@ python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/tar
 
 ## English overview
 
-imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device / LAN policies, DNS diagnostics and independent mobile profiles into one OpenWrt / LuCI console. Mobile profiles support direct import, offline QR and fixed private subscriptions. Entry selection, configured egress and observed connectivity remain separate.
+imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles and assign an available organization egress to each profile. Cloudflare registration is subject to your team's limits and permissions. Client profiles support direct import, QR codes, and fixed private subscriptions.
 
-**v0.2.37-1 is a pre-release** adding official runtime preparation and scheduled version checks. Existing-runtime plugin updates and metadata checks were verified on ARM64 OpenWrt 24.10; fresh WARP installation, APT upgrades and runtime recovery still need independent hardware testing. v0.2.36-1 remains available as the stable release. Downloads include the plugin, public source and a shareable installation kit; your own authorization is required; this is not firmware or a bundled WARP runtime. Cloudflare-based routing can reduce reliance on the direct client-to-VPS path, but does not guarantee speed, availability, anonymity or acceptance of the VPS egress IP by destination services.
-
-## 致谢与许可
-
-感谢 [Cloudflare](https://www.cloudflare.com/) 提供网络与服务基础，感谢 OpenWrt、LuCI、cmliu/edgetunnel、usque、二维码库及开源贡献者。项目由维护者持续试用、反馈，并借助 ChatGPT / OpenAI 开发协作与既往 Claude Opus 独立审查逐步完善。
-
-自有代码 MIT；内置 cmliu/edgetunnel 衍生 Worker 为 GPL-2.0，保留对应源码与许可。第三方客户端与服务遵守各自条款，参见[第三方说明](THIRD_PARTY_NOTICES.txt)。本项目独立维护，不是 Cloudflare 官方产品。
+**v0.2.37-3 is the current pre-release.** It adds device MAC and IPv4 autofill, readable policy labels, and a layout for narrow screens. Downloads include the full plugin, public source, and a shareable installation kit. v0.2.36-1 remains available as the stable release. Fresh WARP installation, APT upgrades, and runtime recovery still need independent hardware testing.

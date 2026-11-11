@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-routepilot
 PKG_VERSION:=0.2.37
-PKG_RELEASE:=1
+PKG_RELEASE:=3
 PKG_LICENSE:=MIT GPL-2.0
 PKG_MAINTAINER:=imok contributors
 

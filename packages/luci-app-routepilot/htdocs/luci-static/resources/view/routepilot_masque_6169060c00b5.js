@@ -5,14 +5,24 @@
 'require fs';
 'require ui';
 'require poll';
-'require network';
 'require rpc';
 'require dom';
 'require routepilot.feedback_8f30a36f4eaa as feedback';
+var callHostHints = rpc.declare({object:'luci-rpc',method:'getHostHints',expect:{'':{}}});
 var commitConfig = rpc.declare({object:'uci',method:'commit',params:['config'],expect:{'':{}}});
 
 function refreshMenuIndex(){return ui.menu.load().then(function(tree){var node=tree;['admin','services','routepilot'].forEach(function(k){node=node&&node.children&&node.children[k];});if(node&&node.children&&(!node.children.cloudflare||!node.children.runtime||['basic','devices','dns','advanced','workers'].some(function(k){return node.children[k]&&node.children[k].title;})))ui.menu.flushCache();}).catch(function(){});}
 function readExitDirectory() { return fs.exec('/usr/libexec/routepilot-exits',[]).then(function(r){if(r.code)throw Error('directory');var v=JSON.parse(r.stdout);if(!v.available||!Array.isArray(v.networks))throw Error('directory');v.read_at=Date.now();v.last_success_at=v.read_at;return v;}).catch(function(){return {available:false,networks:[],read_at:Date.now()};}); }
+function readHostHints(){
+ return new Promise(function(resolve){
+  var timer=setTimeout(function(){resolve(null);},2000);
+  Promise.resolve().then(function(){return callHostHints();}).then(function(rows){clearTimeout(timer);resolve(rows&&typeof rows==='object'&&!Array.isArray(rows)?rows:null);},function(){clearTimeout(timer);resolve(null);});
+ });
+}
+function readOverviewSnapshot(){
+ var files=[];
+ return Promise.all([['status.json',0],['connectivity.json',2],['traffic.json',14],['connection-events.json',15]].map(function(item){return fs.read('/var/run/routepilot/'+item[0]).then(JSON.parse).catch(function(){return null;}).then(function(value){files[item[1]]=value;});})).then(function(){return files;});
+}
 function normalizedID(value){return String(value||'').toLowerCase();}
 function configuredExit(){var value=uci.get('routepilot','main','exit');return value==null?'seoul':value;}
 function savedExitID(key){return ['default','seoul','usa'].indexOf(key)>=0?normalizedID(uci.get('routepilot','main','vnet_'+key)):normalizedID(key);}
@@ -22,7 +32,7 @@ var legacyPages={basic:'routing',devices:'devices',dns:'dns',diagnostics:'dns',a
 var groupSections={advanced:'account',endpoint:'endpoint',basic:'routing',devices:'devices',dns:'dns',workers:'workers'};
 var ruleSections={'rules-overview':'overview','rules-sources':'sources','rules-manage':'manage','rules-custom':'custom'},ruleSectionNames={overview:'更新概况',sources:'来源与频率',manage:'规则管理',custom:'自定义分流'};
 var activeRender=0;
-var imokStylesheet='routepilot/style_be95655e8317.css';
+var imokStylesheet='routepilot/style_8560e76f3e49.css';
 function routeLeaf(){var parts=window.location.pathname.split('/').filter(Boolean),leaf=parts.pop();if(parts[parts.length-1]==='rules'&&Object.keys(ruleSectionNames).indexOf(leaf)>=0)return 'rules-'+leaf;if(leaf==='rules')return 'rules-overview';if(leaf==='routepilot')return 'overview';if(leaf==='cloudflare')return groupSections[(window.location.hash||'').replace('#rp-center-','')]||'account';return parts[parts.length-1]==='cloudflare'&&sectionGroups[leaf]?leaf:legacyPages[leaf]||leaf;}
 return view.extend({
  exitOptions: function(current,mapping,catalog) {
@@ -38,8 +48,9 @@ return view.extend({
   if(leaf==='runtime')return L.require('routepilot.runtime_9c815026873f').then(function(runtimeView){return runtimeView.load().then(function(runtimeData){return {runtimeView:runtimeView,runtimeData:runtimeData};});});
   if(leaf==='clients')return L.require('routepilot.clients_8846630fd080').then(function(clientView){return clientView.load().then(function(clientData){return {clientsView:clientView,clientsData:clientData};});});
   var devices=leaf==='devices',interfaces=devices||leaf==='routing';
+  var initialOverviewRead=leaf==='overview'?readOverviewSnapshot():null;
   var runtimeRead=leaf==='overview'?Promise.resolve().then(function(){return fs.exec('/usr/libexec/routepilot-runtime-status',[]);}).then(function(r){var d=r.code?null:JSON.parse(r.stdout);return d&&d.schema===1&&typeof d.installed==='boolean'?d:null;}).catch(function(){return null;}):Promise.resolve(null);
-  return Promise.all([uci.load('routepilot'),devices?Promise.resolve().then(function(){return typeof L.probeSystemFeatures==='function'?L.probeSystemFeatures():null;}).then(function(){return network.getHostHints();}).catch(function(){return null;}):Promise.resolve(null),interfaces?fs.exec('/usr/libexec/routepilot',['interfaces']).then(function(r){return r.code?[]:JSON.parse(r.stdout);}).catch(function(){return [];}):Promise.resolve([]),Promise.resolve({available:false,networks:[],skipped:!['overview','account','routing'].includes(leaf)}),refreshMenuIndex(),leaf==='workers'?fs.exec('/usr/libexec/routepilot-backup-list',[]).then(function(r){return r.code?{nodes:[]}:JSON.parse(r.stdout);}).catch(function(){return {nodes:[]};}):Promise.resolve({nodes:[]}),Promise.resolve(null),fs.read('/usr/share/routepilot/version.json').then(JSON.parse).catch(function(){return null;})]).then(function(data){data.runtimeRead=runtimeRead;return data;});
+  return Promise.all([uci.load('routepilot'),devices?readHostHints():Promise.resolve(null),interfaces?fs.exec('/usr/libexec/routepilot',['interfaces']).then(function(r){return r.code?[]:JSON.parse(r.stdout);}).catch(function(){return [];}):Promise.resolve([]),Promise.resolve({available:false,networks:[],skipped:!['overview','account','routing'].includes(leaf)}),refreshMenuIndex(),leaf==='workers'?fs.exec('/usr/libexec/routepilot-backup-list',[]).then(function(r){return r.code?{nodes:[]}:JSON.parse(r.stdout);}).catch(function(){return {nodes:[]};}):Promise.resolve({nodes:[]}),Promise.resolve(null),fs.read('/usr/share/routepilot/version.json').then(JSON.parse).catch(function(){return null;})]).then(function(data){data.runtimeRead=runtimeRead;data.initialOverviewRead=initialOverviewRead;return data;});
  },
  render: function(data) {
   if(data&&data.runtimeView){this.handleSaveApply=null;this.handleSave=null;return data.runtimeView.render(data.runtimeData,L.resource(imokStylesheet),boundRequest);}
@@ -174,19 +185,48 @@ return view.extend({
     }).catch(function(e){failWizardStep('auth');notify(e.message,true);});
    }).catch(function(e){notify(_('准备或状态读取未完成：')+e.message,true);});
   };
-  s=m.section(form.GridSection,'policy',_('按设备设置（仅按设备模式生效）'),_('局域网模式无需修改此表，原设置会保留。按设备模式可逐台选择分流模式，仅启用需要接管的设备；所有设备共用“分流设置”中选择的代理出口。域名名单通过普通 DNS 的解析结果分类，共用 CDN IP 可能影响同 IP 的其他域名；纯加密 DNS 应用优先使用国内 IP 直连模式。'));
+  s=m.section(form.GridSection,'policy','','');
+  var policySection=s;
   s.addremove=true;s.anonymous=true;s.nodescriptions=true;
+  s.addbtntitle=_('添加设备');
+  s.modaltitle=function(id){return this.map.addedSection===id?_('添加设备策略'):_('编辑设备策略');};
+  s.renderSectionPlaceholder=function(){return E('span',{class:'imok-device-empty'},_('还没有设备策略。点击「添加设备」开始设置。'));};
   o=s.option(form.Flag,'enabled',_('启用'));o.default='0';o.rmempty=false;
+  o.textvalue=function(id){
+   var enabled=this.cfgvalue(id)==='1';
+   return E('span',{class:'imok-device-state','data-enabled':enabled?'true':'false'},enabled?_('已启用'):_('未启用'));
+  };
   o=s.option(form.Value,'name',_('设备名称'));
-  var devices={};o=s.option(form.ListValue,'_device',_('在线设备'));o.value('',_('手动填写'));
-  if(hints)hints.getMACHints().forEach(function(pair){var mac=pair[0],ip=hints.getIPAddrByMACAddr(mac);if(ip){devices[mac]=ip;o.value(mac,(hints.getHostnameByMACAddr(mac)||mac)+' · '+ip);}});
-  o.write=function(){};o.cfgvalue=function(){return '';};var ps=s;
-  o.onchange=function(ev,id,value){if(!devices[value])return;ps.children.filter(function(f){return f.option==='mac';})[0].getUIElement(id).setValue(value);ps.children.filter(function(f){return f.option==='ip';})[0].getUIElement(id).setValue(devices[value]);};
-  o=s.option(form.Value,'mac',_('MAC'));o.datatype='macaddr';o.rmempty=false;
-  o=s.option(form.Value,'ip',_('固定 IPv4'));o.datatype='ip4addr';o.rmempty=false;
-  o=s.option(form.ListValue,'mode',_('分流模式'));
+  var devices={};
+  o=s.option(form.ListValue,'_device',_('在线设备'),_('选择设备后自动填入 MAC 地址和当前 IPv4。列表中找不到设备时，可按路由器的 DHCP 租约手动填写。'));
+  o.modalonly=true;o.optional=true;o.value('',_('请选择设备，或手动填写'));
+  if(hints&&typeof hints==='object'&&!Array.isArray(hints))Object.keys(hints).sort().forEach(function(mac){
+   var row=hints[mac];if(!/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(mac)||!row||typeof row!=='object')return;
+   var values=row.ipaddrs||row.ipv4,ips=Array.isArray(values)?values:typeof values==='string'?[values]:[],ip=ips.filter(function(value){return typeof value==='string'&&/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)&&value.split('.').every(function(part){return Number(part)<=255;});})[0];
+   if(ip){devices[mac]=ip;o.value(mac,(typeof row.name==='string'&&row.name?row.name:mac)+' · '+ip);}
+  });
+  o.parse=function(){return Promise.resolve();};
+  o.cfgvalue=function(){return '';};
+  o.onchange=function(ev,id,value){
+   var address=devices[value];
+   if(!address)return;
+   // GridSection clones its options into a separate map for the edit dialog.
+   var mac=this.section.getUIElement(id,'mac'),ip=this.section.getUIElement(id,'ip');
+   if(!mac||!ip)return;
+   mac.setValue(value);
+   ip.setValue(address);
+   mac.triggerValidation();
+   ip.triggerValidation();
+  };
+  o=s.option(form.Value,'mac',_('MAC 地址'));o.datatype='macaddr';o.rmempty=false;
+  o=s.option(form.Value,'ip',_('固定 IPv4'),_('填写设备在此局域网的 IPv4。可在路由器的 DHCP 设置中为该 MAC 保留地址，避免设备换 IP 后策略失效。'));o.datatype='ip4addr';o.rmempty=false;
+  function deviceChoiceText(id){
+   var value=this.cfgvalue(id)||this.default,index=this.keylist.indexOf(value);
+   return index>=0?this.vallist[index]:_('未知选项');
+  }
+  o=s.option(form.ListValue,'mode',_('分流模式'));o.textvalue=deviceChoiceText;
   [['bypass_cn',_('国内 IP 直连，其余代理')],['global',_('全部代理')],['gfw',_('仅代理名单内域名')],['whitelist',_('仅直连名单内域名')],['direct',_('保持原样，不接管')]].forEach(function(v){o.value(v[0],v[1]);});o.default='bypass_cn';
-  o=s.option(form.ListValue,'ipv6_mode',_('IPv6 处理方式'),_('仅按设备模式生效。允许直连会绕过代理隧道 和全部代理规则，可能使用宽带真实出口；不创建 IPv6。分流模式为“保持原样”时 IPv6 本就不受管理，此项不生效。'));o.value('inherit',_('跟随默认'));o.value('block',_('阻断 IPv6'));o.value('direct',_('允许 IPv6 直连'));o.default='inherit';o.rmempty=false;['global','bypass_cn','gfw','whitelist'].forEach(function(mode){o.depends('mode',mode);});o.retain=true;
+  o=s.option(form.ListValue,'ipv6_mode',_('IPv6 处理方式'),_('仅按设备模式生效。允许直连会绕过代理隧道 和全部代理规则，可能使用宽带真实出口；不创建 IPv6。分流模式为“保持原样”时 IPv6 本就不受管理，此项不生效。'));o.value('inherit',_('跟随默认'));o.value('block',_('阻断 IPv6'));o.value('direct',_('允许 IPv6 直连'));o.default='inherit';o.rmempty=false;o.textvalue=deviceChoiceText;['global','bypass_cn','gfw','whitelist'].forEach(function(mode){o.depends('mode',mode);});o.retain=true;
   if(page==='account'){
    var originalSectionRender=mainSection.render.bind(mainSection);
    mainSection.render=function(){return originalSectionRender.apply(null,arguments).then(function(node){
@@ -253,8 +293,8 @@ return view.extend({
    });};
   }
   mainSection.children=mainSection.children.filter(function(o){return center?o.routepilotPage===pageGroup:o.routepilotPage===page;});
-  if(page==='devices'){var renderDevices=ps.render.bind(ps);ps.render=function(){return renderDevices.apply(null,arguments).then(function(node){centerDeviceNode=node;return node;});};}
-  m.children=page==='devices'?[ps]:formPage?[mainSection]:[];
+  if(page==='devices'){var renderDevices=policySection.render.bind(policySection);policySection.render=function(){return renderDevices.apply(null,arguments).then(function(node){centerDeviceNode=node;return node;});};}
+  m.children=page==='devices'?[policySection]:formPage?[mainSection]:[];
   var status=E('p',{role:'status','aria-live':'polite'},_('正在读取实际运行状态…'));
   var rulesProgress=E('p',{},_('正在读取规则状态…')),rulesTime=E('p'),rulesCounts=E('div'),lastRule=null;
   var testsInfo=E('p',{},_('路由器侧 HTTPS 检测：代理网站在隧道环境测试，国内网站在主机环境测试；不代表受管设备 DNS 或 LAN 端到端验收。'));
@@ -646,7 +686,7 @@ return view.extend({
   self.applySettings=function(){return submitSettings(false);};self.requestRulesUpdate=function(){return submitSettings(true);};
   var runtimeFiles=['status.json','update.json','connectivity.json','receive.json','dns-state.json','dns-tests.json','backup-node.json','backup-test.json','cloud-state.json','backup-scan.json','relay-tests.json','relay-observed.json','warp-state.json','exit-observation.json','traffic.json','connection-events.json','cloud-directory-state.json'];
   var runtimeSlots={overview:[0,2,14,15],account:[0,12,13],endpoint:[0,13],routing:[0,2,13],devices:[0],dns:[0,2,3,4,5,15],workers:[0,6,7,8,9,10,11,13,15,16],'rules-overview':[0,1],'rules-sources':[0],'rules-manage':[0],'rules-custom':[0],backup:[]}[page]||[];
-  poll.add(function(){if(!isCurrentView())return Promise.resolve();return Promise.all(runtimeFiles.map(function(file,index){return runtimeSlots.indexOf(index)>=0?fs.read('/var/run/routepilot/'+file).then(JSON.parse).catch(function(){return null;}):Promise.resolve(null);})).then(function(files){
+  function applyRuntimeFiles(files){
    if(!isCurrentView())return;
    if(!feedback.diagnosticValid(files[2]))files[2]=null;
    if(!feedback.dnsTestValid(files[5]))files[5]=null;
@@ -667,7 +707,14 @@ var exitName=v.backend==='worker'?(v.backup_name||_('Workers 备用')):directory
    if(page==='account'||page==='routing'){renderDirectory();}
    if(page==='endpoint')return pollEndpoint();
    if(ruleDataPage)return readRulesInfo(false);
-  });},2);
+  }
+  function readRuntimeFiles(){return Promise.all(runtimeFiles.map(function(file,index){return runtimeSlots.indexOf(index)>=0?fs.read('/var/run/routepilot/'+file).then(JSON.parse).catch(function(){return null;}):Promise.resolve(null);})).then(applyRuntimeFiles);}
+  var initialOverviewAt=0,initialOverviewRead=data.initialOverviewRead&&data.initialOverviewRead.then(function(files){if(!isCurrentView())return;if(feedback.fresh(files[0],Date.now()))initialOverviewAt=Date.now();return applyRuntimeFiles(files);});
+  poll.add(function(){
+   if(!isCurrentView())return Promise.resolve();
+   if(initialOverviewRead){var first=initialOverviewRead;initialOverviewRead=null;return first.then(function(){if(!isCurrentView()||Date.now()-initialOverviewAt<2000)return;return readRuntimeFiles();});}
+   return readRuntimeFiles();
+  },2);
   function requestChecksum(text){
    var bytes=new TextEncoder().encode(text),size=(bytes.length+72)&~63,padded=new Uint8Array(size);padded.set(bytes);padded[bytes.length]=128;new DataView(padded.buffer).setUint32(size-4,bytes.length*8);
    var h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
@@ -683,7 +730,7 @@ var exitName=v.backend==='worker'?(v.backup_name||_('Workers 备用')):directory
    if(!file||file.size>262144){notify(_('备份文件过大或无效'),true);return Promise.resolve();}
    var importRequest;return file.text().then(function(raw){var b=JSON.parse(raw);if(['routepilot-masque-v2','routepilot-masque-v3'].indexOf(b.format)<0)throw Error(_('备份格式无效'));importRequest=boundRequest(b);return fs.write('/var/run/routepilot/settings-import-input',importRequest.text,384);}).then(function(){return command('settings-import',importRequest.token);}).then(function(raw){var result=JSON.parse(raw);if(!result.imported||result.request_id!==importRequest.id)throw Error(_('未收到本次导入确认'));return uci.unload('routepilot');}).then(function(){return uci.load('routepilot');}).then(function(){notify(_('已导入并保持关闭。请刷新页面；入口偏好需核对后单独保存应用，登录和备用凭据需另行配置。'));}).catch(function(e){notify(_('导入未完成：')+e.message,true);});
   }
-  var backupCard=E('div',{class:'imok-settings-pair imok-backup-layout'},[panel(_('导出配置'),_('备份可迁移的插件设置。'),[E('p',{},_('导出本插件的分流、DNS 和入口偏好；不含 WARP 登录身份、Cloudflare API 令牌或备用节点凭据。导入后保持关闭并默认选主线路；登录和备用凭据需另行配置。')),E('button',{class:'btn',click:backup},_('导出配置')),E('p',{class:'rp-help'},_('常规配置导出不包含“规则管理”中的个人新增和排除；升级会保留，迁移到新设备需另行备份。')),]),panel(_('导入与恢复'),_('选择文件后按原流程立即导入，导入完成后保持关闭。'),[E('label',{class:'imok-import-field'},[_('导入配置文件：'),E('input',{type:'file',accept:'.json',change:function(ev){restore(ev.target.files[0]);}})]),E('p',{},_('导入后保持关闭，不修改原 SSR 节点或分流。'))])]);
+  var backupCard=E('div',{class:'imok-settings-pair imok-backup-layout'},[panel(_('导出配置'),_('v3 普通设置备份，不是整机镜像。'),[E('p',{},_('包含账户组织名称、协议偏好、出口与接管范围、设备策略、DNS、规则来源与更新间隔、自定义分流和主线路入口偏好。导入后保持关闭并默认选主线路，入口偏好待核对后单独应用。')),E('button',{class:'btn',click:backup},_('导出配置')),E('p',{class:'rp-help'},_('常规配置导出不包含“规则管理”中的个人新增和排除，也不包含 WARP 更新检查频率、运行环境、已下载规则或历史统计。路由器登录身份、API 令牌、备用节点凭据、客户端独立身份及私密订阅凭据也不随本文件迁移。')),]),panel(_('导入与恢复'),_('选择文件后按原流程立即导入，导入完成后保持关闭。'),[E('label',{class:'imok-import-field'},[_('导入配置文件：'),E('input',{type:'file',accept:'.json',change:function(ev){restore(ev.target.files[0]);}})]),E('p',{},_('导入后保持关闭，不修改原 SSR 节点或分流。')),E('p',{class:'rp-help'},_('支持 v2/v3 JSON，文件上限 256 KiB。导出前会检查可导入性，超过上限会明确报错，不截断设置。'))])]);
   function saveOrganizationOnly(){var org=organizationOption.formvalue('main');if(org==null)org=uci.get('routepilot','main','organization')||'';return submitInput('organization-input','warp-org-save',{organization:String(org).trim()}).then(function(result){uci.set('routepilot','main','organization',result.organization);uci.set('routepilot','main','apply_nonce',result.nonce);committedOrganization=result.organization;delete wizardActions.org;updateWizard();return result;});}
   function countryName(code){return ({US:'美国',KR:'韩国',JP:'日本',SG:'新加坡',HK:'香港',TW:'台湾',DE:'德国',GB:'英国',CN:'中国',AU:'澳大利亚',CA:'加拿大'})[code]||code||_('未知');}
   var centerState=E('div',{role:'status','aria-live':'polite'}),centerCountry=E('span',{class:'rp-summary-tag',role:'status','aria-live':'polite'}),centerWarpAuth=E('span',{class:'rp-summary-tag'}),centerAPIAuth=E('span',{class:'rp-summary-tag'}),centerAuth=E('div',{class:'rp-auth-badges'},[centerWarpAuth,centerAPIAuth,centerCountry]),warpInfo=E('p',{role:'status','aria-live':'polite'});
@@ -699,7 +746,7 @@ var exitName=v.backend==='worker'?(v.backup_name||_('Workers 备用')):directory
    centerWarpAuth.textContent=catalog.available||registeredHere||running&&st.backend!=='worker'?_('✓ WARP 已注册'):catalog.skipped?_('○ 本页未读取 WARP 注册状态'):_('○ WARP 注册待确认');
    centerAPIAuth.textContent=cfg&&cfg.configured?_('✓ API 令牌已保存'):_('○ API 尚未读取');
    warpInfo.textContent=warpState&&warpState.state==='available'?_('读取到的客户端协议：')+warpState.protocol+' · '+({organization:_('组织策略'),local_policy:_('本机管理配置'),local:_('客户端设置'),mdm:_('本机管理文件'),routepilot:_('本路由器配置'),external_mdm:_('外部管理文件')}[warpState.source]||_('来源待确认'))+' · '+warpState.message:_('尚未读取到主线路协议信息；新安装先完成本组登录。');
-   var labels={advanced:catalog.available?_('账户可读取'):_('账户待确认'),basic:running?_('已生效'):_('待确认'),devices:uci.get('routepilot','main','scope')==='lan'?_('当前按网络统一生效'):_('按设备设置'),dns:liveDNS&&feedback.dnsState(liveDNS,st,Date.now())==='running'?_('DNS 运行中'):_('DNS 待确认'),workers:running&&st.backend==='worker'?_('备用运行中'):backupNode&&backupNode.configured?_('已配置，未接管'):_('未配置')};
+   var labels={advanced:catalog.available?_('账户可读取'):_('账户待确认'),basic:running?_('已生效'):_('待确认'),devices:uci.get('routepilot','main','scope')==='lan'?_('当前接管范围为「局域网」，此处策略仅在切换到「按设备选择」后生效。'):_('逐台选择分流模式，启用的设备共用所选代理出口。'),dns:liveDNS&&feedback.dnsState(liveDNS,st,Date.now())==='running'?_('DNS 运行中'):_('DNS 待确认'),workers:running&&st.backend==='worker'?_('备用运行中'):backupNode&&backupNode.configured?_('已配置，未接管'):_('未配置')};
    Object.keys(centerGroupBadges||{}).forEach(function(k){centerGroupBadges[k].textContent=labels[k]||'';});
    centerRefresh.disabled=centerReadBusy;centerObserve.disabled=centerReadBusy||!running;
   }
@@ -878,7 +925,22 @@ var exitName=v.backend==='worker'?(v.backup_name||_('Workers 备用')):directory
    if(pageGroup==='advanced')groups.push(centerGroup('advanced',_('主线路账户与连接协议'),_('已有账户无需重复注册；保存并应用协议后才重连。'),[panel(_('协议设置'),_('保存的协议选择与当前读取到的协议分别确认。'),[protocol,warpInfo]),guide]));
    if(pageGroup==='endpoint')groups.push(centerGroup('endpoint',_('主线路入口'),'',[E('div',{class:'imok-settings-pair imok-entry-layout'},[panel(_('当前入口与最近结果'),_('这里是客户端读取结果；编辑项保留在右侧，不会因读取而提交。'),[endpointDetails],'imok-readonly-panel'),endpointCard])]));
    if(pageGroup==='basic')groups.push(centerGroup('basic',_('账户出口、国家 / 地区与接管范围'),_('选择账户中已部署的出口后检测实际 IP 和地区；入口优选不决定地区。'),[E('div',{class:'imok-route-layout'},[panel(_('代理出口'),_('目录读取不切换出口，选择后仍需保存并应用。'),selectFields(['exit','_discover','_exit_directory'])),panel(_('接管范围与分流'),_('按当前范围显示适用设置；未启用的设备与网络不接管。'),selectFields(['scope','lan_interfaces','lan_mode','bypass_clients','ipv6_mode','_device_mode','_info']))])]));
-   if(pageGroup==='devices')groups.push(centerGroup('devices',_('设备分流'),_('仅在“按设备”接管模式生效；局域网模式保留原表。'),[panel(_('设备策略'),_('每行保留独立设备的启用、标识与策略；保存后按当前接管范围生效。'),[E('div',{class:'imok-device-grid'},[centerDeviceNode])])]));
+   if(pageGroup==='devices'){
+    var scopeHint=centerGroupBadges.devices=E('p',{class:'rp-help'});
+    var devicePanel=panel(_('设备策略'),null,[
+     E('div',{class:'imok-device-grid'},[centerDeviceNode]),
+     E('p',{class:'imok-device-note'},_('域名分流依赖普通 DNS，共用 CDN IP 的网站可能互相影响。使用加密 DNS 的设备可优先选「国内 IP 直连，其余代理」。'))
+    ],'imok-device-panel');
+    devicePanel.setAttribute('id','rp-center-devices');
+    devicePanel.setAttribute('aria-label',_('设备分流'));
+    var heading=devicePanel.querySelector('.imok-panel-heading');
+    heading.appendChild(scopeHint);
+    var addDevice=centerDeviceNode.querySelector('.cbi-section-create');
+    if(addDevice)heading.appendChild(addDevice);
+    var actionHeader=centerDeviceNode.querySelector('.cbi-section-table-titles .cbi-section-actions');
+    if(actionHeader)actionHeader.textContent=_('操作');
+    groups.push(devicePanel);
+   }
    if(pageGroup==='dns')groups.push(centerGroup('dns',_('DNS 与联网检测'),_('只读检测和清缓存不会保存其他表单；历史结果失效时会标记。'),[E('div',{class:'imok-settings-pair imok-dns-settings'},[panel(_('DNS 配置'),_('编辑值只在保存后生效；下方检测使用已应用的设置。'),[fields('dns')]),E('div',{class:'imok-panel-stack'},[dnsCacheCard,dnsTestCard])]),E('div',{class:'imok-dns-tests'},[testCard]),E('details',{class:'imok-diagnostics'},[E('summary',{},_('连接记录与 UDP 接收观测')),connectionHistory,receiveCard])]));
    if(pageGroup==='workers')groups.push(centerGroup('workers',_('Workers 备用与 Cloudflare API 授权'),_('备用需手动检测和启用；以下设置不自动切换主线路。'),[workerInventory,E('p',{class:'rp-help'},E('a',{href:'#',click:function(ev){if(ev&&ev.preventDefault)ev.preventDefault();workerPinned=true;openWorkerStage('use');}},_('已有节点？保留原入口，前往独立检测 →'))),workerWorkspaceView([workerStage('deploy',_('创建部署与 API 授权'),cloudCard,!(cloudMeta&&cloudMeta.configured)),workerStage('relay',_('PROXYIP 主用与备用'),relayCard,false),workerStage('scan',_('优选 Cloudflare 入口'),scanCard,false),workerStage('use',_('独立测试与手动启用'),workerBackupCard,!!(cloudMeta&&cloudMeta.configured))])]));
    groups.push(E('p',{class:'rp-save-hint'},page==='endpoint'?_('本页使用各操作按钮单独提交；只保存同步间隔不会重连，应用入口可能重连。'):page==='workers'?_('云端部署和备用节点按钮分别立即执行其注明的操作；读取与检测不会启用备用。'):_('页面底部“保存并应用”只提交本页设置；读取、检测和清缓存不会提交编辑。')));node.replaceChildren.apply(node,groups);centerComposed=node;updateCenter();if(page==='workers'){updateWorkerProgress();updateWorkerFlow();}return [node];

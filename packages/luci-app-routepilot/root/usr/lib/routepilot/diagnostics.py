@@ -26,11 +26,11 @@ def classify(code, output):
         ms = round(float(parts[1]) * 1000)
     except (ValueError, IndexError):
         ms = None
-    if 200 <= http < 400:
+    if code == 0 and 200 <= http < 400:
         return dict(state='ok', message='可连接', http=http, ms=ms)
-    if http >= 400:
+    if code == 0 and http >= 400:
         return dict(state='restricted', message='可达，但返回 HTTP ' + str(http), http=http, ms=ms)
-    messages = {6: 'DNS 解析失败', 7: '连接失败', 28: '超时', 35: 'TLS 握手失败', 60: '证书验证失败'}
+    messages = {6: 'DNS 解析失败', 7: '连接失败', 18: '响应传输未完成', 28: '超时', 35: 'TLS 握手失败', 47: '重定向次数超限', 60: '证书验证失败'}
     return dict(state='failed', message=messages.get(code, '未收到 HTTPS 响应'), http=http, ms=ms)
 
 
@@ -89,10 +89,15 @@ def start(key='all'):
     if key != 'all' and key not in TARGETS:
         raise ValueError('Unknown target')
     path = RUN / 'connectivity.json'
-    if path.exists():
+    try:
         data = json.loads(path.read_text())
-        if data.get('state') == 'running' and time.time() - data.get('started_at', 0) < 25:
-            return
+    except (OSError, ValueError):
+        data = {}
+    started = data.get('started_at') if isinstance(data, dict) else None
+    now = time.time()
+    if (isinstance(data, dict) and data.get('state') == 'running' and
+            type(started) in (int, float) and 0 <= started <= now + 5 and now - started < 25):
+        return
     subprocess.Popen([sys.executable, __file__, key], stdin=subprocess.DEVNULL,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 

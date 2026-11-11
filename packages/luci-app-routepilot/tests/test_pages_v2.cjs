@@ -24,6 +24,29 @@ const cases=String.raw`
  const diagnostics=dns.find(e=>e.attrs.class==='imok-diagnostics');assert.equal(diagnostics.tag,'details');assert.ok(diagnostics.textContent.includes('WARP 客户端 UDP 接收观测'));
  const settings=dns.find(e=>e.attrs.class==='imok-panel');assert.ok(!settings.find(e=>e.tag==='details'),'editable DNS settings stay directly visible');
  const view=new View();await view.render([null,null,[],directory]);let modalClasses;const nativeModal=ui.showModal;ui.showModal=function(title,children,...classes){modalClasses=classes;return nativeModal(title,children);};uci.save=()=>Promise.resolve();view.map.save=()=>Promise.resolve();await view.applySettings();assert.deepEqual(modalClasses,['imok-dialog'],'only imOK modal requests its owner class');assert.ok(lastModal.find(e=>e.tag==='button'&&e.textContent==='关闭'),'original close action retained');
+ location.pathname='/admin/services/routepilot/cloudflare/devices';const saved=JSON.stringify(config),callsBefore=commandCalls.length;
+ await new View().render([null,{'02:00:00:00:00:01':{name:'示例手机',ipaddrs:['10.77.50.9']},'02:00:00:00:00:02':{name:'旧式提示',ipv4:'10.77.50.10'},'02:00:00:00:00:03':{name:'仅 IPv6',ip6addrs:['2001:db8::1']},invalid:{ipaddrs:['10.77.50.11']},'02:00:00:00:00:04':{ipaddrs:['999.1.2.3']}},[],directory]);
+ const hostOption=lastMap.children[0].children.find(o=>o.option==='_device');
+ assert.deepEqual(hostOption.keylist,['','02:00:00:00:00:01','02:00:00:00:00:02']);
+ assert.ok(hostOption.vallist[1].includes('示例手机'));assert.ok(hostOption.vallist[2].includes('10.77.50.10'));
+ // LuCI clones GridSection options into a separate form when opening the dialog.
+ const rowId='cfgDevice';
+ const fields={mac:{},ip:{}};
+ for(const field of Object.values(fields)){
+  field.setValue=function(value){this.value=value;};
+  field.triggerValidation=function(){this.validated=this.value;};
+ }
+ for(const option of lastMap.children[0].children)option.getUIElement=()=>null;
+ const modalSection={getUIElement(id,option){assert.equal(id,rowId);return fields[option];}};
+ const modalOption={...hostOption,section:modalSection};
+ modalOption.onchange({},rowId,'02:00:00:00:00:01');
+ assert.equal(fields.mac.value,'02:00:00:00:00:01');assert.equal(fields.ip.value,'10.77.50.9');
+ assert.equal(fields.mac.validated,fields.mac.value);assert.equal(fields.ip.validated,fields.ip.value);
+ modalOption.onchange({},rowId,'02:00:00:00:00:02');
+ assert.equal(fields.mac.value,'02:00:00:00:00:02');assert.equal(fields.ip.value,'10.77.50.10');
+ fields.ip.value='10.77.50.20';modalOption.onchange({},rowId,'');
+ assert.equal(fields.ip.value,'10.77.50.20','switching to manual preserves the draft');
+ assert.equal(JSON.stringify(config),saved);assert.equal(commandCalls.length,callsBefore,'host selection list is read-only');
  console.log('Pages v2: stage selection, polling stability, retained drafts/actions and read-only diagnostics passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 `;
