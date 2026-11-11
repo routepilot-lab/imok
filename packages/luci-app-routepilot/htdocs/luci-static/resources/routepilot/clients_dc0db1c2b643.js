@@ -2292,15 +2292,19 @@ var qrcode = function() {
 
 }();
 
+function clientPorts(protocol){return protocol==='wireguard'?[2408,500,1701,4500]:[443,500,1701,4500,4443,8443,8095];}
+
 function validClientList(data){
  function object(value){return value&&typeof value==='object'&&!Array.isArray(value);}
  if(!object(data)||data.schema!==1||!Array.isArray(data.clients)||data.clients.length>32||!object(data.capabilities))return false;
+ if(data.team!=null&&(!object(data.team)||typeof data.team.name!=='string'||data.team.name&&!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(data.team.name)||typeof data.team.error!=='string'))return false;
  var ids={},states=['draft','queued','registering','enrolling','registered','refreshing','selecting_exit','publishing_subscription','stopping_subscription','revoking','revoked','failed','unknown','review'];
  return data.clients.every(function(row){
   if(!object(row)||typeof row.id!=='string'||!/^[a-f0-9]{32}$/.test(row.id)||ids[row.id]||typeof row.name!=='string'||!row.name.trim()||Array.from(row.name).length>64||typeof row.organization!=='string'||!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(row.organization)||states.indexOf(row.state)<0||typeof row.label!=='string'||typeof row.busy!=='boolean'||typeof row.has_registration!=='boolean'||typeof row.exportable!=='boolean')return false;
   ids[row.id]=true;
+  if(row.protocol!=null&&['masque','wireguard'].indexOf(row.protocol)<0)return false;
   var cfg=row.settings;
-  if(!object(cfg)||Object.keys(cfg).some(function(k){return ['endpoint','port','dns','mtu','keepalive','cc'].indexOf(k)<0;})||typeof cfg.endpoint!=='string'||typeof cfg.dns!=='string'||cfg.dns.length>64||[443,500,1701,4500,4443,8443,8095].indexOf(cfg.port)<0||!Number.isInteger(cfg.mtu)||cfg.mtu<1280||cfg.mtu>1420||!Number.isInteger(cfg.keepalive)||cfg.keepalive<10||cfg.keepalive>120||['cubic','bbr','new_reno'].indexOf(cfg.cc)<0)return false;
+  if(!object(cfg)||Object.keys(cfg).some(function(k){return ['endpoint','port','dns','mtu','keepalive','cc'].indexOf(k)<0;})||typeof cfg.endpoint!=='string'||typeof cfg.dns!=='string'||cfg.dns.length>64||clientPorts(row.protocol).indexOf(cfg.port)<0||!Number.isInteger(cfg.mtu)||cfg.mtu<1280||cfg.mtu>1420||!Number.isInteger(cfg.keepalive)||cfg.keepalive<10||cfg.keepalive>120||['cubic','bbr','new_reno'].indexOf(cfg.cc)<0)return false;
   if(row.subscription!=null&&(!object(row.subscription)||['none','prepared','publishing','published','unknown','stopping','disabled'].indexOf(row.subscription.state)<0||typeof row.subscription.enabled!=='boolean'||typeof row.subscription.needs_update!=='boolean'||!Number.isFinite(row.subscription.synced_at)||row.subscription.error!=null&&typeof row.subscription.error!=='string'))return false;
   if(row.network!=null){
    var network=row.network,uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/,seen={};
@@ -2308,6 +2312,7 @@ function validClientList(data){
    if(row.exportable&&(network.state!=='confirmed'||!network.networks.some(function(n){return n.id===network.selected_id&&!n.is_default;})))return false;
   }
   if(row.exportable&&(row.state!=='registered'||!row.has_registration))return false;
+  if(row.service_auth_saved!=null&&typeof row.service_auth_saved!=='boolean')return false;
   return ['ipv4','ipv6','error','fingerprint','registration_id','bootstrap_fingerprint'].every(function(k){return row[k]==null||typeof row[k]==='string';});
  });
 }
@@ -2319,10 +2324,11 @@ return baseclass.extend({
  render: function(initial,stylesheet,bindRequest) {
   var self=this,data=initial,selected=null,inFlight=false,refreshing=false,refreshSerial=0,prepared=false,exportCleanup=null,formSerial=0,drafts={},exitDrafts={};
   var list=E('div',{class:'imok-client-list'}),detail=E('div',{class:'imok-client-detail'}),notice=E('p',{class:'imok-client-notice',role:'status','aria-live':'polite',hidden:true});
+  var addClient=button('新增客户端',newClient,true),teamNote=E('p',{class:'imok-client-notice',hidden:true});
   var root=E('div',{class:'rp-layout','data-page':'clients'},[E('link',{rel:'stylesheet',href:stylesheet}),E('div',{class:'rp-header imok-client-header'},[
    E('div',{class:'imok-client-heading'},[E('div',{class:'imok-client-title'},[E('span',{class:'rp-brand'},'imOK'),E('h2',{},'客户端接入')]),E('p',{class:'rp-caption'},'管理手机等设备的独立身份与出口，不影响路由器主线路、DNS 和分流。')]),
-   E('div',{class:'rp-backup-actions'},[E('button',{type:'button',class:'btn',click:function(){refresh(true);}},'刷新列表'),E('button',{type:'button',class:'btn cbi-button-action',click:function(){newClient();}},'新增客户端')])
-  ]),E('div',{class:'rp-page-content'},[notice,
+   E('div',{class:'rp-backup-actions'},[E('button',{type:'button',class:'btn',click:function(){refresh(true);}},'刷新列表'),addClient])
+  ]),E('div',{class:'rp-page-content'},[notice,teamNote,
    E('div',{class:'imok-client-workspace'},[E('section',{class:'imok-panel','aria-label':'客户端列表'},[E('div',{class:'imok-panel-heading'},[E('h3',{},'我的客户端'),E('p',{class:'rp-help'},'只显示本模块创建的身份')]),list]),detail])])]);
   function message(text,error){notice.hidden=false;notice.textContent=text;notice.setAttribute('data-tone',error?'error':'info');}
   function panel(title,description,children){return E('section',{class:'imok-panel'},[E('div',{class:'imok-panel-heading'},[E('h3',{},title),description?E('p',{class:'rp-help'},description):'']),E('div',{class:'imok-panel-body'},children)]);}
@@ -2342,14 +2348,68 @@ return baseclass.extend({
   }
   function refresh(manual){if(!root.isConnected||refreshing||inFlight)return Promise.resolve();var serial=refreshSerial;refreshing=true;return self.load().then(function(v){if(!root.isConnected||serial!==refreshSerial)return;if(v.load_error){data=v;draw();return;}data=v;if(manual)message('客户端列表已刷新。');draw();}).catch(function(e){if(root.isConnected&&serial===refreshSerial)message(e.message,true);}).finally(function(){refreshing=false;if(root.isConnected&&serial!==refreshSerial&&!inFlight)return refresh(false);});}
   function newClient(){
-   var name=E('input',{type:'text',required:true,maxlength:64,autocomplete:'off',placeholder:'例如：我的 iPhone'}),org=E('input',{type:'text',required:true,pattern:'[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?',maxlength:63,autocomplete:'off',placeholder:'团队名称'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'});
-   var submit=button('创建客户端',function(){if(!name.reportValidity()||!org.reportValidity())return;submit.disabled=true;request('create',{name:name.value,organization:org.value}).then(function(v){dismiss(submit);if(!root.isConnected)return;selected=v.client.id;message('本地客户端记录已创建，下一步完成官方授权；尚未向云端注册。');return refresh();}).catch(function(e){modalError(error,e);}).finally(function(){submit.disabled=false;});},true);
-   modal('新增客户端',[E('p',{class:'rp-help'},'每台设备单独创建身份。同一手机无需仅为不同端口重复注册。'),field('客户端名称',name),field('Cloudflare 团队名称',org,'只填写团队名称，不填写网址。不会修改路由器的团队设置。'),error,modalActions([button('取消',function(){ui.hideModal();}),submit])]);
+   var team=data.team&&data.team.name;
+   if(!team)return;
+   var name=E('input',{type:'text',required:true,maxlength:64,autocomplete:'off',placeholder:'例如：我的 iPhone'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'});
+   var canChoose=data.capabilities&&data.capabilities.wireguard===true;
+   var protocol=canChoose?E('select',{},[E('option',{value:'masque'},'MASQUE'),E('option',{value:'wireguard'},'WireGuard')]):null;
+   var submit=button('创建客户端',function(){
+    if(!name.reportValidity())return;
+    var payload={name:name.value};if(protocol)payload.protocol=protocol.value;
+    submit.disabled=true;request('create',payload).then(function(v){dismiss(submit);if(!root.isConnected)return;selected=v.client.id;message('本地客户端记录已创建，可以继续授权并注册。');return refresh();}).catch(function(e){modalError(error,e);}).finally(function(){submit.disabled=false;});
+   },true);
+   modal('新增客户端',[field('客户端名称',name),protocol?field('连接协议',protocol,'每条注册使用一种协议。'):'',E('p',{class:'rp-help'},['使用「账户与协议」中已配置的 Cloudflare 团队 ',E('strong',{},team),'。每台客户端仍有独立身份和出口。']),error,modalActions([button('取消',function(){ui.hideModal();}),submit])]);
   }
   function registerClient(row){
-   var token=E('textarea',{rows:3,autocomplete:'off',spellcheck:'false','aria-label':'官方登录授权链接'}),terms=E('input',{type:'checkbox'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'}),url='https://'+row.organization+'.cloudflareaccess.com/warp';
-   var submit=button('注册独立客户端',function(){var value=token.value;token.value='';submit.disabled=true;request('register',{id:row.id,token:value,accept_terms:terms.checked}).then(function(){dismiss(submit);if(!root.isConnected)return;message('独立注册任务已提交，等待云端确认；主线路保持原状。');return refresh();}).catch(function(e){modalError(error,e);}).finally(function(){value=null;submit.disabled=false;});},true);
-   modal('授权 '+row.name,[E('p',{class:'rp-help'},'打开官方团队页面登录，再将登录完成的授权链接粘贴到下方。令牌可能很快过期，请及时提交。若浏览器提示打开 WARP／Cloudflare One，请先取消，只复制授权链接到这里，避免改变其他客户端的登录。'),E('a',{class:'btn',href:url,target:'_blank',rel:'noopener noreferrer'},'打开 Cloudflare 官方授权页'),field('官方授权链接或团队 JWT',token),E('label',{class:'rp-inline-check'},[terms,E('span',{},['我已阅读并同意 ',E('a',{href:'https://www.cloudflare.com/application/terms/',target:'_blank',rel:'noopener noreferrer'},'Cloudflare 服务条款'),'，授权创建此独立注册。'])]),E('p',{class:'rp-help'},'此适配器使用第三方客户端注册协议。组织要求设备姿态、硬件密钥或不允许第三方客户端时，可能无法注册；不会自动更改组织策略。'),error,modalActions([button('取消',function(){token.value='';ui.hideModal();}),submit])]);
+   var supported=data.capabilities&&data.capabilities.service_token===true, saved=supported&&row.service_auth_saved===true;
+   var method=E('select',{},[saved?E('option',{value:'saved'},'使用已保存的服务授权'):'',E('option',{value:'email'},'邮箱授权'),E('option',{value:'service'},'填写服务令牌')]);
+   method.value=saved?'saved':'email';
+   var token=E('textarea',{rows:3,autocomplete:'off',spellcheck:'false','aria-label':'官方登录授权链接'});
+   var clientId=E('input',{type:'text',autocomplete:'off',spellcheck:'false',maxlength:64,required:true});
+   var secret=E('input',{type:'password',autocomplete:'new-password',maxlength:200,required:true});
+   var remember=E('input',{type:'checkbox'}),terms=E('input',{type:'checkbox',required:true});
+   var error=E('p',{hidden:true,role:'alert',class:'imok-client-error'}),url='https://'+row.organization+'.cloudflareaccess.com/warp';
+   var emailPane=E('div',{},[
+    E('p',{class:'rp-help'},'打开团队授权页完成邮箱登录。若浏览器询问是否打开 WARP，请先取消，然后复制成功页上的授权链接并粘贴到下方。'),
+    E('a',{class:'btn',href:url,target:'_blank',rel:'noopener noreferrer'},'打开 Cloudflare 官方授权页'),
+    field('官方授权链接或团队 JWT',token)
+   ]);
+   var servicePane=E('div',{},[
+    E('p',{class:'rp-help'},'请在 Cloudflare Zero Trust 创建服务令牌，并在团队的设备注册权限中添加匹配该令牌的 Service Auth 规则。'),
+    field('Client ID',clientId),field('Client Secret',secret),
+    E('label',{class:'rp-inline-check'},[remember,E('span',{},saved?'替换路由器中为本团队保存的服务授权':'保存到路由器，供本团队新增客户端时使用')])
+   ]);
+   var savedPane=E('p',{class:'rp-help'},'路由器将使用本团队已保存的服务授权，为此设备申请独立身份。');
+   function clearCredentials(){token.value='';clientId.value='';secret.value='';}
+   function showMethod(){emailPane.hidden=method.value!=='email';servicePane.hidden=method.value!=='service';savedPane.hidden=method.value!=='saved';}
+   method.addEventListener('change',function(){clearCredentials();remember.checked=false;error.hidden=true;showMethod();});
+   showMethod();
+   var submit=button('注册独立客户端',function(){
+    if(submit.disabled||!terms.reportValidity())return;
+    var payload={id:row.id,accept_terms:true};
+    if(method.value==='email'){
+     if(!token.value.trim()){modalError(error,Error('请粘贴邮箱登录后的授权链接或团队 JWT'));token.focus();return;}
+     payload.token=token.value;
+    }else{
+     if(method.value==='service'&&(!clientId.reportValidity()||!secret.reportValidity()))return;
+     payload.service_auth=method.value==='saved'?null:{client_id:clientId.value,client_secret:secret.value};
+     payload.remember_service_auth=method.value==='service'&&remember.checked;
+    }
+    clearCredentials();error.hidden=true;submit.disabled=true;method.disabled=true;
+    request('register',payload).then(function(){dismiss(submit);if(!root.isConnected)return;message('独立注册任务已提交，正在等待 Cloudflare 确认。');return refresh();}).catch(function(e){modalError(error,e);}).finally(function(){submit.disabled=false;method.disabled=false;});
+   },true);
+   modal('授权 '+row.name,[supported?field('授权方式',method):'',emailPane,supported?servicePane:'',supported?savedPane:'',
+    E('label',{class:'rp-inline-check'},[terms,E('span',{},['我已阅读并同意 ',E('a',{href:'https://www.cloudflare.com/application/terms/',target:'_blank',rel:'noopener noreferrer'},'Cloudflare 服务条款'),'，授权创建此独立注册。'])]),
+    E('p',{class:'rp-help'},'Cloudflare 将按团队的设备注册规则核验此次申请。若团队要求设备姿态或硬件密钥，第三方注册可能无法完成。'),error,
+    modalActions([button('取消',function(){clearCredentials();ui.hideModal();}),submit])]);
+  }
+  function forgetServiceAuth(row){
+   var error=E('p',{hidden:true,role:'alert',class:'imok-client-error'});
+   var submit=button('清除服务授权',function(){
+    submit.disabled=true;
+    request('forget_service_auth',{id:row.id}).then(function(){dismiss(submit);if(!root.isConnected)return;message('此团队在路由器上保存的服务授权已清除。');return refresh();}).catch(function(e){modalError(error,e);}).finally(function(){submit.disabled=false;});
+   });
+   modal('清除本机服务授权',[E('p',{},'清除后，为此团队新增客户端时需重新填写服务令牌或使用邮箱授权。已注册设备可继续使用。'),error,modalActions([button('取消',function(){ui.hideModal();}),submit])]);
   }
   function confirmAction(row,action){
    var name=E('input',{type:'text',autocomplete:'off'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'}),title=action==='revoke'?'撤销云端注册':action==='stop_subscription'?'停止私密订阅':'删除本地记录';
@@ -2363,26 +2423,38 @@ return baseclass.extend({
   }
   function exportClient(row,mode){
    mode=mode||'direct';
+   var wireguard=row.protocol==='wireguard';
    if(dirty(row)){message('连接参数尚未保存，请先保存后再导出。',true);var save=detail.querySelector('[data-client-save]');if(save)save.focus();return;}
-   var output=E('textarea',{readonly:true,rows:4,spellcheck:'false','aria-label':mode==='subscription'?'可读取手机私钥的私密订阅链接':'包含私钥的客户端导入链接'}),qr=E('div',{class:'imok-client-qr'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'}),secret='',timer,observer;
+   var output=E('textarea',{readonly:true,rows:wireguard?7:4,spellcheck:'false','aria-label':mode==='subscription'?'可读取手机私钥的私密订阅链接':'包含私钥的客户端导入配置'}),qr=E('div',{class:'imok-client-qr'}),error=E('p',{hidden:true,role:'alert',class:'imok-client-error'}),secret='',timer,observer;
    function clear(){secret='';output.value='';qr.replaceChildren();if(timer)clearTimeout(timer);if(observer)observer.disconnect();document.removeEventListener('visibilitychange',hidden);document.removeEventListener('keydown',escape,true);if(exportCleanup===clear)exportCleanup=null;}
    function escape(event){if(event.key==='Escape')clear();}
    function close(){var current=currentModal(output);clear();if(current)ui.hideModal();}
    function hidden(){if(document.hidden){clear();output.placeholder='已清除显示，请关闭后重新导出。';}}
    var reveal=button(mode==='subscription'?'确认显示私密订阅与二维码':'确认显示私钥与二维码',function(){reveal.disabled=true;request(mode==='subscription'?'subscription_link':'export',{id:row.id,confirm:true}).then(function(v){if(!currentModal(output)||document.hidden)return;secret=v.uri;output.value=secret;var code=qrcode(0,'M');code.addData(secret);code.make();var image=E('img',{src:code.createDataURL(4,16),alt:'客户端私密导入二维码'});qr.replaceChildren(image);reveal.hidden=true;timer=setTimeout(function(){clear();output.placeholder='显示时间已到，请关闭后重新导出。';},120000);document.addEventListener('visibilitychange',hidden);document.addEventListener('keydown',escape,true);observer=new MutationObserver(function(){if(!output.isConnected||!output.getClientRects().length)clear();});observer.observe(document.documentElement,{childList:true,attributes:true,attributeFilter:['class','style','open'],subtree:true});exportCleanup=clear;}).catch(function(e){modalError(error,e);reveal.disabled=false;});},true);
-   var download=button('下载导入文件',function(){if(!secret){modalError(error,Error('请先确认显示导入配置'));return;}var blob=new Blob([secret+'\n'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=E('a',{href:url,download:mode==='subscription'?'imok-subscription-'+row.id.slice(0,8)+'.txt':'imok-client-'+row.id.slice(0,8)+'.txt'});document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);});
-   modal((mode==='subscription'?'私密订阅 · ':'直接导入 · ')+row.name,[E('p',{},mode==='subscription'?'订阅地址可读取此手机的私钥，请只交给对应设备。作为订阅添加到小火箭；imOK 更新参数后，在手机更新订阅并重连。页面两分钟后清除显示。':'导入链接和二维码含此客户端私钥，请只交给对应设备。页面两分钟后清除显示；直接导入后，端口等参数变化需重新导入。'),E('p',{class:'rp-help'},'云端出口（上次同步）：'+(row.network&&row.network.selected_name||'尚未同步')+'。修改云端出口后，请在手机断开再连接；手机实际出口需要另行验证。'),error,reveal,qr,output,modalActions([button('关闭并清除',close),download])]);
+   var download=button('下载导入文件',function(){if(!secret){modalError(error,Error('请先确认显示导入配置'));return;}var blob=new Blob([secret+'\n'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=E('a',{href:url,download:(mode==='subscription'?'imok-subscription-':'imok-client-')+row.id.slice(0,8)+(wireguard?'.conf':'.txt')});document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);});
+   var instructions=mode==='subscription'?'订阅地址可读取此手机的私钥，请只交给对应设备。作为订阅添加到小火箭；imOK 更新参数后，在手机更新订阅并重连。页面两分钟后清除显示。':wireguard?'在小火箭扫描二维码，也可以复制配置全文后打开小火箭。配置含此客户端私钥，页面两分钟后清除显示。':'导入链接和二维码含此客户端私钥，请只交给对应设备。页面两分钟后清除显示；直接导入后，端口等参数变化需重新导入。';
+   modal((mode==='subscription'?'私密订阅 · ':'直接导入 · ')+row.name,[E('p',{},instructions),E('p',{class:'rp-help'},'云端出口（上次同步）：'+(row.network&&row.network.selected_name||'尚未同步')+'。修改云端出口后，请在手机断开再连接；手机实际出口需要另行验证。'),error,reveal,qr,output,modalActions([button('关闭并清除',close),download])]);
   }
   function draw(){
    var focused=document.activeElement,focusedName=root.contains(focused)&&focused.name,selection=focusedName?[focused.selectionStart,focused.selectionEnd]:null;
    if(exportCleanup&&!root.isConnected)exportCleanup();
+   var team=data.team&&data.team.name;
+   addClient.disabled=!team;
+   teamNote.hidden=!!team||!!data.load_error;
+   if(!team)teamNote.replaceChildren((data.team&&data.team.error)||'暂时无法读取本机团队设置。', ' ',E('a',{href:L.url('admin/services/routepilot/cloudflare/account')},'打开账户与协议'));
    list.replaceChildren();if(!data.clients.some(function(r){return r.id===selected;}))selected=data.clients.length?data.clients[0].id:null;
    if(data.load_error){message(data.load_error,true);list.appendChild(E('p',{role:'alert'},'客户端列表读取失败'));detail.replaceChildren(panel('暂时无法读取客户端','现有身份未重置',[E('p',{},'请检查权限或连接后重新读取。'),button('重新读取',function(){refresh(true);})]));return;}
-   if(!data.clients.length){list.appendChild(E('div',{class:'imok-client-empty'},[E('strong',{},'还没有客户端'),E('p',{class:'rp-help'},'新增一个客户端，为手机获取独立的注册身份。')]));detail.replaceChildren(panel('开始接入','保留路由器当前线路',[E('ol',{class:'imok-client-steps'},[E('li',{},'创建客户端记录，填写团队名称。'),E('li',{},'完成官方登录，申请独立身份和 IP。'),E('li',{},'核对连接参数，扫码或下载导入小火箭。')]),E('p',{class:'rp-help'},'完成授权后，同步团队出口目录，选择并应用出口，再导入小火箭。服务令牌自动注册和手机隧道检测尚未开放。')]));return;}
+   if(!data.clients.length){list.appendChild(E('div',{class:'imok-client-empty'},[E('strong',{},'还没有客户端'),E('p',{class:'rp-help'},'新增一个客户端，为手机获取独立的注册身份。')]));detail.replaceChildren(panel('开始接入','',[E('ol',{class:'imok-client-steps'},[E('li',{},'新增客户端，自动使用本机的 Cloudflare 团队。'),E('li',{},'完成授权，申请独立身份和 IP。'),E('li',{},'选择并应用团队出口，再扫码或下载配置导入小火箭。')])]));return;}
    data.clients.forEach(function(row){list.appendChild(E('button',{type:'button',class:'imok-client-item btn','aria-pressed':row.id===selected?'true':'false',click:function(event){selected=row.id;draw();if(event.detail===0)list.querySelector('[aria-pressed=true]').focus();}},[E('strong',{},row.name),E('span',{},row.ipv4||row.organization),E('small',{},row.label)]));});
-   var row=data.clients.filter(function(r){return r.id===selected;})[0],cfg=drafts[row.id]||row.settings,readOnly=E('dl',{class:'imok-client-facts'},[['团队',row.organization],['虚拟 IPv4',row.ipv4||'注册后分配'],['虚拟 IPv6',row.ipv6||'尚未分配'],['手机连接状态','需在手机客户端查看'],['云端出口选择',row.network&&row.network.selected_name?(row.network.selected_name+(row.network.state==='confirmed'?'':'（上次读取）')):'尚未同步'],['注册资料核验时间',row.last_checked_at?new Date(row.last_checked_at*1000).toLocaleString():'尚未核验']].map(function(x){return E('div',{},[E('dt',{},x[0]),E('dd',{},x[1])]);}));
-   var actions=[];if(!row.has_registration&&['draft','failed'].indexOf(row.state)>=0)actions.push(button('授权并注册',function(){registerClient(row);},true));if(row.has_registration&&row.state!=='revoked'){actions.push(button('同步凭据与出口',function(){request('refresh',{id:row.id}).then(function(){message('同步任务已提交，正在核对注册资料与云端出口。');return refresh();}).catch(function(e){message(e.message,true);});}));}
-   var state=E('span',{class:'imok-client-state','data-state':row.state},row.label),summary=panel(row.name,'管理此设备的注册资料与出口；手机连接状态请在客户端查看。',[state,readOnly,row.error?E('p',{class:'imok-client-error',role:'alert'},row.error):'',E('div',{class:'rp-backup-actions'},actions),row.fingerprint?E('details',{class:'imok-client-technical'},[E('summary',{},'身份与核对信息'),E('p',{},'云端注册 ID：'+(row.registration_id||'尚未确认')),E('p',{},'MASQUE 公钥指纹（本地生成）'),E('code',{},row.fingerprint),row.bootstrap_fingerprint?E('div',{},[E('p',{},'预注册公钥指纹（用于结果未知时核对）'),E('code',{},row.bootstrap_fingerprint)]):'']):'']);
+   var row=data.clients.filter(function(r){return r.id===selected;})[0],cfg=drafts[row.id]||row.settings,wireguard=row.protocol==='wireguard',protocolLabel=wireguard?'WireGuard':'MASQUE',readOnly=E('dl',{class:'imok-client-facts'},[['团队',row.organization],['连接协议',protocolLabel],['虚拟 IPv4',row.ipv4||'注册后分配'],['虚拟 IPv6',row.ipv6||'尚未分配'],['手机连接状态','需在手机客户端查看'],['云端出口选择',row.network&&row.network.selected_name?(row.network.selected_name+(row.network.state==='confirmed'?'':'（上次读取）')):'尚未同步'],['注册资料核验时间',row.last_checked_at?new Date(row.last_checked_at*1000).toLocaleString():'尚未核验']].map(function(x){return E('div',{},[E('dt',{},x[0]),E('dd',{},x[1])]);}));
+   var actions=[];
+   if(!row.has_registration&&['draft','failed'].indexOf(row.state)>=0){
+    if(team===row.organization)actions.push(button('授权并注册',function(){registerClient(row);},true));
+    else if(team)actions.push(E('p',{class:'rp-help'},'此记录属于其他团队，请为当前团队新增客户端。'));
+   }
+   if(row.has_registration&&row.state!=='revoked'){actions.push(button('同步凭据与出口',function(){request('refresh',{id:row.id}).then(function(){message('同步任务已提交，正在核对注册资料与云端出口。');return refresh();}).catch(function(e){message(e.message,true);});}));}
+   if(data.capabilities&&data.capabilities.service_token===true&&row.service_auth_saved===true)actions.push(button('清除本机服务授权',function(){forgetServiceAuth(row);}));
+   var state=E('span',{class:'imok-client-state','data-state':row.state},row.label),summary=panel(row.name,'管理此设备的注册资料与出口；手机连接状态请在客户端查看。',[state,readOnly,row.error?E('p',{class:'imok-client-error',role:'alert'},row.error):'',E('div',{class:'rp-backup-actions'},actions),row.fingerprint?E('details',{class:'imok-client-technical'},[E('summary',{},'身份与核对信息'),E('p',{},'云端注册 ID：'+(row.registration_id||'尚未确认')),E('p',{},protocolLabel+' 公钥指纹（本地生成）'),E('code',{},row.fingerprint),row.bootstrap_fingerprint&&!wireguard?E('div',{},[E('p',{},'预注册公钥指纹（用于结果未知时核对）'),E('code',{},row.bootstrap_fingerprint)]):'']):'']);
    var network=row.network||{state:'unread',selected_id:'',selected_name:'',networks:[]},options=network.networks.filter(function(n){return !n.is_default;}),chosen=E('select',{name:'client-exit','aria-label':'此客户端使用的出口'},[E('option',{value:''},'请选择出口')].concat(options.map(function(n){return E('option',{value:n.id},n.name);}))),applyButton;
    chosen.value=exitDrafts[row.id]||network.selected_id;if(!options.some(function(n){return n.id===chosen.value;}))chosen.value='';
    function updateApply(){applyButton.disabled=row.busy||network.state!=='confirmed'||!chosen.value||chosen.value===network.selected_id;}
@@ -2390,18 +2462,19 @@ return baseclass.extend({
    applyButton=button('应用此客户端出口',function(){if(!chosen.value)return;request('select_exit',{id:row.id,vnet_id:chosen.value,expected_vnet_id:network.selected_id}).then(function(){delete exitDrafts[row.id];message('出口设置任务已提交，等待云端读回确认。只影响此客户端，手机需断开再连接。');return refresh();}).catch(function(e){message(e.message,true);});},true);updateApply();
    var exitInfo=network.state==='confirmed'?(options.some(function(n){return n.id===network.selected_id;})?'云端已确认选择：'+network.selected_name+'。这不代表手机实际出口已检测。':'当前仍是默认网络；请先选择并应用指定出口，再导出。'):network.state==='pending'||network.state==='unknown'?'出口操作结果待核对，请同步凭据与出口；不要重复应用。':'请先点击“同步凭据与出口”，读取此身份可用的团队出口。';
    var exitPanel=panel('客户端出口','读取同一团队的云端出口目录；不会跟随路由器切换线路。',[E('p',{class:'rp-help',role:'status'},exitInfo),network.error?E('p',{class:'imok-client-error',role:'alert'},network.error):'',field('选择出口',chosen,'默认网络不作为可选出口。目录名称与选择状态随同步更新。'),E('div',{class:'rp-backup-actions'},[applyButton]),E('p',{class:'rp-help'},'应用会更新这个独立身份的云端选择，已导出的链接不必换密钥，重连后生效。入口 IP、端口或 DNS 改动后，按接入方式重新导入或更新订阅。')]);
-   var endpoint=E('input',{type:'text',name:'client-endpoint',value:cfg.endpoint}),port=E('select',{name:'client-port'},[443,500,1701,4500,4443,8443,8095].map(function(p){return E('option',{value:String(p)},String(p));})),dns=E('input',{type:'text',name:'client-dns',value:cfg.dns}),mtu=E('input',{type:'number',name:'client-mtu',min:1280,max:1420,value:String(cfg.mtu)}),keepalive=E('input',{type:'number',name:'client-keepalive',min:10,max:120,value:String(cfg.keepalive)});port.value=String(cfg.port);
+   var endpoint=E('input',{type:'text',name:'client-endpoint',value:cfg.endpoint}),port=E('select',{name:'client-port'},clientPorts(row.protocol).map(function(p){return E('option',{value:String(p)},String(p));})),dns=E('input',{type:'text',name:'client-dns',value:cfg.dns}),mtu=E('input',{type:'number',name:'client-mtu',min:1280,max:1420,value:String(cfg.mtu)}),keepalive=E('input',{type:'number',name:'client-keepalive',min:10,max:120,value:String(cfg.keepalive)});port.value=String(cfg.port);
    function draft(){drafts[row.id]={endpoint:endpoint.value,port:port.value,dns:dns.value,mtu:mtu.value,keepalive:keepalive.value,cc:cfg.cc};}
    [endpoint,port,dns,mtu,keepalive].forEach(function(input){input.addEventListener('input',draft);input.addEventListener('change',draft);});
    var sub=row.subscription||{state:'none',enabled:false,needs_update:false,synced_at:0};
    var saveButton=button(sub.enabled?'保存并更新订阅':'保存导出参数',function(){var saved=false;request('edit',{id:row.id,settings:{endpoint:endpoint.value,port:port.value,dns:dns.value,mtu:mtu.value,keepalive:keepalive.value,cc:cfg.cc}}).then(function(v){saved=true;delete drafts[row.id];if(v.client.subscription&&v.client.subscription.enabled)return request('publish_subscription',{id:row.id,confirm:true}).then(function(){message('参数已保存，正在更新私密订阅并核对内容；手机需更新订阅后重连。');});message('导出参数已保存；直接导入的配置需重新导入。');}).then(function(){return refresh();}).catch(function(e){message((saved?'参数已保存，但订阅未确认更新：':'')+e.message,true);return refresh(false);});});
    saveButton.setAttribute('data-client-save','');
-   var settingsPanel=panel('连接参数','保存后同步已启用的订阅；手机更新订阅或重新导入后生效。',[E('div',{class:'imok-client-fields'},[field('Cloudflare 入口 IPv4',endpoint,'从官方 Zero Trust MASQUE 地址范围选择。'),field('UDP 端口',port,'默认 443；端口不决定出口国家。'),field('DNS',dns,'可修改；私有域名需要对应的内部解析配置。')]),E('details',{class:'imok-client-advanced'},[E('summary',{},'高级连接参数'),E('div',{class:'imok-client-fields'},[field('MTU',mtu),field('心跳间隔（秒）',keepalive)]),E('p',{class:'rp-help'},'SNI：zt-masque.cloudflareclient.com · 拥塞控制：cubic · UDP 转发开启 · HTTP2 关闭')]),E('div',{class:'rp-backup-actions'},[saveButton]),E('p',{class:'rp-help'},'出口由上方云端网络选择决定，端口和节点名称不决定地区。保存导出参数不会替代“应用此客户端出口”。')]);
-   var subscriptionActions=[];
-   if(row.exportable){subscriptionActions.push(button('直接导入／二维码',function(){exportClient(row);},true));if(sub.enabled){subscriptionActions.push(button('更新私密订阅',function(){request('publish_subscription',{id:row.id,confirm:true}).then(function(){message('正在更新订阅，等待 HTTPS 内容核对；手机尚未自动获取。');return refresh();}).catch(function(e){message(e.message,true);});}));if(sub.state==='published'&&!sub.needs_update)subscriptionActions.push(button('显示私密订阅链接',function(){exportClient(row,'subscription');},true));}else subscriptionActions.push(button('创建私密订阅',function(){publishSubscription(row);}));}
+   var settingsPanel=panel('连接参数',wireguard?'保存后，在手机重新导入 WireGuard 配置。':'保存后同步已启用的订阅；手机更新订阅或重新导入后生效。',[E('div',{class:'imok-client-fields'},[field('Cloudflare 入口 IPv4',endpoint,'从官方 Zero Trust '+protocolLabel+' 地址范围选择。'),field('UDP 端口',port,'默认 '+clientPorts(row.protocol)[0]+'。出口地区由上方云端网络设置。'),field('DNS',dns,'可修改；私有域名需要对应的内部解析配置。')]),E('details',{class:'imok-client-advanced'},[E('summary',{},'高级连接参数'),E('div',{class:'imok-client-fields'},[field('MTU',mtu),field('心跳间隔（秒）',keepalive)]),wireguard?'':E('p',{class:'rp-help'},'SNI：zt-masque.cloudflareclient.com · 拥塞控制：cubic · UDP 转发开启 · HTTP2 关闭')]),E('div',{class:'rp-backup-actions'},[saveButton])]);
+   var directButton=row.exportable?button('直接导入／二维码',function(){exportClient(row);},true):null;
+   var subscriptionActions=directButton?[directButton]:[];
+   if(row.exportable&&!wireguard){if(sub.enabled){subscriptionActions.push(button('更新私密订阅',function(){request('publish_subscription',{id:row.id,confirm:true}).then(function(){message('正在更新订阅，等待 HTTPS 内容核对；手机尚未自动获取。');return refresh();}).catch(function(e){message(e.message,true);});}));if(sub.state==='published'&&!sub.needs_update)subscriptionActions.push(button('显示私密订阅链接',function(){exportClient(row,'subscription');},true));}else subscriptionActions.push(button('创建私密订阅',function(){publishSubscription(row);}));}
    if(sub.enabled)subscriptionActions.push(button('停止私密订阅',function(){confirmAction(row,'stop_subscription');}));
    var subLabel=sub.state==='published'?(sub.needs_update?'参数有变化，订阅待更新':'订阅内容已核对；手机是否已更新尚未检测'):sub.state==='none'||sub.state==='disabled'?('尚未启用固定订阅。'+(row.exportable?'可直接导入。':'完成注册并确认出口后，可选择接入方式。')):sub.state==='unknown'?'订阅结果待核对，原链接保留。':'正在准备或更新订阅。';
-   var accessPanel=panel('接入方式','同一独立身份，保留两种接入方式。',[E('div',{class:'imok-client-fields'},[E('div',{},[E('strong',{},'直接导入／二维码'),E('p',{class:'rp-help'},'一次性导入。端口、入口 IP、DNS 改动后，需要重新导入。')]),E('div',{},[E('strong',{},'固定私密订阅'),E('p',{class:'rp-help'},'固定地址，内容可更新。启用后，保存参数会同步订阅；手机需更新订阅后获取。')])]),E('p',{class:'rp-help',role:'status'},subLabel),sub.synced_at?E('p',{class:'rp-help'},'最近云端核对：'+new Date(sub.synced_at*1000).toLocaleString()):'',sub.error?E('p',{class:'imok-client-error',role:'alert'},sub.error):'',E('div',{class:'rp-backup-actions'},subscriptionActions),E('p',{class:'rp-help'},'两种方式切换美国／首尔出口均无需重新申请身份，应用出口后手机重连即可。停止订阅不会撤销已导入的节点。')]);
+   var accessPanel=wireguard?panel('接入方式','完成注册并确认出口后，可通过二维码或 .conf 配置导入小火箭。',directButton?[E('div',{class:'rp-backup-actions'},[directButton])]:[]):panel('接入方式','同一独立身份，保留两种接入方式。',[E('div',{class:'imok-client-fields'},[E('div',{},[E('strong',{},'直接导入／二维码'),E('p',{class:'rp-help'},'一次性导入。端口、入口 IP、DNS 改动后，需要重新导入。')]),E('div',{},[E('strong',{},'固定私密订阅'),E('p',{class:'rp-help'},'固定地址，内容可更新。启用后，保存参数会同步订阅；手机需更新订阅后获取。')])]),E('p',{class:'rp-help',role:'status'},subLabel),sub.synced_at?E('p',{class:'rp-help'},'最近云端核对：'+new Date(sub.synced_at*1000).toLocaleString()):'',sub.error?E('p',{class:'imok-client-error',role:'alert'},sub.error):'',E('div',{class:'rp-backup-actions'},subscriptionActions),E('p',{class:'rp-help'},'两种方式切换美国／首尔出口均无需重新申请身份，应用出口后手机重连即可。停止订阅不会撤销已导入的节点。')]);
    var danger=E('details',{class:'imok-client-advanced'},[E('summary',{},'撤销与删除'),E('p',{class:'rp-help'},'撤销会使已导出的配置失效。删除本地记录不会代替云端撤销。'),E('div',{class:'rp-backup-actions'},[row.has_registration&&row.state!=='revoked'?button('撤销此客户端注册',function(){confirmAction(row,'revoke');}):'',button('删除本地记录',function(){confirmAction(row,'delete');})])]);
    detail.replaceChildren(summary,E('div',{class:'imok-client-methods'},[exitPanel,accessPanel]),settingsPanel,danger);if(focusedName){var target=detail.querySelector('[name="'+focusedName+'"]');if(target){target.focus();try{if(selection&&selection[0]!=null)target.setSelectionRange(selection[0],selection[1]);}catch(ignore){}}}if(row.busy){detail.querySelectorAll('button').forEach(function(b){b.disabled=true;});}
   }

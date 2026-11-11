@@ -20,7 +20,10 @@ import uuid
 API = 'https://api.cloudflareclient.com/v0a4471'
 MAX_REPLY = 262144
 PORTS = (443, 500, 1701, 4500, 4443, 8443, 8095)
+WIREGUARD_PORTS = (2408, 500, 1701, 4500)
 P256_PREFIX = bytes.fromhex('3059301306072a8648ce3d020106082a8648ce3d03010703420004')
+X25519_PRIVATE_PREFIX = bytes.fromhex('302e020100300506032b656e04220420')
+X25519_PUBLIC_PREFIX = bytes.fromhex('302a300506032b656e032100')
 
 
 class ClientError(ValueError):
@@ -94,9 +97,69 @@ def new_keys():
                 bootstrap_key=base64.b64encode(bootstrap_public).decode())
 
 
+def new_wireguard_keys():
+    private_der = openssl(['genpkey', '-algorithm', 'X25519', '-outform', 'DER'])
+    public_der = openssl(['pkey', '-inform', 'DER', '-pubout', '-outform', 'DER'], private_der)
+    if (len(private_der) != len(X25519_PRIVATE_PREFIX) + 32 or not private_der.startswith(X25519_PRIVATE_PREFIX)
+            or len(public_der) != len(X25519_PUBLIC_PREFIX) + 32 or not public_der.startswith(X25519_PUBLIC_PREFIX)):
+        raise ClientError('本机返回了不支持的 WireGuard 密钥格式')
+    private = bytearray(private_der[-32:])
+    private[0] &= 248
+    private[31] = (private[31] & 127) | 64
+    public = base64.b64encode(public_der[-32:]).decode()
+    return dict(private_key=base64.b64encode(private).decode(), public_key=public, bootstrap_key=public)
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+def service_credentials(value):
+    if not isinstance(value, dict) or set(value) != {'client_id', 'client_secret'}:
+        raise ClientError('请填写服务令牌的 Client ID 和 Client Secret')
+    client_id, secret = value['client_id'], value['client_secret']
+    if not isinstance(client_id, str) or not re.fullmatch(r'[a-fA-F0-9]{32}\.access', client_id.strip()):
+        raise ClientError('服务令牌 Client ID 格式无效')
+    if not isinstance(secret, str) or not re.fullmatch(r'[A-Za-z0-9_-]{32,200}', secret.strip()):
+        raise ClientError('服务令牌 Client Secret 格式无效')
+    return {'client_id': client_id.strip(), 'client_secret': secret.strip()}
+
+
+def service_auth_token(org, credentials, now):
+    org = organization(org)
+    host = org + '.cloudflareaccess.com'
+    credentials = service_credentials(credentials)
+    req = urllib.request.Request('https://' + host + '/warp', headers={
+        'CF-Access-Client-Id': credentials['client_id'],
+        'CF-Access-Client-Secret': credentials['client_secret'],
+    })
+    try:
+        codecs.lookup('idna')
+    except (LookupError, ImportError):
+        raise ClientError('缺少 Python 域名编码依赖（python3-codecs）；未提交云端请求') from None
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect(),
+                                            urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+        with opener.open(req, timeout=12):
+            raise ClientError('Cloudflare 未返回入网授权。请核对本团队的 Service Auth 入网规则')
+    except urllib.error.HTTPError as error:
+        with error:
+            locations = error.headers.get_all('Location', []) if error.headers else []
+            if error.code in (302, 303) and len(locations) == 1 and locations[0].startswith('com.cloudflare.warp://' + host + '/auth?'):
+                try:
+                    return team_token(locations[0], org, now)
+                except ValueError:
+                    raise ClientError('Cloudflare 返回的入网授权无效或过期，请重新提交') from None
+            if error.code == 429:
+                raise ClientError('Cloudflare 请求受限，请稍后再试') from None
+            if error.code in (301, 302, 303, 307, 308, 401, 403):
+                raise ClientError('服务授权未通过。请核对服务令牌及本团队的 Service Auth 入网规则') from None
+            raise ClientError('Cloudflare 服务授权请求失败（HTTP %s），未提交设备注册' % error.code) from None
+    except ClientError:
+        raise
+    except (OSError, ValueError):
+        raise ClientError('无法连接 Cloudflare 团队授权页，未提交设备注册') from None
 
 
 def request(method, path, *, token=None, jwt=None, body=None):
@@ -210,15 +273,18 @@ def check_team(reply, org):
 
 
 
-def registered_config(reply, org, ident, expected_key):
+def registered_config(reply, org, ident, expected_key, protocol='masque'):
     try:
         if registration_id(reply['id']) != registration_id(ident):
             raise ValueError()
         check_team(reply, org)
         if reply.get('revoked_at') or reply.get('deleted_at'):
             raise ClientError('云端记录已撤销或删除，不能生成导出')
-        if reply.get('key_type') != 'secp256r1' or reply.get('tunnel_type') != 'masque' or reply.get('key') != expected_key:
-            raise ClientError('云端 MASQUE 公钥尚未匹配，请刷新注册状态')
+        if protocol not in ('masque', 'wireguard'):
+            raise ValueError()
+        key_type = 'curve25519' if protocol == 'wireguard' else 'secp256r1'
+        if reply.get('key_type') != key_type or reply.get('tunnel_type') != protocol or reply.get('key') != expected_key:
+            raise ClientError('云端协议或公钥尚未匹配，请刷新注册状态')
         cfg = reply['config']
         addresses = cfg['interface']['addresses']
         if not isinstance(addresses['v4'], str) or addresses.get('v6') is not None and not isinstance(addresses.get('v6'), str):
@@ -231,6 +297,23 @@ def registered_config(reply, org, ident, expected_key):
             raise ValueError()
         peer = cfg['peers'][0]
         key = peer['public_key']
+        if protocol == 'wireguard':
+            endpoint = peer['endpoint']
+            host, raw_port = endpoint['v4'].rsplit(':', 1)
+            if (len(cfg['peers']) != 1 or len(base64.b64decode(key, validate=True)) != 32
+                    or ipaddress.IPv4Address(host) not in ipaddress.IPv4Network('162.159.193.0/24')
+                    or host.endswith(('.0', '.255')) or not re.fullmatch('[0-9]{1,5}', raw_port)
+                    or int(raw_port) > 65535):
+                raise ValueError()
+            reserved = base64.b64decode(cfg['client_id'], validate=True)
+            if len(reserved) != 3:
+                raise ValueError()
+            ports = endpoint.get('ports', [])
+            if not isinstance(ports, list) or len(ports) > 32 or not all(type(port) is int and 0 < port <= 65535 for port in ports):
+                raise ValueError()
+            candidates = set(ports + [int(raw_port)])
+            port = next((port for port in WIREGUARD_PORTS if port in candidates), WIREGUARD_PORTS[0])
+            return dict(ipv4=ipv4, ipv6=ipv6, peer_key=key, suggested_endpoint=host, suggested_port=port, reserved=list(reserved))
         key = ''.join(key.replace('-----BEGIN PUBLIC KEY-----', '').replace('-----END PUBLIC KEY-----', '').split())
         raw = base64.b64decode(key, validate=True)
         if len(raw) != 91 or not raw.startswith(P256_PREFIX):
@@ -243,7 +326,7 @@ def registered_config(reply, org, ident, expected_key):
     except ClientError:
         raise
     except (KeyError, ValueError, IndexError, TypeError, AttributeError):
-        raise ClientError('云端返回了不支持的 MASQUE 配置，未生成导出') from None
+        raise ClientError('云端返回了不支持的连接配置，未生成导出') from None
 
 
 def network_id(value):
@@ -279,14 +362,14 @@ def network_catalog(value):
         raise ClientError('云端出口目录无效或当前出口已不在目录中；未回落到默认网络') from None
 
 
-def client_networks(reply, org, ident, public_key, token, target=None):
+def client_networks(reply, org, ident, public_key, token, target=None, *, protocol='masque'):
     """Owned-registration VNET API, confirmed against native 2026.8.2115.0.
 
     GET reads its directory/selection. PATCH selects one UUID for this identity;
     it does not modify any network, route, account default or other registration.
     Callers validate the fresh directory and read back after every PATCH.
     """
-    registered_config(reply, org, ident, public_key)
+    registered_config(reply, org, ident, public_key, protocol=protocol)
     ident = registration_id(ident)
     account = reply['account'].get('id')
     if not isinstance(account, str) or not re.fullmatch(r'(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})', account):

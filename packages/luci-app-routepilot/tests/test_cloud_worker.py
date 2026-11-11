@@ -18,8 +18,9 @@ class CloudTest(unittest.TestCase):
   self.stack=contextlib.ExitStack();self.addCleanup(self.stack.close)
   for module,key,file in [(c,'RUN','run'),(c,'PRIVATE','private'),(c,'SETTINGS','private/cloud'),(c,'JOURNAL','private/journal'),(c,'PENDING','private/pending'),(c,'INPUT','input'),(c,'STATE','state')]:self.stack.enter_context(patch.object(module,key,self.root/file))
   c.RUN.mkdir();c.PRIVATE.mkdir(mode=0o700)
-  self.stack.enter_context(patch.object(c,'read_config',return_value={'main':{'backend':'masque'}}))
+  self.stack.enter_context(patch.object(c,'read_config',return_value={'main':{'backend':'masque','organization':'example-team'}}))
  def fake_api(self,cfg,method,url,payload=None,**kwargs):
+  if url.endswith('/access/organizations'):return {'auth_domain':'example-team.cloudflareaccess.com'}
   if url.startswith('/zones?'):return [ZONE]
   if url.endswith('/settings'):return None
   if method=='GET' and url.split('?')[0].endswith('/domains'):return []
@@ -107,10 +108,17 @@ class CloudTest(unittest.TestCase):
   self.assertEqual(c.identity(CFG),c.identity({**CFG,'proxyip':'other.example.com:443'}))
  def test_saving_credentials_does_not_change_main_or_node_and_never_projects_token(self):
   c.INPUT.write_text(json.dumps(CFG))
-  with patch.object(w,'guard',return_value=contextlib.nullcontext()),patch.object(w,'atomic') as node_writer:
+  with patch.object(w,'guard',return_value=contextlib.nullcontext()),patch.object(w,'atomic') as node_writer,patch.object(c,'api',side_effect=self.fake_api):
    c.save(stage(c.INPUT));node_writer.assert_not_called()
   self.assertFalse(c.INPUT.exists());self.assertEqual(c.SETTINGS.stat().st_mode&0o777,0o600)
   self.assertNotIn(CFG['token'],c.STATE.read_text());self.assertNotIn('token',c.metadata())
+ def test_new_cloud_account_must_match_the_system_team_before_settings_are_replaced(self):
+  c.atomic(c.SETTINGS,json.dumps(CFG));before=c.SETTINGS.read_bytes()
+  c.INPUT.write_text(json.dumps({**CFG,'account_id':'c'*32,'zone_id':'d'*32,'token':'x'*40}))
+  with patch.object(w,'guard',return_value=contextlib.nullcontext()),patch.object(c,'api',return_value={'auth_domain':'another-team.cloudflareaccess.com'}) as api:
+   with self.assertRaisesRegex(c.CloudError,'团队不一致'):c.save(stage(c.INPUT))
+  self.assertEqual(api.call_args.args[1:],('GET','/accounts/'+'c'*32+'/access/organizations'))
+  self.assertEqual(c.SETTINGS.read_bytes(),before)
  def test_unmanaged_existing_worker_is_never_uploaded_or_replaced(self):
   def fake(*args,**kw):return {} if args[2].endswith('/settings') else self.fake_api(*args,**kw)
   with patch.object(c,'api',side_effect=fake) as api:

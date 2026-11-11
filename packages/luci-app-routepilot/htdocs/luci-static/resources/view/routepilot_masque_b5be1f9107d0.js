@@ -32,7 +32,7 @@ var legacyPages={basic:'routing',devices:'devices',dns:'dns',diagnostics:'dns',a
 var groupSections={advanced:'account',endpoint:'endpoint',basic:'routing',devices:'devices',dns:'dns',workers:'workers'};
 var ruleSections={'rules-overview':'overview','rules-sources':'sources','rules-manage':'manage','rules-custom':'custom'},ruleSectionNames={overview:'更新概况',sources:'来源与频率',manage:'规则管理',custom:'自定义分流'};
 var activeRender=0;
-var imokStylesheet='routepilot/style_8560e76f3e49.css';
+var imokStylesheet='routepilot/style_abf8f564a12f.css';
 function routeLeaf(){var parts=window.location.pathname.split('/').filter(Boolean),leaf=parts.pop();if(parts[parts.length-1]==='rules'&&Object.keys(ruleSectionNames).indexOf(leaf)>=0)return 'rules-'+leaf;if(leaf==='rules')return 'rules-overview';if(leaf==='routepilot')return 'overview';if(leaf==='cloudflare')return groupSections[(window.location.hash||'').replace('#rp-center-','')]||'account';return parts[parts.length-1]==='cloudflare'&&sectionGroups[leaf]?leaf:legacyPages[leaf]||leaf;}
 return view.extend({
  exitOptions: function(current,mapping,catalog) {
@@ -46,7 +46,7 @@ return view.extend({
   var parts=window.location.pathname.split('/').filter(Boolean),raw=parts[parts.length-1],leaf=routeLeaf();
   if((legacyPages[raw]&&parts[parts.length-2]!=='cloudflare'||raw==='cloudflare'&&window.location.hash)&&typeof window.location.replace==='function')window.location.replace(L.url('admin/services/routepilot/cloudflare/'+leaf));
   if(leaf==='runtime')return L.require('routepilot.runtime_9c815026873f').then(function(runtimeView){return runtimeView.load().then(function(runtimeData){return {runtimeView:runtimeView,runtimeData:runtimeData};});});
-  if(leaf==='clients')return L.require('routepilot.clients_8846630fd080').then(function(clientView){return clientView.load().then(function(clientData){return {clientsView:clientView,clientsData:clientData};});});
+  if(leaf==='clients')return L.require('routepilot.clients_dc0db1c2b643').then(function(clientView){return clientView.load().then(function(clientData){return {clientsView:clientView,clientsData:clientData};});});
   var devices=leaf==='devices',interfaces=devices||leaf==='routing';
   var initialOverviewRead=leaf==='overview'?readOverviewSnapshot():null;
   var runtimeRead=leaf==='overview'?Promise.resolve().then(function(){return fs.exec('/usr/libexec/routepilot-runtime-status',[]);}).then(function(r){var d=r.code?null:JSON.parse(r.stdout);return d&&d.schema===1&&typeof d.installed==='boolean'?d:null;}).catch(function(){return null;}):Promise.resolve(null);
@@ -456,7 +456,7 @@ return view.extend({
    cloudDirectoryInfo.textContent=(data&&['queued','running'].indexOf(data.state)>=0?_('正在只读刷新；已保存绑定不变。 '):'')+_('当前账户可用根域名：')+zones.length+_(' 个；仅含此令牌授权范围。')+(source.read_at?_(' 读取时间：')+when(source.read_at):'')+(Date.now()/1000-Number(source.read_at)>900?_(' · 历史目录，请只读刷新'):'')+(data&&data.state==='failed'?' · '+(data.message||_('本次刷新失败'))+_('；保留上次目录'):'');
   }
   var cloudCard=E('section',{class:'cbi-section rp-backup-card'},[E('h3',{},_('创建自己的 Workers 备用线路')),E('p',{},_('已有备用可以继续使用；下面用于另外创建可由路由器管理的 Worker 和子域名。创建和绑定不切换主线路。')),cloudInfo,cloudSummary,cloudResult,E('div',{class:'rp-directory-toolbar'},[cloudDirectoryRefresh,cloudDirectoryInfo]),tokenGuide,
-   E('div',{class:'rp-cloud-grid'},[cloudField(_('私密 API 令牌'),cloudToken,_('首次填写；已保存时留空即可保留。')),cloudField(_('Cloudflare 账户'),cloudAccountChoice,_('从此令牌可读取、且有有效域名的账户中选择。')),cloudField(_('账户 ID（可选，手工填写）'),cloudAccount),cloudField(_('Worker 名称'),cloudName,_('以 routepilot- 开头；不会覆盖其他项目。')),cloudField(_('可用根域名'),cloudZone,_('显示此令牌可读取且已生效的根域名；绑定权限在占用检查和部署时另行确认。')),cloudField(_('子域名前缀'),cloudPrefix,_('例如 backup，不填写 https:// 或根域名。')),cloudField(_('最终绑定的子域名'),cloudHost,_('系统会检查占用；不用先到 Cloudflare 添加这条 DNS。'))]),
+   E('div',{class:'rp-cloud-grid'},[cloudField(_('私密 API 令牌'),cloudToken,_('首次填写；已保存时留空即可保留。')),cloudField(_('Cloudflare 账户'),cloudAccountChoice,_('选择「账户与协议」中团队所属的账户。首次绑定需允许读取该账户的 Zero Trust 组织。')),cloudField(_('账户 ID（可选，手工填写）'),cloudAccount),cloudField(_('Worker 名称'),cloudName,_('以 routepilot- 开头；不会覆盖其他项目。')),cloudField(_('可用根域名'),cloudZone,_('显示此令牌可读取且已生效的根域名；绑定权限在占用检查和部署时另行确认。')),cloudField(_('子域名前缀'),cloudPrefix,_('例如 backup，不填写 https:// 或根域名。')),cloudField(_('最终绑定的子域名'),cloudHost,_('系统会检查占用；不用先到 Cloudflare 添加这条 DNS。'))]),
    E('p',{class:'rp-help'},_('公共转发 PROXYIP 在下面的候选池管理；部署采用已保存的启用顺序。修改候选不会立即改动云端或当前节点。')),
    E('div',{class:'rp-backup-actions'},[cloudSave,cloudTarget,cloudDeploy,cloudCheck,cloudPromote]),E('details',{class:'rp-danger-area'},[E('summary',{},_('危险操作：清除本机授权')),E('p',{},_('仅删除路由器保存的 API 令牌和域名目录；不会删除云端资源、撤销 Cloudflare 令牌或切换当前线路。')),cloudForget])]);
   function updateCloud(state){
@@ -514,6 +514,35 @@ return view.extend({
   var quickCard=E('section',{class:'cbi-section','aria-label':_('快捷操作')},[E('div',{class:'rp-quick-grid'},[['cloudflare/routing','↗',_('出口与分流'),_('查看当前出口和接管范围')],['cloudflare/dns','◎',_('DNS 与联网检测'),_('检查解析、网页并清理缓存')],['cloudflare/workers','⌁',_('Workers 备用'),_('部署、优选和独立检测')]].map(function(q){return E('a',{class:'rp-quick-tile',href:base+'/'+q[0]},[E('span',{class:'rp-quick-icon','aria-hidden':'true'},q[1]),E('span',{},[E('strong',{},q[2]),E('small',{},q[3])])]);}))]);
   if(page==='overview'&&data.runtimeRead)data.runtimeRead.then(function(info){if(!isCurrentView()||!info||!(info.update_available||!info.installed||info.check&&info.check.state==='failed'))return;quickCard.appendChild(E('p',{class:'rp-help'},[info.update_available?_('WARP 有新版本可供检查与手动升级。'):!info.installed?_('首次使用请先安装路由器的 WARP 运行环境。'):_('WARP 版本检查失败，最新版本暂未确认。'),E('a',{href:base+'/runtime'},_(' 前往 WARP 安装与更新'))]));});
   function bytes(n){if(!Number.isFinite(n)||n<0)return '—';var units=['B','KiB','MiB','GiB','TiB'],i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return (i?n.toFixed(n<10?2:1):String(Math.round(n)))+' '+units[i];}
+  function deviceUsagePanel(){
+   var status=E('p',{class:'rp-help',role:'status','aria-live':'polite'}),results=E('div',{});
+   var refreshButton=E('button',{type:'button',class:'btn',click:refreshUsage},_('刷新流量'));
+   var card=panel(_('设备流量'),_('读取 GL.iNet 记录的累计用量。计数起点取决于固件，部分流量路径可能不在统计内。'),[status,results]);
+   card.querySelector('.imok-panel-heading').appendChild(refreshButton);
+   function refreshUsage(){
+    refreshButton.disabled=true;status.textContent=_('正在读取设备流量…');results.replaceChildren();
+    return fs.exec('/usr/libexec/routepilot-device-usage',[]).then(function(r){
+     if(!isCurrentView())return;
+     if(r.code)throw Error();
+     var data=JSON.parse(r.stdout);
+     if(data.state==='unsupported'){status.textContent=_('当前固件未提供按设备流量计数。');return;}
+     if(data.state!=='ready'||!Array.isArray(data.devices)||data.devices.length>1024||!data.devices.every(function(row){
+      return row&&typeof row.name==='string'&&typeof row.mac==='string'&&['upload','download','total'].every(function(key){return row[key]===null||Number.isSafeInteger(row[key])&&row[key]>=0;});
+     }))throw Error();
+     if(!data.devices.length){status.textContent=_('当前没有可显示的设备。');return;}
+     status.textContent='';
+     var columns=[_('设备'),_('上传'),_('下载'),_('合计')];
+     var head=E('thead',{},E('tr',{},columns.map(function(label){return E('th',{scope:'col'},label);})));
+     var rows=data.devices.map(function(row){
+      var label=row.name?[E('strong',{},row.name),E('small',{class:'rp-help'},row.mac)]:row.mac;
+      return E('tr',{},[E('th',{scope:'row'},label),E('td',{},bytes(row.upload)),E('td',{},bytes(row.download)),E('td',{},bytes(row.total))]);
+     });
+     results.replaceChildren(E('div',{class:'imok-device-usage-scroll',tabindex:'0',role:'region','aria-label':_('设备累计流量')},[E('table',{class:'imok-device-usage-table','aria-label':_('设备累计流量')},[head,E('tbody',{},rows)])]));
+    }).catch(function(){if(isCurrentView())status.textContent=_('设备流量读取失败，请刷新重试。');}).finally(function(){refreshButton.disabled=false;});
+   }
+   refreshUsage();
+   return card;
+  }
   function validTrafficCounts(v){return v&&['proxy_up','proxy_down','direct_up','direct_down'].every(function(k){return Number.isSafeInteger(v[k])&&v[k]>=0;});}
   function updateTraffic(v){
    latestTraffic=v;var age=v?Date.now()/1000-Number(v.time):Infinity,live=v&&v.schema===1&&age>=-5&&age<=20&&v.state==='observing';
@@ -939,7 +968,7 @@ var exitName=v.backend==='worker'?(v.backup_name||_('Workers 备用')):directory
     if(addDevice)heading.appendChild(addDevice);
     var actionHeader=centerDeviceNode.querySelector('.cbi-section-table-titles .cbi-section-actions');
     if(actionHeader)actionHeader.textContent=_('操作');
-    groups.push(devicePanel);
+    groups.push(devicePanel,deviceUsagePanel());
    }
    if(pageGroup==='dns')groups.push(centerGroup('dns',_('DNS 与联网检测'),_('只读检测和清缓存不会保存其他表单；历史结果失效时会标记。'),[E('div',{class:'imok-settings-pair imok-dns-settings'},[panel(_('DNS 配置'),_('编辑值只在保存后生效；下方检测使用已应用的设置。'),[fields('dns')]),E('div',{class:'imok-panel-stack'},[dnsCacheCard,dnsTestCard])]),E('div',{class:'imok-dns-tests'},[testCard]),E('details',{class:'imok-diagnostics'},[E('summary',{},_('连接记录与 UDP 接收观测')),connectionHistory,receiveCard])]));
    if(pageGroup==='workers')groups.push(centerGroup('workers',_('Workers 备用与 Cloudflare API 授权'),_('备用需手动检测和启用；以下设置不自动切换主线路。'),[workerInventory,E('p',{class:'rp-help'},E('a',{href:'#',click:function(ev){if(ev&&ev.preventDefault)ev.preventDefault();workerPinned=true;openWorkerStage('use');}},_('已有节点？保留原入口，前往独立检测 →'))),workerWorkspaceView([workerStage('deploy',_('创建部署与 API 授权'),cloudCard,!(cloudMeta&&cloudMeta.configured)),workerStage('relay',_('PROXYIP 主用与备用'),relayCard,false),workerStage('scan',_('优选 Cloudflare 入口'),scanCard,false),workerStage('use',_('独立测试与手动启用'),workerBackupCard,!!(cloudMeta&&cloudMeta.configured))])]));

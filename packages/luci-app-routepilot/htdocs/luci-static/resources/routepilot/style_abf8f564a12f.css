@@ -359,6 +359,12 @@
 .imok-device-state[data-enabled=true] {background:var(--imok-success-bg);color:var(--imok-success)}
 .imok-device-empty {display:block;padding:.75rem 0;color:var(--imok-text-secondary)}
 .rp-layout[data-page=devices] .imok-device-panel .imok-device-note {margin-top:.75rem;color:var(--imok-text-secondary);font-size:var(--imok-text-small)}
+.rp-layout[data-page=devices] .imok-device-usage-scroll {max-height:18rem;overflow:auto}
+.rp-layout[data-page=devices] .imok-device-usage-table {width:100%;margin:0}
+.rp-layout[data-page=devices] .imok-device-usage-table :is(th,td) {padding:.5rem .625rem;border-bottom:1px solid var(--imok-border)}
+.rp-layout[data-page=devices] .imok-device-usage-table :is(th,td):not(:first-child) {text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rp-layout[data-page=devices] .imok-device-usage-table th:first-child {text-align:left;overflow-wrap:anywhere}
+.rp-layout[data-page=devices] .imok-device-usage-table th small {display:block;font-weight:400}
 @container (max-width:45rem) {
  .imok-device-grid .cbi-section-table,.imok-device-grid .cbi-section-table tbody {display:block}
  .imok-device-grid .cbi-section-table .cbi-section-table-titles {display:none}
@@ -524,7 +530,8 @@
 .rp-layout[data-page=clients] .imok-client-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;min-width:0}
 .rp-layout[data-page=clients] .imok-client-field,.imok-client-dialog .imok-client-field{display:grid;gap:.375rem;min-width:0;margin:0}
 .rp-layout[data-page=clients] .imok-client-field label,.imok-client-dialog .imok-client-field label{font-weight:500;margin:0}
-.rp-layout[data-page=clients] .imok-client-field :is(input,select),.imok-client-dialog :is(input[type=text],textarea){width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.rp-layout[data-page=clients] .imok-client-field :is(input,select),.imok-client-dialog .imok-client-field :is(input,select),.imok-client-dialog textarea{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.imok-client-dialog [hidden]{display:none}
 .rp-layout[data-page=clients] :is(.imok-client-advanced,.imok-client-technical){padding:1rem;border:1px solid var(--imok-border);border-radius:var(--imok-radius-control);background:var(--imok-surface-subtle);min-width:0}
 .rp-layout[data-page=clients] .imok-panel .imok-client-advanced{margin-top:1rem}
 .rp-layout[data-page=clients] :is(.imok-client-advanced,.imok-client-technical)[open]>summary{margin-bottom:1rem}

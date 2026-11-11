@@ -27,15 +27,17 @@ assert.ok(Client.prototype instanceof Base);
  assert.ok(moduleSource.includes("poll.add(function()"));assert.ok(moduleSource.includes('r.busy;'),'No idle client polling');
  assert.ok(!moduleSource.includes("fs.read('/opt/routepilot/runtime"));assert.ok(!moduleSource.includes("fs.exec('/usr/libexec/routepilot',"));
 
- // Regression: QA-004/005 — valid HTML v-pattern and stale-list isolation.
+ // Regression: the client form inherits the system team, and stale reads cannot replace new state.
  // Found by /qa on 2026-11-09; report: docs/quality/system-audit-20261109.md
  // Value: protects=invalid team input and post-save list freshness; fails_when=browser ignores pattern or old reads replace new state;
  // why_new=previous tests only load lists and execute QR/request ABI; seam=none;
  // no_claim=provider writes (synthetic DOM/network-free function boundary).
- const attrs=[];new Function('E','button','field','modal','modalActions',moduleSource.slice(moduleSource.indexOf('  function newClient('),moduleSource.indexOf('  function registerClient('))+';return newClient;')((tag,a)=>{attrs.push(a);return {};},()=>({}),()=>null,()=>{},()=>null)();
- const org=attrs.find(a=>a.placeholder==='团队名称'),pattern=new RegExp('^(?:'+org.pattern+')$','v');
- for(const value of ['a','example-team','TEAM1','a'.repeat(63)])assert.ok(pattern.test(value),value);
- for(const value of ['-team','team-','invalid$$','a'.repeat(64),'a.b'])assert.ok(!pattern.test(value),value);
+ const attrs=[],buttons={},requestsFromForm=[];
+ const createView=new Function('data','E','button','field','modal','modalActions','request','dismiss','root',moduleSource.slice(moduleSource.indexOf('  function newClient('),moduleSource.indexOf('  function registerClient('))+';return newClient;');
+ const open=data=>createView(data,(tag,a)=>{attrs.push([tag,a]);return {value:'测试设备',reportValidity:()=>true};},(label,click)=>{buttons[label]=click;return {};},()=>null,()=>{},()=>null,(action,payload)=>{requestsFromForm.push([action,payload]);return Promise.resolve({});},()=>{}, {isConnected:false})();
+ open({team:{name:''}});assert.equal(attrs.length,0);
+ open({team:{name:'example-team'}});assert.equal(attrs.filter(([tag])=>tag==='input').length,1);
+ buttons['创建客户端']();assert.deepEqual(requestsFromForm,[['create',{name:'测试设备'}]]);
  let release,reads=0,draws=[];
  const fakeRoot={isConnected:true,setAttribute(){},removeAttribute(){},querySelectorAll(){return [];}};
  const make=new Function('root','fs','self','bindRequest','ensurePrepared','draw','message',

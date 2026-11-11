@@ -13,7 +13,8 @@ PUBLIC_DOCS = {'docs/CLIENT_ACCESS.md', 'docs/FAQ.md', 'docs/INSTALL_KIT.md', 'd
                'docs/quality/warp-maintenance-0.2.37-1.md'}
 PUBLIC_TOP = {'README.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.txt', '.gitignore',
               'tools/publish_release.py', 'tools/test_publish_release.py'}
-PUBLIC_IMAGES = {'docs/images/imok-overview.png', 'docs/images/imok-clients.png', 'docs/images/imok-workers.png'}
+PUBLIC_IMAGES = {'docs/images/imok-overview.png', 'docs/images/imok-clients.png', 'docs/images/imok-workers.png',
+                 'docs/images/imok-client-protocol.png', 'docs/images/imok-device-traffic.png'}
 
 
 def public_paths(names):

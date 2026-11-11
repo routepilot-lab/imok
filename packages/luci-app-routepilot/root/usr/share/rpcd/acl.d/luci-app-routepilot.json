@@ -69,6 +69,9 @@
         "/usr/libexec/routepilot-clients-list": [
           "exec"
         ],
+        "/usr/libexec/routepilot-device-usage": [
+          "exec"
+        ],
         "/usr/libexec/routepilot-runtime-status": [
           "exec"
         ]

@@ -1,6 +1,6 @@
 # imOK 2.0
 
-> **最新预发布 v0.2.37-3**。选择在线设备即可填写 MAC 和 IPv4，设备策略页新增中文状态与窄屏布局。包含此前的 DNS、加载和备份兼容修复。[本版更新](docs/releases/v0.2.37-3.md)
+> **最新预发布 v0.2.37-4**。每个独立客户端可选 MASQUE 或 WireGuard，并各自选择云端出口；「设备」页新增局域网设备的累计上传、下载和合计用量。[本版更新](docs/releases/v0.2.37-4.md)
 
 ### 借助 Cloudflare 全球网络，让路由器和手机的接入更灵活、全球出口更可控。
 
@@ -8,9 +8,9 @@
 
 我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
-[**下载 v0.2.37-3 预发布**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-3) · [v0.2.36-1 正式版](https://github.com/routepilot-lab/imok/releases/tag/v0.2.36-1) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
+[**下载 v0.2.37-4 预发布**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-4) · [v0.2.36-1 正式版](https://github.com/routepilot-lab/imok/releases/tag/v0.2.36-1) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
-**Cloudflare WARP / MASQUE management for OpenWrt:** per-device and LAN routing, independent mobile identities, private subscriptions, DNS diagnostics and persistent personal rules.
+**Cloudflare WARP management for OpenWrt:** independent MASQUE and WireGuard clients, per-client egress selection, LAN device usage, private subscriptions, DNS diagnostics and persistent personal rules.
 
 ## 为什么做 imOK？
 
@@ -32,9 +32,11 @@ imOK 把入口、出口、规则和客户端放到一个页面体系里，方便
 
 **家里最多同时启用 8 台设备的分流策略。** 比如 Mac mini 用「全部代理」，另一台电脑用「国内 IP 直连，其余代理」，电视继续走原来的网络。也可以用域名名单选择哪些网站走代理。选中在线设备即可带入 MAC 和 IPv4。受管设备可以使用不同规则，代理流量共用路由器当前选择的出口。想让整个局域网使用统一策略，也可以切换接管范围。
 
-**一台 imOK 路由器最多管理 32 条独立客户端配置。** 实际可注册数量取决于 Cloudflare 团队的权限和配额。每台独立客户端使用自己的 MASQUE 身份，从团队已部署的出口中单独选择。比如家里路由器走美国，自己的 iPhone 走首尔，另一部手机走美国。给其中一部手机换出口后，让那部手机重连即可。
+**一台 imOK 路由器最多管理 32 条独立客户端配置。** 实际可注册数量取决于 Cloudflare 团队的权限和配额。每条客户端记录在创建时独立选择 MASQUE 或 WireGuard，使用同一 Cloudflare 团队内各自独立的注册身份。协议决定怎么连接，出口决定从哪里访问网站，可从团队已部署的出口中逐台选择。例如路由器保持原出口，一部手机用 WireGuard 走首尔，另一部用 MASQUE 走美国。给其中一部换出口后，只需让那部手机重连。
 
-**入口、端口和 DNS 也可以逐台设置。** 首次接入可以直接导入、扫码，或使用固定私密订阅。以后调整入口 IP、端口或 DNS，在 imOK 更新订阅内容，手机刷新原订阅再重连即可。停用旧设备时可以单独撤销它的身份。[客户端接入说明](docs/CLIENT_ACCESS.md)
+**入口、端口和 DNS 也可以逐台设置。** MASQUE 可直接导入、扫码或添加固定私密订阅；WireGuard 可扫码、下载或复制配置。以后调整入口 IP、端口或 DNS，直接导入的设备需重新导入；使用 MASQUE 订阅的设备刷新订阅后重连。停用旧设备时可以单独撤销它的身份。[客户端接入说明](docs/CLIENT_ACCESS.md)
+
+**「设备」页可查看每台局域网设备的流量。** 支持的 GL.iNet 固件会提供累计上传、下载和合计数据，计数起点与覆盖范围由固件决定。路由器外的独立客户端不计入此表。
 
 ## 先看效果
 
@@ -42,11 +44,15 @@ imOK 把入口、出口、规则和客户端放到一个页面体系里，方便
 
 ![imOK 总览：连接、分流范围与流量](docs/images/imok-overview.png)
 
-**客户端接入：独立身份、云端出口、直接导入与固定私密订阅。**
+**客户端接入：创建时选协议，注册后为这条身份单独选出口。**
 
-![imOK 客户端接入：独立身份与私密订阅](docs/images/imok-clients.png)
+![imOK 客户端接入：协议选择与独立出口](docs/images/imok-client-protocol.png)
 
-截图运行真实前端，只使用隔离演示数据；IP、租户与身份标识已隐藏，不含维护者真实配置，也不代表测速结果。
+**设备流量：每台局域网设备的上传、下载和合计。**
+
+![imOK 设备流量：演示设备的累计上传、下载和合计](docs/images/imok-device-traffic.png)
+
+截图只使用隔离演示数据，所示设备、团队、地址和用量均为示例，不含真实配置。
 
 ## 原理：入口和出口分开
 
@@ -57,7 +63,7 @@ flowchart LR
     Devices[家中设备] --> Router[imOK 路由器]
     Router -->|按规则直连| Local[本地宽带与国内站点]
     Router -->|WARP / MASQUE 加密隧道| CF[Cloudflare 全球网络]
-    Phone[外出手机：独立身份] -->|MASQUE| CF
+    Phone[外出手机：独立身份] -->|MASQUE 或 WireGuard| CF
     CF -->|组织已部署的路由| Exit[自有出口服务器：美国 / 首尔等]
     Exit --> Sites[目标网站与服务]
 ```
@@ -80,8 +86,8 @@ imOK 管理路由器侧的接入、策略和状态，并为独立手机身份选
 | --- | --- |
 | 总览 | 开关、当前连接与出口、接管范围、流量、七日趋势、诊断详情 |
 | WARP 安装与更新 | 环境检测、官方组件准备、每日检查、新版提示、明确确认后的维护与恢复副本；运行环境写入仍待独立实机验收 |
-| Cloudflare 配置中心 | 账户与协议、主线路入口、出口与分流、设备、DNS、Workers 六页 |
-| 客户端接入 | 独立手机注册、凭据同步、出口选择、可选端口 / DNS、直接导入、私密订阅、撤销与删除 |
+| Cloudflare 配置中心 | 账户与协议、主线路入口、出口与分流、设备策略与流量、DNS、Workers 六页 |
+| 客户端接入 | 独立 MASQUE / WireGuard 注册、团队服务授权、逐客户端选出口、端口 / DNS、扫码或配置导入、MASQUE 私密订阅、撤销与删除 |
 | 规则与更新 | 更新概况、来源与频率、规则管理、自定义分流四页 |
 | 备份迁移 | 设置导出 / 导入，保留 v2 / v3 格式兼容 |
 
@@ -89,15 +95,15 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 下载和安装
 
-当前预发布为 **v0.2.37-3 · 设备自动填写与排版**。v0.2.36-1 正式版仍可下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
+当前预发布为 **v0.2.37-4 · 客户端双协议与局域网设备流量**。v0.2.36-1 正式版仍可下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
 
-[前往预发布下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-3)：
+[前往预发布下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-4)：
 
 | 文件 | 用途 |
 | --- | --- |
-| `imOK-0.2.37-3-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
-| `luci-app-routepilot_0.2.37-3_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
-| `imOK-0.2.37-3-public-source.zip` | 公开源码、测试、文档与许可 |
+| `imOK-0.2.37-4-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
+| `luci-app-routepilot_0.2.37-4_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
+| `imOK-0.2.37-4-public-source.zip` | 公开源码、测试、文档与许可 |
 | `SHA256SUMS` | 上述安装、源码与分享包的校验值 |
 
 **新设备先读安装说明。** 公开分享包不是路由器固件，不含第三方 WARP 客户端 / Debian 运行环境、账户、私钥或任何现成节点。先安装插件，在“WARP 安装与更新”检测环境；本版提供受支持平台的官方组件自动准备实验流程，首次安装仍待独立实机验收。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。不要卸载、重注册或覆盖运行环境来完成普通升级。
@@ -106,9 +112,9 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 本版做了哪些验证？
 
-- 528 项插件 Python 测试、5 项服务端测试、11 项发布保护测试、19 组前端检查通过。另验证了目标 LuCI 契约、资源哈希和可重复构建。
-- 在路由器上实际试选设备，MAC 和 IPv4 自动填入。添加和编辑弹窗正常，设备策略页覆盖 1440、1024、375 和 320 像素布局。
-- 设备页面通过受控文件更新验证，隧道和 DNS 持续运行。常规 IPK 升级可能短暂重连。
+- 插件与服务端回归、前端检查、目标 LuCI 契约、资源哈希、可重复构建和发布保护测试通过。
+- 已在路由器管理页核对协议选项与局域网设备流量；独立 WireGuard 测试客户端在小火箭验证联网及首尔出口。
+- 实机验证采用受控更新，保留原主线路与客户端记录。常规 IPK 升级可能短暂重连。
 
 全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收，因此沿用预发布标记。详见[本版检查摘要](docs/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
 
@@ -128,6 +134,6 @@ python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/tar
 
 ## English overview
 
-imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles and assign an available organization egress to each profile. Cloudflare registration is subject to your team's limits and permissions. Client profiles support direct import, QR codes, and fixed private subscriptions.
+imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles in one Cloudflare team, each with its own MASQUE or WireGuard registration and choice of available egress. Registration is subject to team limits and permissions. MASQUE supports direct import, QR codes and private subscriptions; WireGuard supports configuration files and QR codes.
 
-**v0.2.37-3 is the current pre-release.** It adds device MAC and IPv4 autofill, readable policy labels, and a layout for narrow screens. Downloads include the full plugin, public source, and a shareable installation kit. v0.2.36-1 remains available as the stable release. Fresh WARP installation, APT upgrades, and runtime recovery still need independent hardware testing.
+**v0.2.37-4 is the current pre-release.** It adds per-client protocol selection, team service authorization, and per-device upload/download totals on supported GL.iNet firmware. Downloads include the full plugin, public source, and a shareable installation kit. v0.2.36-1 remains available as the stable release. Fresh WARP installation, APT upgrades, and runtime recovery still need independent hardware testing.

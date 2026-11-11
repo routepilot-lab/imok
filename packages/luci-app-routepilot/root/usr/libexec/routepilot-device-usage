@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+"""Read GL.iNet's per-device totals without changing its collector."""
+import json
+import re
+import subprocess
+import sys
+
+MAX_BYTES = (2**53 - 1) // 2
+MAC = re.compile(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}', re.I | re.ASCII)
+
+
+def counter(value):
+    if isinstance(value, str) and re.fullmatch(r'[0-9]{1,16}', value):
+        value = int(value)
+    return value if type(value) is int and 0 <= value <= MAX_BYTES else None
+
+
+def devices(value):
+    rows = value.get('clients') if isinstance(value, dict) else None
+    if not isinstance(rows, dict) or len(rows) > 1024:
+        raise ValueError('invalid device list')
+    result, seen = [], set()
+    for row in rows.values():
+        mac = row.get('mac') if isinstance(row, dict) else None
+        if not isinstance(mac, str) or not MAC.fullmatch(mac) or mac.upper() in seen:
+            raise ValueError('invalid device identity')
+        mac = mac.upper()
+        seen.add(mac)
+        name = row.get('name')
+        name = ''.join(c for c in name if c.isprintable()).strip()[:80] if isinstance(name, str) else ''
+        upload, download = counter(row.get('total_tx')), counter(row.get('total_rx'))
+        total = upload + download if upload is not None and download is not None else None
+        result.append(dict(mac=mac, name=name, upload=upload, download=download, total=total))
+    return sorted(result, key=lambda r: (r['total'] is None, -(r['total'] or 0), r['mac']))
+
+
+def snapshot():
+    try:
+        reply = subprocess.run(['ubus', '-t', '3', 'call', 'gl-clients', 'list', '{}'],
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=4)
+        if reply.returncode in (3, 4):  # UBUS_STATUS_METHOD_NOT_FOUND / NOT_FOUND
+            return {'state': 'unsupported', 'devices': []}
+        if reply.returncode or len(reply.stdout) > 2 * 1024 * 1024:
+            raise ValueError('device counter request failed')
+        return {'state': 'ready', 'devices': devices(json.loads(reply.stdout))}
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return {'state': 'error', 'devices': []}
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 1:
+        raise SystemExit(2)
+    print(json.dumps(snapshot(), ensure_ascii=False))

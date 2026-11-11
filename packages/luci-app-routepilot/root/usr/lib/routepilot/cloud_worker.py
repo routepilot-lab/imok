@@ -112,12 +112,32 @@ def idle_job():
         yield
 
 
+def verify_account_team(cfg):
+    from client_provider import ClientError, organization
+    try:
+        team = organization(read_config()['main'].get('organization'))
+    except ClientError:
+        raise CloudError('请先在「账户与协议」保存本机的 Cloudflare 团队名称') from None
+    try:
+        result = api(cfg, 'GET', '/accounts/' + cfg['account_id'] + '/access/organizations')
+    except CloudError as error:
+        if error.code == 403:
+            raise CloudError('首次绑定账户需要令牌有本账户的 Zero Trust 组织读取权限（Access: Organizations, Identity Providers, and Groups Read）', error.category, error.code) from None
+        raise
+    domain = result.get('auth_domain') if isinstance(result, dict) else None
+    expected = team + '.cloudflareaccess.com'
+    if not isinstance(domain, str) or domain.strip().lower().removeprefix('https://').removesuffix('/') != expected:
+        raise CloudError('此 Cloudflare 账户的 Zero Trust 团队与「账户与协议」中的团队不一致，授权未保存')
+
+
 def save(request_id=None):
     from request_input import claim_request
     with idle_job(), w.guard(), claim_request(INPUT,request_id,8192) as payload:
         idle_backup()
         old = load_settings() if SETTINGS.exists() else {}
         cfg = valid_settings(payload, old)
+        if cfg['account_id'] and cfg['account_id'] != old.get('account_id'):
+            verify_account_team(cfg)
         PRIVATE.mkdir(parents=True,exist_ok=True,mode=0o700);PRIVATE.chmod(0o700)
         atomic(SETTINGS,json.dumps(cfg))
         if old.get('token')!=cfg['token']:

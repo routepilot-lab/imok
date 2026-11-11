@@ -2,6 +2,7 @@
 """Local-only lifecycle/security tests; cloud functions are explicit fakes."""
 import base64
 import contextlib
+from email.message import Message
 import hashlib
 import io
 import json
@@ -13,6 +14,7 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'root/usr/lib/routepilot'))
@@ -47,6 +49,7 @@ class ClientAccessTest(unittest.TestCase):
             self.addCleanup(obj.stop)
         self.spawn = patch.object(access, 'spawn').start()
         self.addCleanup(patch.stopall)
+        self.config = patch.object(access, 'read_config', return_value={'main': {'organization': 'example-team'}}).start()
         self.client = access.create(dict(name='测试 iPhone', organization='example-team'))['client']
         self.ident = self.client['id']
         self.cloud_id = '00000000-0000-4000-8000-000000000123'
@@ -55,7 +58,7 @@ class ClientAccessTest(unittest.TestCase):
         self.seoul = '00000000-0000-4000-8000-000000000222'
         self.default = '00000000-0000-4000-8000-000000000333'
         self.selected_network = self.usa
-        def networks(*args, target=None):
+        def networks(*args, target=None, protocol='masque'):
             if target is not None:
                 self.selected_network = target
                 return {'acknowledged': True}
@@ -86,6 +89,189 @@ class ClientAccessTest(unittest.TestCase):
              patch.object(provider, 'enroll', side_effect=enroll_error, return_value=enroll_reply or self.reply()) as enroll:
             access.job(self.ident, queued['operation_id'])
         return reg, enroll
+
+    def test_service_exchange_uses_only_team_https_and_rejects_external_redirect(self):
+        credentials = dict(client_id='a' * 32 + '.access', client_secret='cf_' + 's' * 48)
+        team = 'example-team'
+        assertion = jwt()
+        callback = 'com.cloudflare.warp://example-team.cloudflareaccess.com/auth?token=' + assertion
+        def redirect(location):
+            headers = Message()
+            headers['Location'] = location
+            return HTTPError('https://example-team.cloudflareaccess.com/warp', 302, '', headers, io.BytesIO())
+
+        with patch.object(provider.urllib.request, 'build_opener') as build:
+            opener = build.return_value
+            opener.open.side_effect = redirect(callback)
+            self.assertEqual(provider.service_auth_token(team, credentials, time.time()), assertion)
+            req = opener.open.call_args.args[0]
+            self.assertEqual(req.full_url, 'https://example-team.cloudflareaccess.com/warp')
+            self.assertEqual(req.get_method(), 'GET')
+            headers = {name.lower(): value for name, value in req.header_items()}
+            self.assertEqual(headers['cf-access-client-secret'], credentials['client_secret'])
+            self.assertEqual(headers['cf-access-client-id'], credentials['client_id'])
+            self.assertEqual(build.call_args.args[0].proxies, {})
+            self.assertIsInstance(build.call_args.args[1], provider.NoRedirect)
+            self.assertIsNone(build.call_args.args[1].redirect_request(req, None, 302, '', None, 'https://other.example'))
+            opener.open.side_effect = redirect('https://other.example/' + credentials['client_secret'])
+            with self.assertRaises(provider.ClientError) as caught:
+                provider.service_auth_token(team, credentials, time.time())
+            self.assertNotIn(credentials['client_secret'], str(caught.exception))
+            self.assertFalse(caught.exception.uncertain)
+            self.assertEqual(opener.open.call_count, 2)
+
+    def test_service_registration_saves_only_verified_credentials_per_team(self):
+        credentials = dict(client_id='a' * 32 + '.access', client_secret='s' * 64)
+        with patch.object(access, 'read_config', return_value={'main': {'organization': 'other-team'}}):
+            other = access.create(dict(name='其他团队'))['client']
+        same = access.create(dict(name='同团队另一台', organization='example-team'))['client']
+        args = dict(id=self.ident, accept_terms=True, service_auth=credentials, remember_service_auth=True)
+        with self.assertRaises(provider.ClientError):
+            access.start('register', dict(args, token=jwt()))
+        queued = access.start('register', args)
+        job = access.VOLATILE / (queued['operation_id'] + '.json')
+        self.assertEqual(stat.S_IMODE(job.stat().st_mode), 0o600)
+        with patch.object(provider, 'service_auth_token', side_effect=provider.ClientError('服务授权未通过')), \
+             patch.object(provider, 'register') as register:
+            access.job(self.ident, queued['operation_id'])
+        register.assert_not_called()
+        self.assertFalse(job.exists())
+        self.assertEqual(self.row()['state'], 'failed')
+        self.assertFalse(access.saved_service_auth('example-team'))
+
+        queued = access.start('register', args)
+        assertion = jwt()
+        initial = dict(id=self.cloud_id, token=self.device_token, account=dict(account_type='team', organization='example-team'))
+        with patch.object(provider, 'service_auth_token', return_value=assertion), \
+             patch.object(provider, 'new_keys', return_value=self.keys), \
+             patch.object(provider, 'register', return_value=initial) as register, \
+             patch.object(provider, 'enroll', return_value=self.reply()):
+            access.job(self.ident, queued['operation_id'])
+        self.assertEqual(register.call_args.args[0], assertion)
+        self.assertEqual(self.row()['state'], 'registered')
+        self.assertEqual(stat.S_IMODE(access.service_auth_path('example-team').stat().st_mode), 0o600)
+        listing = access.listing()
+        self.assertEqual([r['service_auth_saved'] for r in listing['clients']], [True, False, True])
+        for key in (credentials['client_id'], credentials['client_secret'], assertion):
+            self.assertNotIn(key, json.dumps(listing))
+            self.assertNotIn(key, (self.private / 'registry.json').read_text())
+
+        reuse = dict(accept_terms=True, service_auth=None, remember_service_auth=False)
+        with self.assertRaises(provider.ClientError):
+            access.start('register', dict(reuse, id=other['id']))
+        queued = access.start('register', dict(reuse, id=same['id']))
+        with self.assertRaises(provider.ClientError):
+            access.forget_service_auth({'id': self.ident})
+        with patch.object(provider, 'service_auth_token', side_effect=provider.ClientError('令牌过期')) as exchange:
+            access.job(same['id'], queued['operation_id'])
+        self.assertEqual(exchange.call_args.args[:2], ('example-team', credentials))
+        self.assertEqual(access.forget_service_auth({'id': self.ident}), {'forgotten': True})
+        self.assertFalse(access.saved_service_auth('example-team'))
+        self.assertEqual(self.row()['state'], 'registered')
+
+    def test_new_clients_inherit_the_system_team_and_old_records_keep_their_team(self):
+        self.assertEqual(access.listing()['team'], {'name': 'example-team', 'error': ''})
+        another = access.create({'name': '第二台设备'})['client']
+        self.assertEqual(another['organization'], 'example-team')
+        with self.assertRaisesRegex(provider.ClientError, '统一使用'):
+            access.create({'name': '外部', 'organization': 'other-team'})
+        with patch.object(access, 'read_config', return_value={'main': {}}):
+            self.assertEqual(access.listing()['team']['name'], '')
+            self.assertEqual(len(access.listing()['clients']), 2)
+            with self.assertRaisesRegex(provider.ClientError, '账户与协议'):
+                access.create({'name': '无团队'})
+        with patch.object(access, 'read_config', return_value={'main': {'organization': 'other-team'}}):
+            with self.assertRaisesRegex(provider.ClientError, '不一致'):
+                self.submit_register()
+        self.assertEqual(self.row()['organization'], 'example-team')
+
+    def test_worker_rechecks_team_before_registration(self):
+        queued = self.submit_register()
+        with patch.object(access, 'read_config', return_value={'main': {'organization': 'other-team'}}), \
+             patch.object(provider, 'register') as register:
+            access.job(self.ident, queued['operation_id'])
+        register.assert_not_called()
+        self.assertEqual(self.row()['state'], 'failed')
+
+    def wireguard_reply(self, ident, key):
+        return dict(id=ident, key=key, key_type='curve25519', tunnel_type='wireguard',
+                    account=dict(account_type='team', organization='example-team'),
+                    config=dict(client_id='AQID', interface=dict(addresses=dict(v4='100.96.0.55', v6='2606:4700:cf1:1000::55')),
+                                peers=[dict(public_key=base64.b64encode(b'p' * 32).decode(),
+                                            endpoint=dict(v4='162.159.193.7:0', ports=[500, 2408, 4500]))]))
+
+    def wireguard_keys(self):
+        # RFC 7748 test vector. Some local OpenSSL-compatible tools lack X25519;
+        # this fixture exercises decoding and clamping without that dependency.
+        private = bytes.fromhex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a')
+        public = bytes.fromhex('8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a')
+        private_der = provider.X25519_PRIVATE_PREFIX + private
+        with patch.object(provider, 'openssl', side_effect=[private_der, provider.X25519_PUBLIC_PREFIX + public]) as openssl:
+            keys = provider.new_wireguard_keys()
+        self.assertEqual(openssl.call_args.args[1], private_der)
+        self.assertEqual(base64.b64decode(keys['public_key']), public)
+        self.assertEqual(base64.b64decode(keys['private_key']), b'\x70' + private[1:-1] + b'\x6a')
+        return keys
+
+    def test_wireguard_selects_its_own_exit_and_exports_the_tested_conf_format(self):
+        original = self.row().copy()
+        client = access.create(dict(name='WireGuard 测试', protocol='wireguard'))['client']
+        self.assertEqual(client['settings']['port'], 2408)
+        keys = self.wireguard_keys()
+        self.assertEqual(keys['bootstrap_key'], keys['public_key'])
+        self.selected_network = self.default
+        args = dict(id=client['id'], token=jwt(), accept_terms=True)
+        task = access.start('register', args)
+        initial = dict(id=self.cloud_id, token=self.device_token, account=dict(account_type='team', organization='example-team'))
+        reply = self.wireguard_reply(self.cloud_id, keys['public_key'])
+        with patch.object(provider, 'new_wireguard_keys', return_value=keys), \
+             patch.object(provider, 'register', return_value=initial) as register, \
+             patch.object(provider, 'enroll') as masque_enroll, \
+             patch.object(provider, 'request', return_value=reply) as request:
+            access.job(client['id'], task['operation_id'])
+        request.assert_called_once_with('GET', '/reg/' + self.cloud_id, token=self.device_token)
+        masque_enroll.assert_not_called()
+        self.assertEqual(register.call_args.args[1], keys['public_key'])
+        with self.assertRaisesRegex(provider.ClientError, '默认'):
+            access.export(dict(id=client['id'], confirm=True))
+        task = access.start('select_exit', dict(id=client['id'], vnet_id=self.seoul, expected_vnet_id=self.default))
+        with patch.object(provider, 'request', return_value=reply):
+            access.job(client['id'], task['operation_id'])
+        listing = access.listing()
+        self.assertEqual(listing['clients'][1]['protocol'], 'wireguard')
+        self.assertEqual(listing['clients'][1]['network']['selected_name'], '首尔')
+        self.assertNotIn(keys['private_key'], json.dumps(listing))
+        self.assertNotIn('reserved', listing['clients'][1])
+        self.assertEqual(self.row(), original)
+        self.assertEqual(self.cloud_networks.call_args.kwargs['protocol'], 'wireguard')
+        config = access.export(dict(id=client['id'], confirm=True))
+        self.assertTrue(config['filename'].endswith('.conf'))
+        self.assertFalse(config['exit_verified'])
+        self.assertIn('PrivateKey = ' + keys['private_key'], config['uri'])
+        self.assertIn('Address = 100.96.0.55/32, 2606:4700:cf1:1000::55/128', config['uri'])
+        self.assertIn('AllowedIPs = ::/0', config['uri'])
+        self.assertIn('Endpoint = 162.159.193.7:2408', config['uri'])
+        self.assertTrue(config['uri'].endswith('Reserved = 1,2,3'))
+        with self.assertRaisesRegex(provider.ClientError, '配置文件'):
+            access.start('publish_subscription', dict(id=client['id'], confirm=True))
+        with self.assertRaises(provider.ClientError):
+            access.edit(dict(id=client['id'], settings={'endpoint':'162.159.197.2','port':443}))
+
+    def test_wireguard_does_not_claim_unverified_cloud_identity(self):
+        client = access.create(dict(name='WireGuard 异常', protocol='wireguard'))['client']
+        keys = self.wireguard_keys()
+        task = access.start('register', dict(id=client['id'], token=jwt(), accept_terms=True))
+        initial = dict(id=self.cloud_id, token=self.device_token)
+        reply = self.wireguard_reply(self.cloud_id, base64.b64encode(b'x' * 32).decode())
+        with patch.object(provider, 'new_wireguard_keys', return_value=keys), \
+             patch.object(provider, 'register', return_value=initial), \
+             patch.object(provider, 'request', return_value=reply):
+            access.job(client['id'], task['operation_id'])
+        row = access.load()['clients'][1]
+        self.assertEqual(row['state'], 'unknown')
+        self.assertTrue(row['post_uncertain'])
+        self.assertNotIn('device_id', row)
+        self.cloud_networks.assert_not_called()
 
 
     def test_default_network_is_not_exported_or_used_as_fallback(self):
@@ -483,6 +669,7 @@ import sys,json,pathlib
 sys.path.insert(0,sys.argv[1])
 import client_access as a,client_provider as p
 a.PRIVATE=pathlib.Path(sys.argv[2]);a.VOLATILE=pathlib.Path(sys.argv[3])
+a.read_config=lambda: {'main': {'organization': 'example-team'}}
 reply=json.loads(sys.argv[7])
 p.register=lambda *args:dict(id=reply['id'],token='synthetic-device-token',account=reply['account'])
 def enroll(ident,token,key,name):

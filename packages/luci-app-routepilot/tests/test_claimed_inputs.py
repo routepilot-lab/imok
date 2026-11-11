@@ -67,7 +67,7 @@ class EndpointConsumers(unittest.TestCase):
  def test_cloud_save_uses_its_own_token_and_ack(self):
   import test_cloud_worker as fixture,cloud_worker as c,worker_backend as w
   t=self.fixture(fixture.CloudTest);a=stage(c.INPUT,{**fixture.CFG,'script':'routepilot-a'});b=stage(c.INPUT,{**fixture.CFG,'script':'routepilot-b'})
-  with patch.object(w,'guard',return_value=contextlib.nullcontext()):out=c.save(a)
+  with patch.object(w,'guard',return_value=contextlib.nullcontext()),patch.object(c,'api',side_effect=t.fake_api):out=c.save(a)
   self.assertEqual(c.load_settings()['script'],'routepilot-a');self.assertEqual(out['request_id'],a.split(':')[0]);self.assertTrue(self.slot(c.INPUT,b).exists())
  def test_backup_import_uses_its_own_node_without_cloud_calls(self):
   import worker_backend as w
