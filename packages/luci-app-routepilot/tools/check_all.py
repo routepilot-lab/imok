@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run all local checks; never contacts a router, cloud API, or production DB."""
-import argparse,ast,concurrent.futures,hashlib,importlib.util,io,json,os,re,shutil,subprocess,sys,tarfile,tempfile,time
+import argparse,ast,concurrent.futures,hashlib,importlib.util,io,json,os,re,subprocess,sys,tarfile,tempfile,time
 from pathlib import Path
 PACKAGE=Path(__file__).resolve().parents[1]
 PROJECT=PACKAGE.parents[1]
@@ -38,13 +38,13 @@ def main():
         spec=importlib.util.spec_from_file_location('check_builder',PACKAGE/'tools/build.py');builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
         assert json.loads((PACKAGE/'root/usr/share/routepilot/version.json').read_text())['package']==builder.VERSION
         with tempfile.TemporaryDirectory() as folder:
-            folder=Path(folder);source=folder/'package';shutil.copytree(PACKAGE,source,ignore=shutil.ignore_patterns('dist','__pycache__'))
-            builder.ROOT=source;a=builder.build(folder/'a');b=builder.build(folder/'b');assert a.read_bytes()==b.read_bytes()
+            folder=Path(folder)
+            a=builder.build(folder/'a');b=builder.build(folder/'b');assert a.read_bytes()==b.read_bytes()
             with tarfile.open(a,'r:gz') as outer:raw=outer.extractfile('./data.tar.gz').read()
             with tarfile.open(fileobj=io.BytesIO(raw),mode='r:gz') as tf:
                 files={m.name:m for m in tf if m.isfile()}
                 assert not any('__pycache__' in name or name.endswith('.pyc') for name in files)
-                for f in (source/'root/usr/libexec').iterdir():assert files['./usr/libexec/'+f.name].mode==0o755
+                for f in (PACKAGE/'root/usr/libexec').iterdir():assert files['./usr/libexec/'+f.name].mode==0o755
                 assert files['./etc/config/routepilot'].mode==0o600
                 manifest={name:hashlib.sha256(tf.extractfile(item).read()).hexdigest() for name,item in files.items()}
             extra=dict(version=builder.VERSION,syntax_files=count,worker_hash=True,reproducible=True,package_sha256=hashlib.sha256(a.read_bytes()).hexdigest(),package_files=len(files),manifest=manifest)

@@ -1,6 +1,6 @@
 # imOK 2.0
 
-> **最新预发布 v0.2.37-4**。每个独立客户端可选 MASQUE 或 WireGuard，并各自选择云端出口；「设备」页新增局域网设备的累计上传、下载和合计用量。[本版更新](docs/releases/v0.2.37-4.md)
+> **最新正式版 v0.2.37-5**。总览减少重复重绘，安装包构建不再回写源码。包含独立客户端双协议、按客户端选出口和局域网设备流量统计。[本版更新](docs/releases/v0.2.37-5.md)
 
 ### 借助 Cloudflare 全球网络，让路由器和手机的接入更灵活、全球出口更可控。
 
@@ -8,7 +8,7 @@
 
 我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
-[**下载 v0.2.37-4 预发布**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-4) · [v0.2.36-1 正式版](https://github.com/routepilot-lab/imok/releases/tag/v0.2.36-1) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
+[**下载 v0.2.37-5 正式版**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-5) · [历史版本](https://github.com/routepilot-lab/imok/releases) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
 **Cloudflare WARP management for OpenWrt:** independent MASQUE and WireGuard clients, per-client egress selection, LAN device usage, private subscriptions, DNS diagnostics and persistent personal rules.
 
@@ -95,15 +95,15 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 下载和安装
 
-当前预发布为 **v0.2.37-4 · 客户端双协议与局域网设备流量**。v0.2.36-1 正式版仍可下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
+当前正式版为 **v0.2.37-5 · 收尾优化版**。历史版本仍可在 Releases 下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
 
-[前往预发布下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-4)：
+[前往正式版下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-5)：
 
 | 文件 | 用途 |
 | --- | --- |
-| `imOK-0.2.37-4-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
-| `luci-app-routepilot_0.2.37-4_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
-| `imOK-0.2.37-4-public-source.zip` | 公开源码、测试、文档与许可 |
+| `imOK-0.2.37-5-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
+| `luci-app-routepilot_0.2.37-5_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
+| `imOK-0.2.37-5-public-source.zip` | 公开源码、测试、文档与许可 |
 | `SHA256SUMS` | 上述安装、源码与分享包的校验值 |
 
 **新设备先读安装说明。** 公开分享包不是路由器固件，不含第三方 WARP 客户端 / Debian 运行环境、账户、私钥或任何现成节点。先安装插件，在“WARP 安装与更新”检测环境；本版提供受支持平台的官方组件自动准备实验流程，首次安装仍待独立实机验收。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。不要卸载、重注册或覆盖运行环境来完成普通升级。
@@ -113,10 +113,10 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 ## 本版做了哪些验证？
 
 - 插件与服务端回归、前端检查、目标 LuCI 契约、资源哈希、可重复构建和发布保护测试通过。
-- 已在路由器管理页核对协议选项与局域网设备流量；独立 WireGuard 测试客户端在小火箭验证联网及首尔出口。
+- 本版总览通过隔离浏览器验证，流量数据不变时，图表保留键盘焦点。此前已在路由器管理页核对协议选项与局域网设备流量，也验证了独立 WireGuard 客户端联网及首尔出口。
 - 实机验证采用受控更新，保留原主线路与客户端记录。常规 IPK 升级可能短暂重连。
 
-全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收，因此沿用预发布标记。详见[本版检查摘要](docs/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
+正式插件版面向已具备兼容运行环境的设备。全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收。详见[本版检查摘要](docs/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
 
 主线路故障撤回接管时可能使用宽带直连；本插件不提供 IPv6 代理，可阻断 IPv6 或明确允许其直连。普通“导出配置”不包含客户端私钥、手机订阅、个人规则覆盖及第三方授权，迁移前请阅读说明。
 
@@ -136,4 +136,4 @@ python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/tar
 
 imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles in one Cloudflare team, each with its own MASQUE or WireGuard registration and choice of available egress. Registration is subject to team limits and permissions. MASQUE supports direct import, QR codes and private subscriptions; WireGuard supports configuration files and QR codes.
 
-**v0.2.37-4 is the current pre-release.** It adds per-client protocol selection, team service authorization, and per-device upload/download totals on supported GL.iNet firmware. Downloads include the full plugin, public source, and a shareable installation kit. v0.2.36-1 remains available as the stable release. Fresh WARP installation, APT upgrades, and runtime recovery still need independent hardware testing.
+**v0.2.37-5 is the current stable plugin release.** The overview reuses charts and connection history when their contents stay the same, and the build leaves the source checkout untouched. The full installation kit includes the plugin, public source, instructions and checksums. Fresh WARP installation, APT upgrades and runtime recovery still need independent hardware testing.

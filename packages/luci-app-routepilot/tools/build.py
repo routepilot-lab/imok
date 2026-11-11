@@ -45,15 +45,16 @@ def archive(files):
 
 def build(destination=None):
     validate(ROOT)
-    version_file=ROOT/'root/usr/share/routepilot/version.json'
-    version_file.parent.mkdir(parents=True,exist_ok=True)
-    version_file.write_text(json.dumps(dict(product=VERSION.rsplit('-',1)[0],package=VERSION))+'\n')
-    data = []
+    version_name = 'usr/share/routepilot/version.json'
+    version_data = (json.dumps(dict(product=VERSION.rsplit('-', 1)[0], package=VERSION)) + '\n').encode()
+    data = [(version_name, version_data, 0o644)]
     for source, prefix in ((ROOT / 'root', ''), (ROOT / 'htdocs', 'www/')):
         for path in sorted(source.rglob('*')):
-            if not path.is_file() or '__pycache__' in path.parts or path.suffix == '.pyc':
+            if not path.is_file() or '__pycache__' in path.parts or path.suffix == '.pyc' or path.name == '.DS_Store':
                 continue
             name = prefix + path.relative_to(source).as_posix()
+            if name == version_name:
+                continue
             mode = 0o755 if name in ('etc/init.d/routepilot', 'usr/libexec/routepilot', 'usr/libexec/routepilot-exits', 'usr/libexec/routepilot-observe', 'usr/libexec/routepilot-traffic', 'usr/libexec/routepilot-backup-list', 'usr/libexec/routepilot-clients', 'usr/libexec/routepilot-clients-list', 'usr/libexec/routepilot-device-usage', 'usr/libexec/routepilot-runtime', 'usr/libexec/routepilot-runtime-status') else 0o644
             if name == 'etc/config/routepilot':
                 mode = 0o600

@@ -493,7 +493,19 @@ return view.extend({
 
   updateRelays(null,null);
   var connectionRows=E('div'),connectionDirectory=E('div'),connectionHistory=E('details',{class:'rp-stat-details'},[E('summary',{},_('连接记录与开关说明')),connectionRows,connectionDirectory,E('p',{class:'rp-help'},_('开关立即生效，无需保存；不会提交尚未保存的其他设置。'))]);
-  function updateConnectionHistory(data){connectionRows.replaceChildren();var rows=data&&Array.isArray(data.events)?data.events.slice(-6).reverse():[];rows.forEach(function(row){var label=row.state==='running'?_('连接已恢复 / 已运行'):row.recovering?_('短暂中断，等待原客户端恢复'):row.state==='error'?_('连接异常'):row.state==='disabled'?_('已关闭'):_('状态变化');connectionRows.appendChild(E('p',{class:'rp-help'},when(row.time)+' · '+label+(row.fallback==='direct'?_(' · 已撤回接管，保持直连'):row.fallback==='unknown'?_(' · 网络路径未确认'):'')));});if(!rows.length)connectionRows.appendChild(E('p',{class:'rp-help'},_('尚无连接变化记录')));}
+  var connectionHistoryKey=null;
+  function updateConnectionHistory(data){
+   var rows=data&&Array.isArray(data.events)?data.events.slice(-6).reverse():[];
+   var lines=rows.map(function(row){
+    var label=row.state==='running'?_('连接已恢复 / 已运行'):row.recovering?_('短暂中断，等待原客户端恢复'):row.state==='error'?_('连接异常'):row.state==='disabled'?_('已关闭'):_('状态变化');
+    return when(row.time)+' · '+label+(row.fallback==='direct'?_(' · 已撤回接管，保持直连'):row.fallback==='unknown'?_(' · 网络路径未确认'):'');
+   });
+   if(!lines.length)lines.push(_('尚无连接变化记录'));
+   var key=JSON.stringify(lines);
+   if(key===connectionHistoryKey)return;
+   connectionRows.replaceChildren(...lines.map(function(line){return E('p',{class:'rp-help'},line);}));
+   connectionHistoryKey=key;
+  }
   var overviewBadge=E('span',{class:'rp-status-badge'},_('读取中'));
   var overviewMeta=E('p',{class:'rp-help'}),overviewLine=E('p',{class:'rp-overview-line',role:'status','aria-live':'polite'});
   var overviewFacts={},overviewPowerNonce=null;
@@ -544,16 +556,46 @@ return view.extend({
    return card;
   }
   function validTrafficCounts(v){return v&&['proxy_up','proxy_down','direct_up','direct_down'].every(function(k){return Number.isSafeInteger(v[k])&&v[k]>=0;});}
+  var weekChartKey=null;
+  function updateWeekChart(traffic){
+   var today=traffic&&traffic.today;
+   var end=/^\d{4}-\d{2}-\d{2}$/.test(today||'')?Date.parse(today+'T12:00:00Z'):NaN;
+   var days=[];
+   if(Number.isFinite(end)&&new Date(end).toISOString().slice(0,10)===today){
+    for(var offset=6;offset>=0;offset--){
+     var day=new Date(end-offset*86400000).toISOString().slice(0,10);
+     var bucket=traffic.days&&traffic.days[day], counts=bucket&&bucket.bytes;
+     days.push([day,validTrafficCounts(counts)?[counts.proxy_up,counts.proxy_down,counts.direct_up,counts.direct_down]:null]);
+    }
+   }
+   var key=JSON.stringify(days);
+   if(key===weekChartKey)return;
+   var max=days.reduce(function(value,day){
+    return day[1]?Math.max(value,day[1].reduce(function(a,b){return a+b;},0)):value;
+   },1);
+   var nodes=days.map(function(entry){
+    var day=entry[0], counts=entry[1];
+    var proxy=counts?counts[0]+counts[1]:0, direct=counts?counts[2]+counts[3]:0;
+    var bars=counts?[E('span',{class:'rp-bar-direct',style:'height:'+(direct/max*100)+'%'}),
+     E('span',{class:'rp-bar-proxy',style:'height:'+(proxy/max*100)+'%'})]:[E('span',{class:'rp-no-data'},'—')];
+    return E('div',{class:'rp-day',role:'img',tabindex:'0',
+     title:day+': '+(counts?_('代理上传 ')+bytes(counts[0])+_(' / 下载 ')+bytes(counts[1])+_('；直连上传 ')+bytes(counts[2])+_(' / 下载 ')+bytes(counts[3]):_('没有采集数据')),
+     'aria-label':day+': '+(counts?_('代理 ')+bytes(proxy)+_('，直连 ')+bytes(direct):_('没有采集数据'))},
+     [E('span',{class:'rp-day-number'},counts?bytes(proxy+direct):'—'),
+      E('div',{class:'rp-day-bars','aria-hidden':'true'},bars),
+      E('span',{class:'rp-day-label'},day.slice(5))]);
+   });
+   if(!nodes.length)nodes.push(E('p',{class:'rp-help'},_('采集开始后显示每日趋势。')));
+   weekChart.replaceChildren(...nodes);
+   weekChartKey=key;
+  }
   function updateTraffic(v){
    latestTraffic=v;var age=v?Date.now()/1000-Number(v.time):Infinity,live=v&&v.schema===1&&age>=-5&&age<=20&&v.state==='observing';
    var limited=!v||v.offload!=='not_detected';trafficNote.textContent=!live?(v&&v.message?v.message:!v?_('尚无采集数据，不能确认当前用量。'):_('采集已暂停或过期；以下仅为历史观测，不是当前用量。')):limited?_('仅统计未加速部分，可能远低于实际用量；图表与累计均为观测下限。'):_('观测下限，不作账单；历史可能存在采集中断。');
    trafficCard.setAttribute('data-stale',live?'false':'true');if(v&&v.clock_synced===false)trafficNote.textContent+=_(' 路由器时间尚未同步，新增流量暂不分配到日期。');
    var bucket=v&&v.days&&v.days[v.today],counts=trafficRange==='total'?v&&v.total:bucket&&bucket.bytes,valid=validTrafficCounts(counts);
    ['proxy','direct'].forEach(function(k){var f=metricFields[k];var todayCounts=bucket&&bucket.bytes,totalCounts=v&&v.total;f.today.textContent=validTrafficCounts(todayCounts)?bytes(todayCounts[k+'_up']+todayCounts[k+'_down']):'—';f.total.textContent=validTrafficCounts(totalCounts)?bytes(totalCounts[k+'_up']+totalCounts[k+'_down']):'—';f.value.textContent=valid?bytes(counts[k+'_up']+counts[k+'_down']):'—';f.detail.textContent=valid?(live?'':_('历史观测，停止于 ')+when(v.time)+' · ')+_('↑ 上传 ')+bytes(counts[k+'_up'])+_(' · ↓ 下载 ')+bytes(counts[k+'_down']):_('此时段没有采集数据');var last=v&&Array.isArray(v.history)&&v.history[v.history.length-1],rate=live&&last&&last.rate;f.speed.textContent=rate&&Number.isFinite(rate[k+'_down'])&&Number.isFinite(rate[k+'_up'])?_('已观测速率 ↑ ')+bytes(rate[k+'_up'])+'/s ↓ '+bytes(rate[k+'_down'])+'/s':_('当前速率：未知');});
-   weekChart.replaceChildren();var today=v&&/^\d{4}-\d{2}-\d{2}$/.test(v.today||'')?v.today:null,days=[],max=1;
-   if(today){var end=new Date(today+'T12:00:00Z');for(var i=6;i>=0;i--){var stamp=new Date(end.getTime()-i*86400000).toISOString().slice(0,10),b=v.days&&v.days[stamp],c=b&&b.bytes,ok=validTrafficCounts(c),proxy=ok?c.proxy_up+c.proxy_down:null,direct=ok?c.direct_up+c.direct_down:null;days.push({day:stamp,proxy:proxy,direct:direct,ok:ok,counts:c});if(ok)max=Math.max(max,proxy+direct);}}
-   days.forEach(function(d){var text=d.ok?bytes(d.proxy+d.direct):'—',bar=E('div',{class:'rp-day-bars','aria-hidden':'true'},d.ok?[E('span',{class:'rp-bar-direct',style:'height:'+(d.direct/max*100)+'%'}),E('span',{class:'rp-bar-proxy',style:'height:'+(d.proxy/max*100)+'%'})]:E('span',{class:'rp-no-data'},'—'));weekChart.appendChild(E('div',{class:'rp-day',role:'img',tabindex:'0',title:d.day+': '+(d.ok?_('代理上传 ')+bytes(d.counts.proxy_up)+_(' / 下载 ')+bytes(d.counts.proxy_down)+_('；直连上传 ')+bytes(d.counts.direct_up)+_(' / 下载 ')+bytes(d.counts.direct_down):_('没有采集数据')),'aria-label':d.day+': '+(d.ok?_('代理 ')+bytes(d.proxy)+_('，直连 ')+bytes(d.direct):_('没有采集数据'))},[E('span',{class:'rp-day-number'},text),bar,E('span',{class:'rp-day-label'},d.day.slice(5))]));});
-   if(!days.length)weekChart.appendChild(E('p',{class:'rp-help'},_('采集开始后显示每日趋势。')));
+   updateWeekChart(v);
    trafficMeta.textContent=v?_('累计为自此时间起的观测下限：')+when(v.started_at)+_(' · 最后采样：')+when(v.time)+_(' · 路由器时区：')+String(v.timezone||_('未知'))+_('。每 5 分钟保存一次，掉电可能丢失未保存部分。仅含受管 IPv4 公网转发；不含 IPv6、局域网、路由器本机和隧道封装开销。')+(v.gaps?_(' 已记录不完整采样区间或边界：')+v.gaps+_(' 次。'):'')+(validTrafficCounts(v.unallocated)&&Object.keys(v.unallocated).some(function(k){return v.unallocated[k]>0;})?_(' 有无法归属到日期的流量，仅纳入累计。'):''):_('升级前的流量无法补算。');
    versionInfo.textContent='imOK '+(buildInfo.package||_('版本待读取'))+' · WARP '+(v&&v.client_version?v.client_version:_('版本未知'))+_(' · 仅显示本机读到的版本；是否有更新请核对官方发布记录。');
   }

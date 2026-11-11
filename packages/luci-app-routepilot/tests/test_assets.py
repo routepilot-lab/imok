@@ -1,4 +1,3 @@
-import copy
 import importlib.util
 import io
 import json
@@ -101,6 +100,23 @@ class AssetsTests(unittest.TestCase):
                 sdk = (ROOT / 'Makefile').read_text().split('define Package/luci-app-routepilot/conffiles', 1)[1].split('endef', 1)[0].split()
                 self.assertEqual(conffiles, ['/etc/config/routepilot'])
                 self.assertEqual(sdk, conffiles, 'SDK must not add private API/node files to system backup defaults')
+
+    def test_build_generates_package_version_without_rewriting_checkout(self):
+        with tempfile.TemporaryDirectory() as folder:
+            temp = Path(folder)
+            root = self.fixture(temp / 'source')
+            version_file = root / 'root/usr/share/routepilot/version.json'
+            version_file.write_text('{"package":"fixture-only"}')
+            (version_file.parent / '.DS_Store').write_bytes(b'desktop metadata')
+            with patch.object(builder, 'ROOT', root):
+                package = builder.build(temp / 'output')
+            self.assertEqual(version_file.read_text(), '{"package":"fixture-only"}')
+            with tarfile.open(package, 'r:gz') as outer:
+                payload = outer.extractfile('./data.tar.gz').read()
+            with tarfile.open(fileobj=io.BytesIO(payload), mode='r:gz') as inner:
+                self.assertNotIn('./usr/share/routepilot/.DS_Store', inner.getnames())
+                version = json.load(inner.extractfile('./usr/share/routepilot/version.json'))
+                self.assertEqual(version['package'], builder.VERSION)
 
     def test_sdk_and_custom_builder_install_the_same_executables(self):
         import subprocess,re

@@ -3,7 +3,7 @@
     {
       "check": "python-main",
       "exit": 0,
-      "tests": 537
+      "tests": 538
     },
     {
       "check": "python-server",
@@ -122,11 +122,11 @@
     }
   ],
   "integrity": {
-    "version": "0.2.37-4",
+    "version": "0.2.37-5",
     "syntax_files": 60,
     "worker_hash": true,
     "reproducible": true,
-    "package_sha256": "a8023b6120e09a1f1f944f6f7444747de23f8bc8193c1f8196b01a400810249c",
+    "package_sha256": "520abb8d723a0d83b01adfef8d83402de330a99e825ff9121f9ad933205b615a",
     "package_files": 61,
     "manifest": {
       "./etc/config/routepilot": "10ecc397d4c4b7c2d5c34f20a81c97532b56fe5a92dac7881b91bc4303ec0a7b",
@@ -176,11 +176,11 @@
       "./usr/libexec/routepilot-runtime": "55141292ec102d7b87da1f915ad10e6c715e19d84a0bfa6a578edddf4e4a6d87",
       "./usr/libexec/routepilot-runtime-status": "16cb2f1ba68c580840a6d9991c40d6917cd35df9e9e574e5104a384249f7e686",
       "./usr/libexec/routepilot-traffic": "0a463c0e5fce7acecfe1dd0dd934936fd78921ea1214ab05720ff7575bba4caf",
-      "./usr/share/luci/menu.d/luci-app-routepilot.json": "ffd5184cde7ccdaa77b5bb145592a257c3d4b20215afbdc094ffd40912e4e887",
+      "./usr/share/luci/menu.d/luci-app-routepilot.json": "1973a2c1668f882102907d2f641d5da1d79d7aeb7be826a1d150d727fbc30f02",
       "./usr/share/routepilot/client-subscription/worker.mjs": "44939f99f960da2d6828585911ec5d69dd70f5a486bd48c16337f5da15a3d833",
       "./usr/share/routepilot/clients/QR-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
       "./usr/share/routepilot/clients/SOURCE.json": "b4c0774be03328e4e7a6257863b4e8206e93e5ef699a3ecbbe53ff2b517fb500",
-      "./usr/share/routepilot/version.json": "bfc876918c9f1f268261b0f58e9df938fe58c7c8d94e309d20eba0a1830d1eb7",
+      "./usr/share/routepilot/version.json": "8e4acf34e1746ac092bb2f30e9f4326b661641a82ee0510050cfd73da9b04be6",
       "./usr/share/routepilot/workers/LICENSE-GPL-2.0": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
       "./usr/share/routepilot/workers/SOURCE.json": "c9377ec4ed5fad33acefa9d9220fe61cbb75fe2a6c2036eb9ca7bd3413b1db7c",
       "./usr/share/routepilot/workers/worker.mjs": "742dfb3243585a5045796e790a8b6ed77bd7d07dcf24029afca6991d634a994f",
@@ -189,22 +189,22 @@
       "./www/luci-static/resources/routepilot/feedback_8f30a36f4eaa.js": "8f30a36f4eaa2b2a73312e923e294d1db4baccdc212c7f4c517a87c43598eead",
       "./www/luci-static/resources/routepilot/runtime_9c815026873f.js": "9c815026873f61a5b88c89fd5f464cce6ac2b3946e0609be1627970da397804e",
       "./www/luci-static/resources/routepilot/style_abf8f564a12f.css": "abf8f564a12f826dec046955f3de02269e2365ab8d59ae919dd6b72ca7a0bf4a",
-      "./www/luci-static/resources/view/routepilot_masque_b5be1f9107d0.js": "b5be1f9107d02f0691b7f813f0e184d9162afe41720c19c801b3a642b4832e22"
+      "./www/luci-static/resources/view/routepilot_masque_4b389e57c189.js": "4b389e57c18903a3737d2201d23013c2efef67e0547eebb6a81e1f7346b595e5"
     }
   },
   "all_passed": true,
   "no_router_or_cloud_operations": true,
-  "version": "0.2.37-4",
+  "version": "0.2.37-5",
   "date": "2026-11-11",
   "release": {
-    "name": "imOK 2.0 · 客户端双协议与局域网设备流量（v0.2.37-4 预发布）",
-    "prerelease": true
+    "name": "imOK 2.0 · 收尾优化版（v0.2.37-5）",
+    "prerelease": false
   },
   "validation_scope": {
     "packaging": "reproducible local prepublication build; GitHub build must match this IPK digest",
-    "router_luci": "both client protocol options and GL.iNet LAN device counters verified on the router",
-    "wireguard_client": "independent test client imported and connected in Shadowrocket; Seoul egress verified",
-    "public_screenshots": "isolated synthetic browser preview, inspected before publication",
+    "overview": "isolated browser verified stable chart nodes and keyboard focus on repeated unchanged samples; isolated regression tests cover updated values and malformed date handling",
+    "router_baseline": "59 program files match the previous release and tunnel connectivity checked before upgrade",
+    "public_screenshots": "retained inspected synthetic examples from v0.2.37-4",
     "fresh_warp_install_apt_upgrade_runtime_restore": "not yet hardware-validated"
   }
 }
