@@ -45,8 +45,9 @@ const mockedFS={write(p,text){const slot=p.match(/\/requests\/([a-z-]+)-[a-f0-9]
 const config={enabled:'1',scope:'lan',exit:'usa',vnet_usa:'11111111-1111-4111-8111-111111111111',lan_interfaces:['br-lan'],apply_nonce:'n1'};
 const uci={load(){return Promise.resolve();},unload(){return Promise.resolve();},sections(){return [];},set(c,s,k,v){config[k]=v;},get(c,s,k){return config[k];}};
 const ui={menu:{load(){return Promise.resolve({});},flushCache(){}},addNotification(a,b){notices.push(b.textContent);},hideModal(){},showModal(title,children){lastModal=E('modal',{},children);}};
-const View = new Function('window','document','view','form','uci','fs','ui','poll','network','rpc','dom','L','E','_','feedback',source)(
- {location,crypto:require('node:crypto').webcrypto}, {get activeElement(){return activeElement;},getElementById(id){return lastMapNode&&lastMapNode.find(e=>e.attrs.id===id);},createElementNS(ns,tag){return E(tag);}}, Base, {Map},uci,mockedFS,ui, {add(fn){tick=fn;}}, {}, {declare(){return ()=>Promise.resolve({});}}, {}, {url(p){return '/'+p;},resource(){return '';}},E,s=>s,feedback);
+const pageModules = require('./fixtures/page_modules.cjs')(root, source, Base, E, x=>x);
+const View = new Function('window','document','view','form','uci','fs','ui','poll','network','rpc','dom','L','E','_','feedback',...Object.keys(pageModules),source)(
+ {location,crypto:require('node:crypto').webcrypto}, {get activeElement(){return activeElement;},getElementById(id){return lastMapNode&&lastMapNode.find(e=>e.attrs.id===id);},createElementNS(ns,tag){return E(tag);}}, Base, {Map},uci,mockedFS,ui, {add(fn){tick=fn;}}, {}, {declare(){return ()=>Promise.resolve({});}}, {}, {url(p){return '/'+p;},resource(){return '';}},E,s=>s,feedback,...Object.values(pageModules));
 assert.ok(View.prototype instanceof Base);
 const exitView = new View(), netA='11111111-1111-4111-8111-111111111111', netB='abcdefab-abcd-4abc-8abc-abcdefabcdef';
 const directory={available:true,read_at:Date.now(),last_success_at:Date.now(),networks:[{id:netA,name:'任意名称'},{id:netB,name:'任意名称',is_default:true}]};
@@ -60,8 +61,9 @@ assert.equal(exitView.exitOptions('',{},directory)[0].value,'');
 assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB.toUpperCase());
 
 (async()=>{
+ location.pathname='/admin/services/routepilot/overview';
  const page=await new View().render([null,null,[]]);await tick();assert.ok(!page.textContent.includes('历史结果已过期'));assert.ok(page.textContent.includes('本次观测新增丢弃：1289'));
- assert.ok(page.textContent.includes('DNS 解析检测'));assert.ok(page.textContent.includes('独立 DNS 状态与缓存'));
+ assert.ok(page.textContent.includes('网站连通性检测'));
  current={...current,runtime_id:'after',time:Date.now()/1000};await tick();assert.ok(page.textContent.includes('历史结果已过期'));assert.ok(page.textContent.includes('接收观测已过期'));
  test={...test,runtime_id:'after'};await tick();assert.ok(!page.textContent.includes('历史结果已过期'));
  location.pathname='/admin/services/routepilot/cloudflare/account';const advanced=await new View().render([null,null,[],directory]);
@@ -69,10 +71,13 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  assert.ok(!lastMap.children[0].children.some(o=>removed.includes(o.option)));
  assert.ok(!lastMap.children[0].children.some(o=>o.option==='_discover'),'account excludes routing fields');
  assert.ok(!advanced.find(e=>e.attrs['data-step']==='dir'));assert.ok(!advanced.find(e=>e.attrs['data-step']==='select'));
- assert.ok(advanced.textContent.includes('继续设置分流'));assert.ok(!advanced.textContent.includes(netA));
+ assert.equal(advanced.find(e=>e.attrs.class==='rp-layout-status rp-account-next').hidden,true);
+ assert.equal(advanced.find(e=>e.attrs.class==='imok-panel rp-account-setup').open,false);
+ assert.ok(advanced.textContent.includes('正在检查账户'));assert.ok(!advanced.textContent.includes(netA));
  const account=lastMap.children[0].children.find(o=>o.option==='_account_check');
  const refresh=account.onclick();await new Promise(setImmediate);directoryReply({code:0,stdout:JSON.stringify(directory)});await refresh;
  assert.equal(advanced.find(e=>e.attrs['data-step']==='auth').attrs['data-state'],'success');
+ assert.ok(advanced.textContent.includes('账户已就绪'));
  if(process.argv[2]) {
   const formSource=fs.readFileSync(process.argv[2],'utf8');
   function method(start,end){const a=formSource.indexOf(start),b=formSource.indexOf(end,a);assert.ok(a>=0&&b>a);const text=formSource.slice(a,b+1);return new Function('isEqual','return function'+text.slice(text.indexOf('(')))( (a,b)=>JSON.stringify(a)===JSON.stringify(b));}
@@ -96,7 +101,7 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  assert.equal(selections.exit,'cccccccc-cccc-4ccc-8ccc-cccccccccccc');assert.equal(JSON.stringify(config),beforeConfig);
  assert.ok(basic.textContent.includes('Fresh directory'));assert.ok(basic.textContent.includes('出口说明保留'));assert.equal(selections.lan_mode,'global');
  syncDirectoryFailure=true;await discover.onclick();syncDirectoryFailure=false;assert.ok(basic.textContent.includes('读取失败，请重试'));
- location.pathname='/admin/services/routepilot/cloudflare/workers';const workersPage=await new View().render([null,null,[],directory,null,{nodes:[],node:{configured:true,fingerprint:'saved',relay_fingerprint:'core'}}]);assert.ok(workersPage.textContent.includes('备用节点与独立检测'));assert.ok(workersPage.textContent.includes('手动启用备用'));assert.ok(workersPage.textContent.includes('不需要自有 VPS'));assert.ok(workersPage.textContent.includes('一键创建 Workers 并绑定域名'));assert.ok(workersPage.textContent.includes('开始自动优选'));assert.ok(workersPage.textContent.includes('API 令牌'));assert.ok(workersPage.textContent.includes('创建自定义令牌'));assert.ok(workersPage.textContent.includes('不会覆盖其他项目'));assert.ok(!workersPage.textContent.includes('配置备份与迁移'));
+ location.pathname='/admin/services/routepilot/cloudflare/workers';const workersPage=await new View().render([null,null,[],directory,null,{nodes:[],node:{configured:true,fingerprint:'saved',relay_fingerprint:'core'}}]);assert.ok(workersPage.textContent.includes('备用节点与独立检测'));assert.ok(workersPage.textContent.includes('手动启用备用'));assert.ok(workersPage.textContent.includes('无需自备 VPS'));assert.ok(workersPage.textContent.includes('一键创建 Workers 并绑定域名'));assert.ok(workersPage.textContent.includes('开始自动优选'));assert.ok(workersPage.textContent.includes('API 令牌'));assert.ok(workersPage.textContent.includes('创建自定义令牌'));assert.ok(workersPage.textContent.includes('不会覆盖其他项目'));assert.ok(!workersPage.textContent.includes('配置备份与迁移'));
  const findLabel=name=>workersPage.find(e=>e.attrs['aria-label']===name),findButton=name=>workersPage.find(e=>e.tag==='button'&&e.textContent===name);
  backupNodeReply={configured:true,fingerprint:'saved'};relayReply={state:'done',results:[{address:'proxyip.cmliussss.net:443',profile:'cf-relay-v1',fingerprint:'core',finished_at:Date.now()/1000,forced:true,state:'ok'}]};await tick();assert.equal(findButton('应用已通过的主备顺序（不启用）').disabled,false);
  const cfBefore=JSON.stringify(config);findLabel('Cloudflare API 令牌').value='t'.repeat(40);
@@ -172,6 +177,12 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  entryInput.value='162.159.197.2:8095';entryInput.listeners.input();
  endpointResponse={...endpointResponse,pending:true,application:{revision:'old',state:'applied',connected:true,exit_verified:true},recovery_block:{new_request_block:true,startup_pause:true,terminal:true,code:'RECOVERY_LATCHED',reason:'需人工核对'}};
  await entryRead.attrs.click();assert.ok(centerPage.textContent.includes('入口请求受阻'));assert.ok(centerPage.textContent.includes('RECOVERY_LATCHED'));assert.ok(!endpointPanel.textContent.includes('等待后台处理本次请求'));assert.equal(entrySave.disabled,true);assert.equal(entryInput.value,'162.159.197.2:8095');
+ const fullRecoveryBlock=endpointResponse.recovery_block;
+ for(const terminal of [true,false]){
+  endpointResponse={...endpointResponse,recovery_block:{new_request_block:true,startup_pause:true,terminal}};
+  await entryRead.attrs.click();assert.ok(endpointPanel.textContent.includes('入口请求受阻'));assert.ok(!endpointPanel.textContent.includes('undefined'));assert.equal(entrySave.disabled,true);
+ }
+ endpointResponse.recovery_block=fullRecoveryBlock;
  endpointResponse={...endpointResponse,recovery_offer:{available:true,revision:'blocked',context:'c'.repeat(64)}};await entryRead.attrs.click();
  const recoverButton=endpointPanel.find(e=>e.tag==='button'&&e.textContent==='受控恢复原入口并验证');assert.equal(recoverButton.disabled,false);
  recoverButton.attrs.click();const confirmation=lastModal.find(e=>e.tag==='input'&&e.attrs.placeholder==='RESTORE');const confirmButton=lastModal.find(e=>e.tag==='button'&&e.textContent==='确认恢复并验证');const beforeConfirm=commandCalls.length;await confirmButton.attrs.click();assert.equal(commandCalls.length,beforeConfirm);
@@ -215,7 +226,7 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  const chooseAccount=domainControl('选择已授权的 Cloudflare 账户');chooseAccount.value=accountB;chooseAccount.listeners.change();assert.equal(domainControl('选择账户下可用的根域名').children[1].textContent,'fourth.example');assert.equal(registerWrites,writesBefore);assert.equal(JSON.stringify(config),draftBefore);
  chooseAccount.value=accountA;chooseAccount.listeners.change();domainControl('选择账户下可用的根域名').value=zoneA;domainControl('选择账户下可用的根域名').listeners.change();
  // All settings remain visible and mounted while polling refreshes evidence.
- const useStage=domainPage.find(e=>e.attrs['data-stage']==='use');assert.equal(useStage.tag,'section');assert.equal(useStage.querySelector('summary'),null);await tick();assert.equal(domainPage.find(e=>e.attrs['data-stage']==='use'),useStage);
+ const useStage=domainPage.find(e=>e.attrs['data-stage']==='use');assert.equal(useStage.tag,'section');const help=useStage.find(e=>e.tag==='details'&&e.textContent.includes('无需自备 VPS'));assert.ok(help);assert.equal(help.open,false);assert.equal(help.find(e=>['button','input','select','textarea'].includes(e.tag)),null);await tick();assert.equal(domainPage.find(e=>e.attrs['data-stage']==='use'),useStage);
  cloudReply=null;cloudDirectoryReply=null;backupNodeReply=null;registerWrites=0;
  location.pathname='/admin/services/routepilot/cloudflare/dns';
  // Private cache and DNS actions never call save/apply or change configuration.
@@ -243,7 +254,7 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
   const section={basic:'routing',advanced:'account',devices:'devices',dns:'dns',workers:'workers'}[group];assert.equal(legacyReplacement,'/admin/services/routepilot/cloudflare/'+section);assert.ok(!node.textContent.includes('[object Object]'),'nested children must not stringify into the page');assert.equal(node.attrs['data-page'],section);assert.ok(node.find(e=>e.attrs.id==='rp-center-'+group));
  }
  // Each canonical URL renders one section and polls only its own runtime data.
- const expectedReads={account:['status.json','warp-state.json','exit-observation.json'],endpoint:['status.json','exit-observation.json'],routing:['status.json','connectivity.json','exit-observation.json'],devices:['status.json'],dns:['status.json','connectivity.json','receive.json','dns-state.json','dns-tests.json','connection-events.json'],workers:['status.json','backup-node.json','backup-test.json','cloud-state.json','backup-scan.json','relay-tests.json','relay-observed.json','exit-observation.json','connection-events.json','cloud-directory-state.json']};
+ const expectedReads={account:['status.json','warp-state.json','exit-observation.json','speed-compare.json'],endpoint:['status.json','exit-observation.json','endpoint-quality.json'],routing:['status.json','connectivity.json','exit-observation.json','speed-compare.json'],devices:['status.json'],dns:['status.json','dns-state.json','dns-tests.json','warp-dns-tests.json','lan-dns-domestic.json','lan-dns-foreign.json'],workers:['status.json','backup-node.json','backup-test.json','cloud-state.json','backup-scan.json','relay-tests.json','relay-observed.json','exit-observation.json','connection-events.json','cloud-directory-state.json']};
  for(const [section,group] of Object.entries({account:'advanced',endpoint:'endpoint',routing:'basic',devices:'devices',dns:'dns',workers:'workers'})){
   location.pathname='/admin/services/routepilot/cloudflare/'+section;
   const before=JSON.stringify(config),node=await new View().render([null,null,[],directory]);
@@ -254,5 +265,45 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
   assert.ok(!node.textContent.includes('[object Object]'),'poll updates must preserve DOM children');assert.deepEqual(readCalls.map(p=>path.basename(p)).sort(),expectedReads[section].sort());
   const previousTick=tick;location.pathname='/admin/services/routepilot/backup';readCalls=[];await previousTick();assert.deepEqual(readCalls,[],'departed page must stop polling');assert.equal(JSON.stringify(config),before);
  }
+ // The two read-only buttons have independent in-flight state.
+ location.pathname='/admin/services/routepilot/cloudflare/account';
+ current={...current,state:'running',backend:'masque',time:Date.now()/1000};
+ const oldExec=mockedFS.exec.bind(mockedFS),savedExit=config.exit;
+ const refreshProtocol={},inspectExit={};
+ const exitResult={...current,state:'done',country:'US'};
+ let protocolCalls=0,exitCalls=0;
+ mockedFS.exec=(path,args)=>{
+  if(path==='/usr/libexec/routepilot'&&args[0]==='warp-info'){
+   protocolCalls++;return new Promise(resolve=>{refreshProtocol.resolve=resolve;});
+  }
+  if(path==='/usr/libexec/routepilot'&&args[0]==='exit-observe'){
+   exitCalls++;return new Promise(resolve=>{inspectExit.resolve=resolve;});
+  }
+  return oldExec(path,args);
+ };
+ config.exit='';
+ const accountPage=await new View().render([null,null,[],directory,null,{nodes:[]}]);await tick();
+ const selectExit=accountPage.find(e=>e.tag==='a'&&e.textContent==='去选出口');
+ assert.equal(selectExit.attrs.href,'/admin/services/routepilot/cloudflare/routing');
+ assert.equal(accountPage.find(e=>e.attrs.class==='rp-layout-status rp-account-next').hidden,false);
+ const protocolButton=accountPage.find(e=>e.tag==='button'&&e.textContent==='正在读取协议…');
+ const regionButton=accountPage.find(e=>e.tag==='button'&&e.textContent==='检测出口地区');
+ assert.equal(protocolButton.disabled,true);
+ assert.equal(regionButton.disabled,false);
+ const result=regionButton.attrs.click();regionButton.attrs.click();
+ assert.equal(regionButton.textContent,'正在检测地区…');
+ assert.equal(exitCalls,1);
+ inspectExit.resolve({code:0,stdout:JSON.stringify(exitResult)});await result;
+ assert.equal(regionButton.disabled,false);
+ assert.equal(protocolButton.disabled,true);
+ const protocolRequest=protocolButton.attrs.click();
+ assert.equal(protocolCalls,1);
+ refreshProtocol.resolve({code:0,stdout:JSON.stringify({state:'available',protocol:'MASQUE'})});await protocolRequest;
+ assert.equal(protocolButton.textContent,'读取当前协议');
+ assert.equal(protocolButton.disabled,false);
+ current={...current,state:'disabled',time:Date.now()/1000};await tick();
+ assert.equal(regionButton.disabled,true);
+ assert.ok(accountPage.textContent.includes('线路运行后可检测地区'));
+ config.exit=savedExit;
  console.log('Real view: five independent pages, scoped polling, preserved drafts/configuration, isolated DNS actions and registration single-flight passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});

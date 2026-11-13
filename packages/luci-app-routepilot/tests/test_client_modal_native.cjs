@@ -18,7 +18,7 @@ function setup(){
  const ui=require('./fixtures/luci_modal_contract.cjs')(modalDiv,dom,document);return {ui,document,dlg,dom};
 }
 test('client modal passes distinct tokens to native LuCI classList.add',()=>{
- const env=setup(),match=source.match(/function modal\(title,children\)\{[^\n]+\}/);assert.ok(match);
+ const env=setup(),match=source.match(/^([ ]*)function modal\(title,\s*children\)\s*\{[\s\S]*?^\1\}/m);assert.ok(match);
  const modal=new Function('ui','var exportCleanup=null;'+match[0]+';return modal;')(env.ui);modal('Client',[]);
  assert.ok(env.dlg.classList.contains('imok-dialog'));assert.ok(env.dlg.classList.contains('imok-client-dialog'));
 });
@@ -26,11 +26,11 @@ test('native LuCI Escape activates the cancel button of all client modals',()=>{
  const phone={name:'Phone',id:'a'.repeat(32),organization:'example-team',service_auth_saved:true};
  for(const [name,next,args]of [['newClient','registerClient',[]],['registerClient','forgetServiceAuth',[phone]],['forgetServiceAuth','confirmAction',[phone]],['confirmAction','publishSubscription',[phone,'revoke']],['publishSubscription','exportClient',[phone]],['exportClient','draw',[phone]]]){
   const env=setup(),start=source.indexOf('  function '+name+'('),end=source.indexOf('  function '+next+'(',start);assert.ok(start>=0&&end>start);
-  const footerMatch=source.match(/function modalActions\(buttons\)\{[^\n]+\}/),footer=footerMatch?new Function('E',footerMatch[0]+';return modalActions;')(E):undefined;
+  const footerMatch=source.match(/^([ ]*)function modalActions\(buttons\)\s*\{[\s\S]*?^\1\}/m),footer=footerMatch?new Function('E',footerMatch[0]+';return modalActions;')(E):undefined;
   const button=(label,click)=>E('button',{class:'btn',click},[label]),field=(label,input)=>E('label',{},[label,input]);
   const modal=(_,children)=>{env.dom.content(env.dlg,children);env.document.body.classList.add('modal-overlay-active');};
-  const build=new Function('E','button','field','modal','ui','modalActions','document','dirty','currentModal','data','var exportCleanup=null;'+source.slice(start,end)+';return '+name+';');
-  const open=build(E,button,field,modal,env.ui,footer,env.document,()=>false,()=>true,{team:{name:'example-team'},capabilities:{service_token:true}});
+  const build=new Function('E','button','field','modal','ui','modalActions','document','dirty','currentModal','data','_','var exportCleanup=null;'+source.slice(start,end)+';return '+name+';');
+  const open=build(E,button,field,modal,env.ui,footer,env.document,()=>false,()=>true,{team:{name:'example-team'},capabilities:{service_token:true}}, x=>x);
   open(...args);
   const credential=env.dlg.children.flatMap(e=>e.children||[]).flatMap(e=>e.children||[]).find(e=>e.attrs?.type==='password');
   if(name==='registerClient'){assert.ok(credential);credential.value='synthetic-credential';}

@@ -74,6 +74,24 @@
         ],
         "/usr/libexec/routepilot-runtime-status": [
           "exec"
+        ],
+        "/var/run/routepilot/lan-dns-domestic.json": [
+          "read"
+        ],
+        "/var/run/routepilot/lan-dns-foreign.json": [
+          "read"
+        ],
+        "/var/run/routepilot/warp-dns-tests.json": [
+          "read"
+        ],
+        "/var/run/routepilot/endpoint-quality.json": [
+          "read"
+        ],
+        "/var/run/routepilot/speed-compare.json": [
+          "read"
+        ],
+        "/var/run/routepilot/speed-tests.json": [
+          "read"
         ]
       },
       "ubus": {
@@ -137,6 +155,12 @@
           "write"
         ],
         "/opt/routepilot/runtime-uploads/runtime.tgz": [
+          "write"
+        ],
+        "/var/run/routepilot/requests/speed-compare-input-*.json": [
+          "write"
+        ],
+        "/var/run/routepilot/requests/warp-dns-input-*.json": [
           "write"
         ]
       },

@@ -1,0 +1,3998 @@
+# imOK LuCI messages.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+
+msgid " / 下载 "
+msgstr ""
+
+msgid " · DoH，经备用线路加密"
+msgstr ""
+
+msgid " · HTTPS 建连中位数 "
+msgstr " · Median HTTPS connection time "
+
+msgid " · ↓ 下载 "
+msgstr ""
+
+msgid " · 仅显示本机读到的版本；是否有更新请核对官方发布记录。"
+msgstr " · Installed version. Check the release history for updates."
+
+msgid " · 全程平均 "
+msgstr " · Overall average "
+
+msgid " · 分发镜像，可能滞后"
+msgstr ""
+
+msgid " · 单秒峰值 "
+msgstr " · Peak one-second rate "
+
+msgid " · 历史目录，请只读刷新"
+msgstr ""
+
+msgid " · 基础连通可用，但部分项目未通过，请查看具体结果"
+msgstr ""
+
+msgid " · 已失效"
+msgstr ""
+
+msgid " · 已完成"
+msgstr " · Complete"
+
+msgid " · 已完成3次重试，将按正常间隔检查"
+msgstr ""
+
+msgid " · 已撤回接管，保持直连"
+msgstr ""
+
+msgid " · 当前环境不支持 IPv6"
+msgstr ""
+
+msgid " · 待完成"
+msgstr " · Pending"
+
+msgid " · 接管范围："
+msgstr " · Scope: "
+
+msgid " · 断网保护已阻断外网"
+msgstr ""
+
+msgid " · 普通 DNS，非加密上游"
+msgstr ""
+
+msgid " · 最后采样："
+msgstr ""
+
+msgid " · 最忙核心 "
+msgstr ""
+
+msgid " · 最慢 "
+msgstr " · Slowest "
+
+msgid " · 未通过、已过期或节点已改变，请重新检测"
+msgstr ""
+
+msgid " · 本次入口 IP："
+msgstr ""
+
+msgid " · 本次检测全部通过，可手动启用"
+msgstr ""
+
+msgid " · 本次观测出口："
+msgstr ""
+
+msgid " · 检测进行中，已完成 "
+msgstr ""
+
+msgid " · 正在处理"
+msgstr ""
+
+msgid " · 缺失日期显示 —，不补零"
+msgstr ""
+
+msgid " · 网络路径未确认"
+msgstr ""
+
+msgid " · 网页检测通过时间："
+msgstr " · Website check passed at: "
+
+msgid " · 路由器时区："
+msgstr ""
+
+msgid " · 退避重试阶段："
+msgstr ""
+
+msgid " · 配置的服务器不可用，已临时改用该地址"
+msgstr ""
+
+msgid " 个可选网络"
+msgstr " available networks"
+
+msgid " 个账户网络（未验证连通性）"
+msgstr ""
+
+msgid " 个账户网络；未切换出口，也未验证连通性。"
+msgstr ""
+
+msgid " 个；仅含此令牌授权范围。"
+msgstr ""
+
+msgid " 仅切换选项不会生效；点击“应用并检测”会短暂重连，核对隧道连接和原预期出口，不代表测速或手机端验收。"
+msgstr ""
+
+msgid " 公钥指纹（本地生成）"
+msgstr " public key fingerprint (generated locally)"
+
+msgid " 前往 WARP 安装与更新"
+msgstr ""
+
+msgid " 小时"
+msgstr ""
+
+msgid " 尚未配置备用节点。"
+msgstr ""
+
+msgid " 已保存："
+msgstr ""
+
+msgid " 已完成连接检测；"
+msgstr ""
+
+msgid " 已记录不完整采样区间或边界："
+msgstr ""
+
+msgid " 当前部署已保存为备用，无需重复保存；可继续配置或检测 PROXYIP。"
+msgstr ""
+
+msgid " 有无法归属到日期的流量，仅纳入累计。"
+msgstr ""
+
+msgid " 条"
+msgstr ""
+
+msgid " 条 · 第 "
+msgstr ""
+
+msgid " 条接管策略"
+msgstr " active policies"
+
+msgid " 条，删除 "
+msgstr ""
+
+msgid " 条；未清理系统、SSR 缓存或动态分流规则。"
+msgstr ""
+
+msgid " 查看公开来源 ↗"
+msgstr ""
+
+msgid " 次。"
+msgstr ""
+
+msgid " 秒"
+msgstr ""
+
+msgid " 表单有尚未保存的改动。"
+msgstr ""
+
+msgid " 读取时间："
+msgstr ""
+
+msgid " 路由器时间尚未同步，新增流量暂不分配到日期。"
+msgstr ""
+
+msgid " 页 · 每页最多 100 条"
+msgstr ""
+
+msgid "! 已选择备用，实际运行状态待确认"
+msgstr ""
+
+msgid "! 当前连接访问受限"
+msgstr ""
+
+msgid "! 结果未确认，查看本项提示"
+msgstr ""
+
+msgid "! 连接故障，请查看详情"
+msgstr "! Connection failed. See details."
+
+msgid "0 个当前连接"
+msgstr "0 active connections"
+
+msgid "1 MiB 下载"
+msgstr ""
+
+msgid "1 个当前连接"
+msgstr "1 active connection"
+
+msgid "1 个最近检测通过"
+msgstr "1 recently passed"
+
+msgid "32 位账户 ID"
+msgstr ""
+
+msgid "64 KiB 下载完整"
+msgstr ""
+
+msgid "AAAA 是否过滤由“分流设置 / 设备管理”的 IPv6 处理方式决定；本插件仅代理 IPv4，允许 IPv6 直连会绕过所有代理规则。"
+msgstr ""
+
+msgid "AAAA 过滤由“出口与分流”或“设备”页面中的 IPv6 处理方式决定。本插件只代理 IPv4；允许 IPv6 直连会绕过代理规则。"
+msgstr ""
+
+msgid "Cloudflare API 令牌"
+msgstr ""
+
+msgid "Cloudflare 客户端连接直连"
+msgstr ""
+
+msgid "Cloudflare 设置页面"
+msgstr ""
+
+msgid "Cloudflare 账户"
+msgstr ""
+
+msgid "Cloudflare 账户 ID"
+msgstr ""
+
+msgid "Cloudflare 配置中心"
+msgstr "Cloudflare Settings"
+
+msgid "DNS"
+msgstr ""
+
+msgid "DNS 与 HTTPS 证书"
+msgstr ""
+
+msgid "DNS 待确认"
+msgstr ""
+
+msgid "DNS 状态已过期或连接已改变"
+msgstr ""
+
+msgid "DNS 解析检测"
+msgstr ""
+
+msgid "DNS 运行中"
+msgstr ""
+
+msgid "DNS 返回错误"
+msgstr ""
+
+msgid "DNS 配置"
+msgstr ""
+
+msgid "HTTPS 建连中位数 "
+msgstr "Median HTTPS connection time "
+
+msgid "HTTPS 耗时"
+msgstr ""
+
+msgid "IPv6 与 AAAA"
+msgstr ""
+
+msgid "IPv6 处理方式"
+msgstr "IPv6 Handling"
+
+msgid "IPv6 处理方式（所选网络 / 设备默认）"
+msgstr ""
+
+msgid "MAC 地址"
+msgstr "MAC Address"
+
+msgid "PROXYIP"
+msgstr ""
+
+msgid "PROXYIP 主用与备用"
+msgstr ""
+
+msgid "PROXYIP 候选池"
+msgstr ""
+
+msgid "PROXYIP 公开来源链接"
+msgstr ""
+
+msgid "PROXYIP 地址"
+msgstr ""
+
+msgid "PROXYIP 来源说明"
+msgstr ""
+
+msgid "PROXYIP 检测 / 应用结果"
+msgstr ""
+
+msgid "QUIC 握手"
+msgstr ""
+
+msgid "TCP/TLS 握手，当前 curl 不支持 HTTP/3"
+msgstr ""
+
+msgid "UDP 接收观测与内部名称"
+msgstr "UDP reception and internal identifiers"
+
+msgid "WARP 主线路"
+msgstr "WARP Primary"
+
+msgid "WARP 启动解析"
+msgstr ""
+
+msgid "WARP 安装与更新"
+msgstr "WARP Installation and Updates"
+
+msgid "WARP 客户端 UDP 接收观测"
+msgstr ""
+
+msgid "WARP 有新版本可供检查与手动升级。"
+msgstr ""
+
+msgid "WARP 版本检查失败，最新版本暂未确认。"
+msgstr ""
+
+msgid "Worker 上传 / 存在"
+msgstr ""
+
+msgid "Worker 名称"
+msgstr ""
+
+msgid "Workers 备用"
+msgstr "Workers Backup"
+
+msgid "Workers 备用与 Cloudflare API 授权"
+msgstr ""
+
+msgid "Workers 节点与部署记录"
+msgstr ""
+
+msgid "Workers 阶段选择"
+msgstr ""
+
+msgid "imOK 分流助手"
+msgstr "imOK Traffic Routing"
+
+msgid "imOK 已关闭，断网保护已撤回"
+msgstr ""
+
+msgid "nft 分流与保护"
+msgstr "nftables routing and protection"
+
+msgid "… 当前连接检测中"
+msgstr ""
+
+msgid "↑ 上传 "
+msgstr ""
+
+msgid "○ API 尚未读取"
+msgstr ""
+
+msgid "○ WARP 注册待确认"
+msgstr ""
+
+msgid "○ 上次已读取，待刷新"
+msgstr ""
+
+msgid "○ 出口地区尚未检测"
+msgstr ""
+
+msgid "○ 可选：保留原入口"
+msgstr ""
+
+msgid "○ 地区观测已过期或线路改变，可重新检测"
+msgstr ""
+
+msgid "○ 域名尚未确认"
+msgstr ""
+
+msgid "○ 备用未启用，现有主线路仍在使用"
+msgstr ""
+
+msgid "○ 尚无运行状态"
+msgstr ""
+
+msgid "○ 已保存，目录待确认"
+msgstr ""
+
+msgid "○ 已关闭"
+msgstr "○ Disabled"
+
+msgid "○ 已预留，上传待确认"
+msgstr ""
+
+msgid "○ 待检测 / 应用"
+msgstr ""
+
+msgid "○ 待独立检测"
+msgstr ""
+
+msgid "○ 待部署 / 检查"
+msgstr ""
+
+msgid "○ 未保存为当前备用"
+msgstr ""
+
+msgid "○ 未执行"
+msgstr ""
+
+msgid "○ 本页未读取 WARP 注册状态"
+msgstr ""
+
+msgid "○ 状态过期，当前连接未确认"
+msgstr ""
+
+msgid "○ 账户检查结果较旧，可重新检查"
+msgstr ""
+
+msgid "● 代理"
+msgstr ""
+
+msgid "● 直连"
+msgstr ""
+
+msgid "◷ 登录准备中"
+msgstr "◷ Preparing sign-in"
+
+msgid "◷ 等待连接"
+msgstr "◷ Waiting for connection"
+
+msgid "✓ API 令牌已保存"
+msgstr ""
+
+msgid "✓ WARP 已注册"
+msgstr ""
+
+msgid "✓ Worker 与域名 HTTPS 已确认就绪；这不等于备用线路已经启用。"
+msgstr ""
+
+msgid "✓ Worker 已上传"
+msgstr ""
+
+msgid "✓ 名称和子域名占用检查通过；尚未创建节点。"
+msgstr ""
+
+msgid "✓ 域名已绑定"
+msgstr ""
+
+msgid "✓ 备用正在运行"
+msgstr ""
+
+msgid "✓ 备用线路运行中（TCP）"
+msgstr "✓ Backup line running (TCP)"
+
+msgid "✓ 已保存为当前备用"
+msgstr ""
+
+msgid "✓ 已应用，待整线检测"
+msgstr ""
+
+msgid "✓ 已部署并设为备用"
+msgstr ""
+
+msgid "✓ 强制转发两个 Cloudflare 目标通过"
+msgstr ""
+
+msgid "✓ 当前节点有有效的独立检测结果"
+msgstr ""
+
+msgid "✓ 当前连接检测通过"
+msgstr ""
+
+msgid "✓ 推荐可用，待应用"
+msgstr ""
+
+msgid "✓ 操作完成。"
+msgstr ""
+
+msgid "✓ 操作已完成并保存。"
+msgstr ""
+
+msgid "✓ 检测有效，可手动启用"
+msgstr ""
+
+msgid "✓ 检测通过，待应用顺序"
+msgstr ""
+
+msgid "✓ 节点已保存，尚未启用。可在本组顶部“当前保存的备用节点”查看。"
+msgstr ""
+
+msgid "✓ 账户和根域名读取完成；尚未因此创建节点。"
+msgstr ""
+
+msgid "✓ 隧道已连接"
+msgstr "✓ Tunnel connected"
+
+msgid "✓ 顺序已应用"
+msgstr ""
+
+msgid "✕ 当前连接检测失败"
+msgstr ""
+
+msgid "✕ 操作失败，查看本项结果"
+msgstr ""
+
+msgid "✕ 未通过，不会用直连或其他候选掩盖"
+msgstr ""
+
+msgid "。常规“导出配置”不包含个人新增和排除；升级会保留，迁移需另备份。"
+msgstr ""
+
+msgid "。每 5 分钟保存一次，掉电可能丢失未保存部分。仅含受管 IPv4 公网转发；不含 IPv6、局域网、路由器本机和隧道封装开销。"
+msgstr ""
+
+msgid "。每台客户端仍有独立身份和出口。"
+msgstr ". Each client retains its own identity and exit."
+
+msgid "。这不代表手机实际出口已检测。"
+msgstr ". Check the phone's actual exit separately."
+
+msgid "。镜像可能有缓存延迟，不是独立规则；来源选择不改变线路入口或出口。"
+msgstr ""
+
+msgid "一次性导入。端口、入口 IP、DNS 改动后，需要重新导入。"
+msgstr "Import once. Re-import after changing the port, entry IP or DNS."
+
+msgid "一键创建 Workers 并绑定域名"
+msgstr ""
+
+msgid "一键检测全部"
+msgstr ""
+
+msgid "上一页"
+msgstr ""
+
+msgid "上传"
+msgstr ""
+
+msgid "上次受控恢复："
+msgstr ""
+
+msgid "上次读取时间已失效，请刷新确认；"
+msgstr ""
+
+msgid "上次部署结果未确认，请先检查云端状态。"
+msgstr ""
+
+msgid "上游 DNS 传输"
+msgstr ""
+
+msgid "上移"
+msgstr ""
+
+msgid "下一步：应用已通过的主备顺序"
+msgstr ""
+
+msgid "下一步：配置 / 检测 PROXYIP"
+msgstr ""
+
+msgid "下一页"
+msgstr ""
+
+msgid "下次计划："
+msgstr ""
+
+msgid "下移"
+msgstr ""
+
+msgid "下载"
+msgstr ""
+
+msgid "下载 "
+msgstr ""
+
+msgid "下载 ZIP 不会自动安装。完整安装包包含 IPK 插件、WARP 运行环境压缩包、安装脚本和校验文件。将 ZIP 解压后的整个文件夹复制到兼容路由器，在该文件夹内以管理员运行 sh install-router.sh；脚本会校验文件、解压运行环境并安装插件。仅在网页上传 IPK，只安装管理插件，不会自动安装配套环境。"
+msgstr ""
+
+msgid "下载 v3 配置备份。"
+msgstr ""
+
+msgid "下载未通过"
+msgstr ""
+
+msgid "下载样本已用完"
+msgstr ""
+
+msgid "不可用"
+msgstr "Unavailable"
+
+msgid "两种方式切换美国／首尔出口均无需重新申请身份，应用出口后手机重连即可。停止订阅不会撤销已导入的节点。"
+msgstr "After switching between the US and Seoul, reconnect the phone with its existing identity. Stopping a subscription leaves previously imported profiles active."
+
+msgid "两站通过"
+msgstr ""
+
+msgid "个人排除"
+msgstr ""
+
+msgid "个人新增"
+msgstr ""
+
+msgid "个人新增 "
+msgstr ""
+
+msgid "个人新增和排除不会被订阅更新覆盖。本分类覆盖只影响使用该分类的分流模式；始终直连/代理请到"
+msgstr ""
+
+msgid "个人新增规则"
+msgstr ""
+
+msgid "个人覆盖版本："
+msgstr ""
+
+msgid "中国 IP"
+msgstr ""
+
+msgid "中国 IP 规则"
+msgstr ""
+
+msgid "中国域名"
+msgstr ""
+
+msgid "中国域名与自定义直连域名使用本地宽带解析。"
+msgstr ""
+
+msgid "中国域名规则"
+msgstr ""
+
+msgid "为 WARP 启动选 DNS，下次启动生效。"
+msgstr ""
+
+msgid "为每台设备分别选择分流模式：国内 IP 直连、全部代理、代理名单、直连名单或保持原样。不接管未启用的设备；局域网模式不覆盖设备表。"
+msgstr ""
+
+msgid "主用"
+msgstr ""
+
+msgid "主线路代理出口"
+msgstr ""
+
+msgid "主线路入口"
+msgstr "Primary Entry Point"
+
+msgid "主线路的其他普通 DNS 经 WARP 隧道发送。应用自带的 DoH/DoT 不能按普通 DNS 域名规则分类。"
+msgstr ""
+
+msgid "主线路账户与连接协议"
+msgstr ""
+
+msgid "主线路连接协议"
+msgstr ""
+
+msgid "云端出口选择"
+msgstr "Cloud Exit Selection"
+
+msgid "云端已确认选择："
+msgstr "Cloud selection confirmed: "
+
+msgid "云端注册 ID："
+msgstr "Cloud registration ID: "
+
+msgid "云端部署就绪后可保存为备用。"
+msgstr ""
+
+msgid "仅代理名单内域名"
+msgstr "Proxy Listed Domains"
+
+msgid "仅删除个人新增记录；如果当前订阅也包含此条目，它仍会按订阅生效。"
+msgstr ""
+
+msgid "仅删除路由器保存的 API 令牌和域名目录；不会删除云端资源、撤销 Cloudflare 令牌或切换当前线路。"
+msgstr ""
+
+msgid "仅在「按设备选择」模式下生效。此设备等待出口、转发和 DNS 就绪后按所选策略联网。检测到线路中断时重新阻断外网和普通 DNS，IPv6 外网始终阻断。启用前请关闭软、硬件流量卸载。"
+msgstr "Applies in per-device mode. Internet access waits for the exit, forwarding and DNS to be ready. Tunnel failure blocks internet and standard DNS again. IPv6 internet remains blocked. Disable software and hardware flow offloading before enabling."
+
+msgid "仅填写受限 API 令牌，不使用 Global API Key"
+msgstr ""
+
+msgid "仅对当前所选分类生效，订阅更新会保留。"
+msgstr ""
+
+msgid "仅恢复原事务入口并验证原出口，可能短暂直连。证据或验证不一致时仍保持阻断。总开关关闭时也会临时启动客户端验证，完成后仍保持关闭，不开启设备接管。请输入 RESTORE 确认。"
+msgstr ""
+
+msgid "仅按设备模式生效。允许直连会绕过代理隧道 和全部代理规则，可能使用宽带真实出口；不创建 IPv6。分流模式为“保持原样”时 IPv6 本就不受管理，此项不生效。"
+msgstr "Applies in per-device mode. Direct IPv6 bypasses the tunnel and all proxy rules and may use your ISP address. It leaves IPv6 provisioning to the network and has no effect on unmanaged devices."
+
+msgid "仅推荐 Google 和 GitHub 都通过的入口，按两站延迟排序。下载和限流结果单独显示。结果有效 5 分钟，应用后请重新检测备用线路。"
+msgstr ""
+
+msgid "仅注册路由器；提示打开本机 Cloudflare 应用时取消。登录链接是临时凭据，请勿分享。"
+msgstr ""
+
+msgid "仅直连名单内域名"
+msgstr "Direct for Listed Domains Only"
+
+msgid "仅统计未加速部分，可能远低于实际用量；图表与累计均为观测下限。"
+msgstr ""
+
+msgid "仅首次登录时填写 Cloudflare Zero Trust 团队名称，不填邮箱或个人网站域名；查找方法见操作说明。"
+msgstr ""
+
+msgid "今日"
+msgstr "Today"
+
+msgid "仍在等待 DNS 或证书生效；稍后只读检查，无需重复创建。"
+msgstr ""
+
+msgid "从原有节点读取（不修改原配置）"
+msgstr ""
+
+msgid "从路由器检测代理和直连网站。"
+msgstr ""
+
+msgid "从路由器测试生效的国内和代理 DNS。"
+msgstr ""
+
+msgid "代理"
+msgstr "Proxy"
+
+msgid "代理 "
+msgstr ""
+
+msgid "代理 DNS"
+msgstr ""
+
+msgid "代理上传 "
+msgstr ""
+
+msgid "代理上游："
+msgstr ""
+
+msgid "代理出口"
+msgstr ""
+
+msgid "代理出口 · 已观测"
+msgstr "Proxy · Observed"
+
+msgid "代理出口："
+msgstr ""
+
+msgid "代理域名"
+msgstr ""
+
+msgid "代理域名名单"
+msgstr ""
+
+msgid "令牌保存在路由器的私有文件。请到 Cloudflare 的 API 令牌页面撤销授权，并在那里管理付费计划。"
+msgstr ""
+
+msgid "令牌尚未保存；保存后才能读取它授权的账户和域名。"
+msgstr ""
+
+msgid "以 routepilot- 开头；不会覆盖其他项目。"
+msgstr ""
+
+msgid "优选 Cloudflare 入口"
+msgstr ""
+
+msgid "优选入口"
+msgstr ""
+
+msgid "优选入口 IPv4"
+msgstr ""
+
+msgid "优选只改变连接入口，不决定最终出口或国家。"
+msgstr ""
+
+msgid "传输中断"
+msgstr ""
+
+msgid "使用「账户与协议」中已配置的 Cloudflare 团队 "
+msgstr "Use the Cloudflare team configured under Account and Protocol: "
+
+msgid "使用已保存的服务授权"
+msgstr "Use Saved Service Authorization"
+
+msgid "使用当前代理线路，保存后仍需确认实际生效。"
+msgstr ""
+
+msgid "使用本地宽带出口，保留原有校验与优先级。"
+msgstr ""
+
+msgid "使用自己的 Workers 即可部署备用，无需自备 VPS。优选改变连接入口，实际出口请检测确认。连接会验证 TLS 证书。代理 DNS 经备用线路使用 dns.google 加密解析。检测约用 1 MiB，结果在本次开机内有效 5 分钟。重启后请重新检测。下载和限流结果供参考，线路可用性由整项检测判定。更换路由器时请重新导入备用节点凭据。"
+msgstr ""
+
+msgid "使用说明"
+msgstr ""
+
+msgid "使用这个"
+msgstr ""
+
+msgid "例如 backup，不填写 https:// 或根域名。"
+msgstr ""
+
+msgid "例如显示 myteam.cloudflareaccess.com，这里只填 myteam；不填 https://，不填 .cloudflareaccess.com 后缀，也不填邮箱、个人域名或 Cloudflare 账户 ID。"
+msgstr ""
+
+msgid "例如：我的 iPhone"
+msgstr "e.g. My iPhone"
+
+msgid "依次测量两种协议，再恢复已保存的协议。"
+msgstr ""
+
+msgid "保存与独立检测"
+msgstr ""
+
+msgid "保存令牌并读取账户 / 域名"
+msgstr ""
+
+msgid "保存候选与顺序"
+msgstr ""
+
+msgid "保存候选与顺序（不切换）"
+msgstr ""
+
+msgid "保存候选，全部通过检测后应用顺序。"
+msgstr ""
+
+msgid "保存到路由器，供本团队新增客户端时使用"
+msgstr "Save for future clients on this team"
+
+msgid "保存备用节点"
+msgstr ""
+
+msgid "保存备用节点（不切换）"
+msgstr ""
+
+msgid "保存导出参数"
+msgstr "Save Export Settings"
+
+msgid "保存并应用后切换协议，主线路会短暂重连。"
+msgstr "Saving and applying a protocol change briefly reconnects the primary tunnel."
+
+msgid "保存并更新订阅"
+msgstr "Save and Update Subscription"
+
+msgid "保存授权并读取账户 / 域名"
+msgstr ""
+
+msgid "保存推荐备用入口"
+msgstr ""
+
+msgid "保存操作已完成，但节点列表读取失败；请刷新页面确认。"
+msgstr ""
+
+msgid "保存版本与运行状态"
+msgstr ""
+
+msgid "保存组织名称"
+msgstr ""
+
+msgid "保护已关闭"
+msgstr ""
+
+msgid "保护未确认"
+msgstr ""
+
+msgid "保护未确认，请查看连接状态"
+msgstr "Protection unconfirmed. Check connection status."
+
+msgid "保持原样，不接管"
+msgstr "Leave Device Unmanaged"
+
+msgid "保持现有入口。"
+msgstr ""
+
+msgid "保持现状 / 跟随当前设置"
+msgstr ""
+
+msgid "保留原有入口地址与端口"
+msgstr ""
+
+msgid "保留原账户（本次目录未确认）"
+msgstr ""
+
+msgid "保留已配置备用，只调整入口"
+msgstr ""
+
+msgid "保留当前入口，前往独立检测"
+msgstr ""
+
+msgid "保留本次启动最近 40 条状态变化，路由器重启后重新记录。"
+msgstr ""
+
+msgid "候选尚未应用，等待确认"
+msgstr ""
+
+msgid "候选已列出；尚未在当前备用节点应用此顺序。"
+msgstr ""
+
+msgid "候选来自客户端本地配置。测量不会切换入口，应用入口可能短暂重连。"
+msgstr ""
+
+msgid "候选版本："
+msgstr ""
+
+msgid "候选结果"
+msgstr "Resolver results"
+
+msgid "候选表"
+msgstr ""
+
+msgid "候选配置与检测结果正在读取…"
+msgstr ""
+
+msgid "停止私密订阅"
+msgstr "Stop Private Subscription"
+
+msgid "允许 IPv6 直连"
+msgstr "Allow Direct IPv6"
+
+msgid "允许 IPv6 直连（绕过代理规则）"
+msgstr ""
+
+msgid "先保存 Cloudflare 授权。"
+msgstr ""
+
+msgid "先保存候选，再开始检测。"
+msgstr ""
+
+msgid "先保存可供检测的 Workers 备用节点。"
+msgstr ""
+
+msgid "先保存表单修改，再检查部署。"
+msgstr "Save your changes, then check the deployment."
+
+msgid "先准备登录环境，再进行邮箱登录。"
+msgstr "Prepare sign-in before using email sign-in."
+
+msgid "先到「导入、检测与启用」保存备用节点。"
+msgstr "Save a backup node under Import, Test & Enable first."
+
+msgid "先取得当前节点的有效优选结果。"
+msgstr ""
+
+msgid "先读取已授权账户，或手工填写账户 ID"
+msgstr ""
+
+msgid "先重新检测，通过后继续启用"
+msgstr ""
+
+msgid "兜底"
+msgstr ""
+
+msgid "入口事务正在处理或结果未确认；请读取状态，必要时人工核对。"
+msgstr ""
+
+msgid "入口优选"
+msgstr ""
+
+msgid "入口优选结果"
+msgstr ""
+
+msgid "入口应用失败；"
+msgstr ""
+
+msgid "入口测量未完成，请重试。"
+msgstr ""
+
+msgid "入口测量超时，请重试。"
+msgstr ""
+
+msgid "入口测量需要运行中的 MASQUE 主线路。"
+msgstr ""
+
+msgid "入口设置已确认。"
+msgstr ""
+
+msgid "入口请求受阻。"
+msgstr "The entry request is blocked."
+
+msgid "入口请求受阻，未保存或未应用："
+msgstr ""
+
+msgid "入口选择、候选读取与定期同步"
+msgstr "Choose an entry point and refresh candidates on a schedule"
+
+msgid "入口选择与候选同步"
+msgstr ""
+
+msgid "全程平均 "
+msgstr "Overall average "
+
+msgid "全部代理"
+msgstr "Proxy All"
+
+msgid "全部出口测速"
+msgstr ""
+
+msgid "公共转发 PROXYIP"
+msgstr ""
+
+msgid "公共转发 PROXYIP · 主用与备用"
+msgstr ""
+
+msgid "公开来源链接（可选）"
+msgstr ""
+
+msgid "公网 IPv4 地址"
+msgstr ""
+
+msgid "共 "
+msgstr "Total: "
+
+msgid "关闭"
+msgstr "Close"
+
+msgid "关闭 imOK"
+msgstr ""
+
+msgid "关闭失败："
+msgstr ""
+
+msgid "关闭定期读取"
+msgstr ""
+
+msgid "其他公网 UDP："
+msgstr ""
+
+msgid "内容范围 "
+msgstr ""
+
+msgid "内部名称对照"
+msgstr ""
+
+msgid "准备或状态读取未完成："
+msgstr ""
+
+msgid "准备登录环境"
+msgstr "Prepare sign-in"
+
+msgid "准备路由器登录环境"
+msgstr ""
+
+msgid "出口、转发和 DNS 已确认"
+msgstr ""
+
+msgid "出口与分流"
+msgstr "Exits and Routing"
+
+msgid "出口操作结果待核对，请同步凭据与出口；不要重复应用。"
+msgstr "The exit change is unconfirmed. Sync credentials and exits before applying again."
+
+msgid "出口测速需要 WARP 主线路已应用并运行。"
+msgstr ""
+
+msgid "出口观测"
+msgstr ""
+
+msgid "出口："
+msgstr ""
+
+msgid "分流开关已关闭"
+msgstr "Routing is disabled"
+
+msgid "分流接管已停止"
+msgstr ""
+
+msgid "分流未运行，独立 DNS 当前不可用"
+msgstr ""
+
+msgid "分流模式"
+msgstr "Routing Mode"
+
+msgid "分流详情"
+msgstr "Routing Details"
+
+msgid "分类等待超时："
+msgstr "Classification timeouts: "
+
+msgid "分组"
+msgstr ""
+
+msgid "切回主线路"
+msgstr ""
+
+msgid "切回主线路后可修改备用顺序。"
+msgstr ""
+
+msgid "切回主线路后可应用备用入口。"
+msgstr ""
+
+msgid "切回主线路后可更换备用节点。"
+msgstr "Switch back to the primary route to replace the backup node."
+
+msgid "切回主线路后可更改备用节点。"
+msgstr "Switch back to the primary route to edit the backup node."
+
+msgid "切换失败："
+msgstr ""
+
+msgid "切换请求已提交，正在等待实际运行状态确认…"
+msgstr ""
+
+msgid "创建 Workers 与绑定域名"
+msgstr ""
+
+msgid "创建客户端"
+msgstr "Create Client"
+
+msgid "创建私密订阅"
+msgstr "Create Private Subscription"
+
+msgid "创建自己的 Workers 备用线路"
+msgstr ""
+
+msgid "创建部署与 API 授权"
+msgstr ""
+
+msgid "删除个人新增"
+msgstr ""
+
+msgid "到 Cloudflare 控制台进入 Zero Trust → Settings（设置），查看 Team name / Team domain（团队名称 / 团队域名）。也可查看已登录的 Cloudflare One 客户端账户页面。"
+msgstr ""
+
+msgid "到“设备”页面，"
+msgstr ""
+
+msgid "刷新出口目录"
+msgstr ""
+
+msgid "刷新列表"
+msgstr "Refresh List"
+
+msgid "刷新流量"
+msgstr ""
+
+msgid "刷新规则状态"
+msgstr ""
+
+msgid "刷新账户与根域名（只读）"
+msgstr ""
+
+msgid "刷新账户出口（只读）"
+msgstr ""
+
+msgid "前往创建部署，检查或保存为备用节点"
+msgstr ""
+
+msgid "前往启用"
+msgstr "Enable Routing"
+
+msgid "前往导入、检测与启用"
+msgstr "Go to Import, Test & Enable"
+
+msgid "勾选设备所在的主网络、访客网络或 VLAN，可同时选择。Wi-Fi 与网线共用网桥时只勾选该网桥。每个接口需要一个独立 IPv4 私网网段；不会创建网络，也不会开放主网络与访客网络之间的互访。标记未启用的网络需先在路由器网络设置中开启，再启用本插件。"
+msgstr ""
+
+msgid "包名"
+msgstr ""
+
+msgid "包含账户组织名称、协议、出口、接管范围、设备策略、DNS、规则来源与更新间隔、自定义分流和主线路入口偏好。"
+msgstr ""
+
+msgid "升级前的流量无法补算。"
+msgstr "Traffic from before the upgrade is unavailable."
+
+msgid "协议对比测速"
+msgstr ""
+
+msgid "协议由 Cloudflare 组织管理，无法切换测速。"
+msgstr "Your Cloudflare organization manages the protocol. Switching protocols for testing is unavailable."
+
+msgid "协议设置"
+msgstr ""
+
+msgid "单位为小时：24 为每天，168 为每周；修改后保存并应用。"
+msgstr ""
+
+msgid "危险操作：清除本机授权"
+msgstr ""
+
+msgid "历史 DNS 结果已过期或检测环境已改变，请重新检测"
+msgstr ""
+
+msgid "历史检测已过期或节点改变，请重新检测"
+msgstr ""
+
+msgid "历史测速"
+msgstr ""
+
+msgid "历史结果已过期，不能代表当前网络，请重新检测"
+msgstr ""
+
+msgid "历史观测，停止于 "
+msgstr ""
+
+msgid "历史："
+msgstr ""
+
+msgid "原主线路：路由器 → Cloudflare WARP → 账户所选出口 → 网站"
+msgstr ""
+
+msgid "原预期出口验证通过。"
+msgstr ""
+
+msgid "去选出口"
+msgstr "Choose exit"
+
+msgid "参数有变化，订阅待更新"
+msgstr "Settings changed. Subscription update pending."
+
+msgid "发现冲突或访问受限，请核对后再继续。"
+msgstr ""
+
+msgid "取消"
+msgstr "Cancel"
+
+msgid "取消测速"
+msgstr ""
+
+msgid "受保护设备正在等待放行"
+msgstr "Protected devices are waiting for connectivity"
+
+msgid "受保护设备等待放行"
+msgstr "Protected devices are waiting for connectivity"
+
+msgid "受控恢复原入口"
+msgstr ""
+
+msgid "受控恢复原入口并验证"
+msgstr ""
+
+msgid "受管范围 "
+msgstr ""
+
+msgid "只保存同步间隔（不重连）"
+msgstr ""
+
+msgid "只启动登录环境，不接管设备。"
+msgstr ""
+
+msgid "只填写公开资料链接，不填私人订阅、账户或口令。"
+msgstr ""
+
+msgid "只显示当前阶段"
+msgstr ""
+
+msgid "只显示本模块创建的身份"
+msgstr "Shows identities created here"
+
+msgid "只读刷新账户 / 根域名"
+msgstr ""
+
+msgid "只读核验部署与证书"
+msgstr ""
+
+msgid "只读检测，不切换出口"
+msgstr "Read-only check. The exit stays the same."
+
+msgid "可信 HTTPS 名单；支持普通域名、domain:、full:。regexp 条目跳过并记录，不执行脚本或编码订阅。"
+msgstr ""
+
+msgid "可先到“规则管理”核对候选及其增删内容；确认后才保存候选，个人覆盖继续保留。"
+msgstr ""
+
+msgid "可沿用已可访问的账户，无需重填"
+msgstr ""
+
+msgid "可用根域名"
+msgstr ""
+
+msgid "可直接导入。"
+msgstr "Direct import is available."
+
+msgid "可选来源"
+msgstr ""
+
+msgid "合并内容是否已生效，以运行状态为准。"
+msgstr ""
+
+msgid "合并规则版本："
+msgstr ""
+
+msgid "合并规则（订阅 + 个人覆盖）"
+msgstr ""
+
+msgid "合计"
+msgstr ""
+
+msgid "同一独立身份，保留两种接入方式。"
+msgstr "Two access methods share one identity."
+
+msgid "同步凭据与出口"
+msgstr "Sync Credentials and Exits"
+
+msgid "名称"
+msgstr ""
+
+msgid "后 5 秒平均 "
+msgstr "Final 5-second average "
+
+msgid "后台检测时间："
+msgstr "Last automatic check: "
+
+msgid "后台正在处理"
+msgstr ""
+
+msgid "启动独立登录环境"
+msgstr ""
+
+msgid "启动解析方式"
+msgstr ""
+
+msgid "启用"
+msgstr "Enable"
+
+msgid "启用时先重新检测。"
+msgstr ""
+
+msgid "启用此候选参与主备"
+msgstr ""
+
+msgid "启用独立 DNS 缓存"
+msgstr ""
+
+msgid "启用的候选全部通过本次检测后才能应用。"
+msgstr ""
+
+msgid "启用，按此顺序参与主备"
+msgstr ""
+
+msgid "命中："
+msgstr ""
+
+msgid "团队"
+msgstr "Team"
+
+msgid "固定 IPv4"
+msgstr "Fixed IPv4"
+
+msgid "固定候选入口（尚未逐项测速）"
+msgstr ""
+
+msgid "固定地址，内容可更新。启用后，保存参数会同步订阅；手机需更新订阅后获取。"
+msgstr "The URL stays fixed. Saving settings updates its content. Refresh the subscription on the phone to get the update."
+
+msgid "固定私密订阅"
+msgstr "Private Subscription"
+
+msgid "固定：从官方候选选择"
+msgstr ""
+
+msgid "国内 DNS"
+msgstr ""
+
+msgid "国内 IP 直连，其余代理"
+msgstr "China IPs Direct, Others Proxied"
+
+msgid "国内上游："
+msgstr ""
+
+msgid "国内候选含宽带下发地址。"
+msgstr "Domestic candidates include ISP-provided resolvers."
+
+msgid "国内直连"
+msgstr ""
+
+msgid "国内直连流量使用本地宽带 IP；只有代理流量使用所选出口。关闭后撤回本插件的接管规则；其他软件按其自身配置运行。"
+msgstr ""
+
+msgid "在「导入、检测与启用」检查备用线路能否联网。"
+msgstr "Test the backup connection under Import, Test & Enable."
+
+msgid "在候选池保存 PROXYIP 顺序后，新部署会按该顺序使用已启用的候选。"
+msgstr "New deployments use enabled PROXYIP candidates in the saved order."
+
+msgid "在线设备"
+msgstr "Online Device"
+
+msgid "地址"
+msgstr ""
+
+msgid "域名分流依赖普通 DNS，共用 CDN IP 的网站可能互相影响。使用加密 DNS 的设备可优先选「国内 IP 直连，其余代理」。"
+msgstr "Domain routing relies on standard DNS. Sites sharing CDN addresses can affect each other. For devices with encrypted DNS, try routing China IPs directly and proxying the rest."
+
+msgid "域名或公网 IPv4/CIDR"
+msgstr ""
+
+msgid "域名读取失败，请重试；不能据此认定账户没有域名。"
+msgstr ""
+
+msgid "填写公网 IPv4:端口，例如 162.159.197.2:8443。应用并检测后固定使用；自定义地址不保证可用，失败将尝试恢复并验证原入口。"
+msgstr ""
+
+msgid "填写服务令牌"
+msgstr "Enter a Service Token"
+
+msgid "填写设备在此局域网的 IPv4。可在路由器的 DHCP 设置中为该 MAC 保留地址，避免设备换 IP 后策略失效。"
+msgstr "Enter the device's IPv4 address on this LAN. Reserve the address for its MAC in DHCP so the policy continues to apply."
+
+msgid "处理中"
+msgstr ""
+
+msgid "备份文件过大或无效"
+msgstr ""
+
+msgid "备份格式无效"
+msgstr ""
+
+msgid "备份范围"
+msgstr ""
+
+msgid "备份迁移"
+msgstr "Backup and Migration"
+
+msgid "备用 "
+msgstr ""
+
+msgid "备用仅代理 TCP，所选代理 UDP 会阻断。"
+msgstr ""
+
+msgid "备用入口方式"
+msgstr ""
+
+msgid "备用加密 DNS"
+msgstr ""
+
+msgid "备用启用后可切回主线路。"
+msgstr "You can switch back to the primary route after enabling the backup."
+
+msgid "备用检测时间："
+msgstr ""
+
+msgid "备用节点"
+msgstr ""
+
+msgid "备用节点与云端部署记录"
+msgstr ""
+
+msgid "备用节点与独立检测 / 手动使用"
+msgstr ""
+
+msgid "备用节点已保存；尚未切换，下一步请独立检测。"
+msgstr ""
+
+msgid "备用节点来源"
+msgstr ""
+
+msgid "备用节点独立检测结果"
+msgstr ""
+
+msgid "备用节点设置（手动导入 / 调整入口）"
+msgstr ""
+
+msgid "备用运行中"
+msgstr ""
+
+msgid "复制登录成功页面里的完整 com.cloudflare.warp://… 登录链接，粘贴回插件弹窗，点击“注册此路由器”。这是临时登录凭据，不要分享或发到 GitHub。"
+msgstr ""
+
+msgid "外部管理文件"
+msgstr ""
+
+msgid "失败"
+msgstr ""
+
+msgid "失败 "
+msgstr ""
+
+msgid "如果是全新 Cloudflare 账户，需要先创建 Zero Trust 团队并允许你的邮箱注册设备。沿用现有账户则不要再创建。"
+msgstr ""
+
+msgid "如需重新登录，请先在总览关闭 imOK。"
+msgstr "To sign in again, turn off imOK in Overview first."
+
+msgid "始终代理"
+msgstr ""
+
+msgid "始终代理 IPv4/CIDR"
+msgstr ""
+
+msgid "始终代理域名"
+msgstr ""
+
+msgid "始终直连"
+msgstr ""
+
+msgid "始终直连 IPv4/CIDR"
+msgstr ""
+
+msgid "始终直连和代理规则独立保存，订阅更新不会清空；修改后保存并应用。"
+msgstr ""
+
+msgid "始终直连域名"
+msgstr ""
+
+msgid "子域名前缀"
+msgstr ""
+
+msgid "子域名绑定"
+msgstr ""
+
+msgid "安装运行环境"
+msgstr "Install the Runtime"
+
+msgid "完成授权，申请独立身份和 IP。"
+msgstr "Authorize and register for a separate identity and IP."
+
+msgid "完成注册并确认出口后，可选择接入方式。"
+msgstr "Register and confirm an exit to choose an access method."
+
+msgid "完成注册并确认出口后，可通过二维码或 .conf 配置导入小火箭。"
+msgstr "After registration and exit confirmation, use a QR code or .conf profile to import into Shadowrocket."
+
+msgid "完成独立检测后，点击「手动启用备用」切换线路。"
+msgstr "After testing, select Enable Backup Manually to switch routes."
+
+msgid "官方客户端本地候选同步间隔"
+msgstr ""
+
+msgid "官方授权链接或团队 JWT"
+msgstr "Official Authorization Link or Team JWT"
+
+msgid "官方登录授权链接"
+msgstr "Official Authorization Link"
+
+msgid "实际协议："
+msgstr "Active protocol: "
+
+msgid "实际已完成项目"
+msgstr ""
+
+msgid "客户端出口"
+msgstr "Client Exit"
+
+msgid "客户端列表"
+msgstr "Client List"
+
+msgid "客户端列表读取失败"
+msgstr "Could Not Load Clients"
+
+msgid "客户端名称"
+msgstr "Client Name"
+
+msgid "客户端接入"
+msgstr "Client Access"
+
+msgid "客户端版本正在读取…"
+msgstr ""
+
+msgid "客户端状态待确认"
+msgstr "Client status unconfirmed"
+
+msgid "客户端私密导入二维码"
+msgstr "Private Client Import QR Code"
+
+msgid "客户端能力尚未确认，暂不能应用入口。"
+msgstr ""
+
+msgid "客户端设置"
+msgstr ""
+
+msgid "客户端配置的固定入口："
+msgstr ""
+
+msgid "宽带下发"
+msgstr ""
+
+msgid "宽带直连"
+msgstr ""
+
+msgid "对比 MASQUE 与 WireGuard"
+msgstr ""
+
+msgid "导入、检测与启用"
+msgstr ""
+
+msgid "导入与恢复"
+msgstr ""
+
+msgid "导入后请核对入口偏好，再启用分流。"
+msgstr ""
+
+msgid "导入或导出本插件配置"
+msgstr "Import or export imOK settings"
+
+msgid "导入或检测已有节点 →"
+msgstr "Import or test an existing node →"
+
+msgid "导入的入口偏好尚未应用，请核对后单独保存。"
+msgstr ""
+
+msgid "导入结果未确认。"
+msgstr ""
+
+msgid "导入配置文件："
+msgstr ""
+
+msgid "导出配置"
+msgstr ""
+
+msgid "将按已保存设置重建 WARP 实例，主线路会短暂断线。"
+msgstr ""
+
+msgid "将新部署设为备用节点（不启用）"
+msgstr ""
+
+msgid "将部署保存为备用节点"
+msgstr ""
+
+msgid "尚无更新记录；点击“规则与更新 → 立即更新规则”查看完整反馈。"
+msgstr ""
+
+msgid "尚无有效检测"
+msgstr "No valid check"
+
+msgid "尚无运行状态，未能确认服务是否生效。"
+msgstr ""
+
+msgid "尚无连接变化记录"
+msgstr "No connection events yet"
+
+msgid "尚无采集数据，不能确认当前用量。"
+msgstr ""
+
+msgid "尚未优选；原备用入口保持不变。"
+msgstr ""
+
+msgid "尚未保存 API 令牌；可先展开下方创建指引。"
+msgstr ""
+
+msgid "尚未保存备用节点。可创建或导入节点。"
+msgstr "No backup node saved. Create or import one."
+
+msgid "尚未分配"
+msgstr "Unassigned"
+
+msgid "尚未同步"
+msgstr "Not Synced"
+
+msgid "尚未启用固定订阅。"
+msgstr "No fixed subscription. "
+
+msgid "尚未强制检测此候选"
+msgstr ""
+
+msgid "尚未执行 DNS 检测"
+msgstr ""
+
+msgid "尚未收到切换确认，请查看实际运行状态。"
+msgstr ""
+
+msgid "尚未收到切换确认，请查看总览；不会把已提交当作已成功。"
+msgstr ""
+
+msgid "尚未更新"
+msgstr ""
+
+msgid "尚未核验"
+msgstr "Unchecked"
+
+msgid "尚未确认"
+msgstr "Unconfirmed"
+
+msgid "尚未确认当前配置已应用"
+msgstr "Current settings still unconfirmed"
+
+msgid "尚未确认接管 DNS，设备保持阻断"
+msgstr ""
+
+msgid "尚未读取"
+msgstr ""
+
+msgid "尚未读取到主线路协议信息；新安装先完成本组登录。"
+msgstr ""
+
+msgid "尚未读取可用根域名；已保存绑定保持不变。"
+msgstr ""
+
+msgid "尚未读取启动解析状态"
+msgstr ""
+
+msgid "尚未读取规则内容"
+msgstr ""
+
+msgid "尚未读取账户目录；可点击下方刷新按钮。"
+msgstr ""
+
+msgid "尝试次数："
+msgstr ""
+
+msgid "局域网 DNS 候选"
+msgstr ""
+
+msgid "局域网分流模式"
+msgstr ""
+
+msgid "展开全部设置"
+msgstr ""
+
+msgid "已下载版本来源："
+msgstr ""
+
+msgid "已保存 Cloudflare 配置，云端部署状态尚未检查。"
+msgstr ""
+
+msgid "已保存不等于已生效；订阅更新保留个人新增与排除。"
+msgstr ""
+
+msgid "已保存到路由器 · "
+msgstr ""
+
+msgid "已保存区域 · "
+msgstr ""
+
+msgid "已保存的自动更新间隔："
+msgstr ""
+
+msgid "已保存账户 · "
+msgstr ""
+
+msgid "已保存，等待运行中应用"
+msgstr ""
+
+msgid "已保存；留空保留原令牌"
+msgstr ""
+
+msgid "已关闭"
+msgstr "Disabled"
+
+msgid "已关闭，本插件已退出接管；恢复此前的网络方式。"
+msgstr ""
+
+msgid "已取消，已恢复保存的设置"
+msgstr ""
+
+msgid "已启用"
+msgstr "Enabled"
+
+msgid "已在当前备用节点固定此主备顺序；主线路未改变。"
+msgstr ""
+
+msgid "已在当前连接中生效"
+msgstr ""
+
+msgid "已完成"
+msgstr ""
+
+msgid "已完成 "
+msgstr ""
+
+msgid "已导入并保持关闭。请刷新页面；入口偏好需核对后单独保存应用，登录和备用凭据需另行配置。"
+msgstr ""
+
+msgid "已应用成功："
+msgstr ""
+
+msgid "已开启，正在按保存的范围和规则接管网络。"
+msgstr ""
+
+msgid "已恢复原入口设置。"
+msgstr ""
+
+msgid "已恢复放行"
+msgstr ""
+
+msgid "已排除，不参与生效"
+msgstr ""
+
+msgid "已提交手动切换，等待实际状态确认…"
+msgstr ""
+
+msgid "已提交重建，等待新实例启动。"
+msgstr ""
+
+msgid "已提交，但尚未收到应用确认。请检查页面顶部的实际运行状态。"
+msgstr ""
+
+msgid "已有后台任务正在运行；本次没有重复创建或检测。请等待下方实际状态更新。"
+msgstr ""
+
+msgid "已有备用节点"
+msgstr ""
+
+msgid "已有导入节点"
+msgstr ""
+
+msgid "已有测速正在进行。"
+msgstr "A speed test is already running."
+
+msgid "已核验设备按策略联网"
+msgstr "Verified devices follow their routing policies"
+
+msgid "已注册，目录暂未就绪，请稍后刷新；当前出口与配置未改动。"
+msgstr ""
+
+msgid "已清理 imOK 独立 DNS 缓存，移除 "
+msgstr ""
+
+msgid "已满 6 项，移除一项后可添加。"
+msgstr "All 6 slots are full. Remove one to add another."
+
+msgid "已生效"
+msgstr ""
+
+msgid "已等待 "
+msgstr ""
+
+msgid "已观测速率 ↑ "
+msgstr ""
+
+msgid "已设为备用，可继续配置 PROXYIP。"
+msgstr "Saved as the backup. Continue with PROXYIP setup."
+
+msgid "已识别隧道："
+msgstr ""
+
+msgid "已读取 "
+msgstr ""
+
+msgid "已达测速上限"
+msgstr "Download limit reached"
+
+msgid "已选 "
+msgstr ""
+
+msgid "已选择备用，实际运行状态尚未确认。"
+msgstr ""
+
+msgid "已配置，未接管"
+msgstr ""
+
+msgid "已阻断外网"
+msgstr ""
+
+msgid "已降低每个出口的流量预算。"
+msgstr ""
+
+msgid "应用会更新这个独立身份的云端选择，已导出的链接不必换密钥，重连后生效。入口 IP、端口或 DNS 改动后，按接入方式重新导入或更新订阅。"
+msgstr "Applying updates this identity's cloud exit. Reconnect to use it with the existing keys. After changing entry IP, port or DNS, re-import the profile or update the subscription."
+
+msgid "应用前校验未通过；当前连接未改变，请核对能力和原出口基线。"
+msgstr ""
+
+msgid "应用失败："
+msgstr ""
+
+msgid "应用已通过的主备顺序"
+msgstr ""
+
+msgid "应用已通过的主备顺序（不启用）"
+msgstr ""
+
+msgid "应用并检测（可能重连）"
+msgstr ""
+
+msgid "应用推荐入口（不切换）"
+msgstr ""
+
+msgid "应用未通过，正在恢复并验证原入口…"
+msgstr ""
+
+msgid "应用配置"
+msgstr ""
+
+msgid "开关与当前运行状态"
+msgstr "Power and current status"
+
+msgid "开关立即生效，无需保存；不会提交尚未保存的其他设置。"
+msgstr ""
+
+msgid "开启 imOK"
+msgstr ""
+
+msgid "开启失败："
+msgstr ""
+
+msgid "开始前：新路由器需要准备什么？"
+msgstr ""
+
+msgid "开始测速"
+msgstr ""
+
+msgid "开始线路测速"
+msgstr ""
+
+msgid "开始自动优选（约 1～4 分钟）"
+msgstr ""
+
+msgid "当前 DNS 未运行，尚不能检测"
+msgstr ""
+
+msgid "当前下载版本来源与校验摘要"
+msgstr ""
+
+msgid "当前仍是默认网络；请先选择并应用指定出口，再导出。"
+msgstr "The default network is selected. Apply a specific exit before exporting."
+
+msgid "当前代理出口"
+msgstr ""
+
+msgid "当前使用 TCP 备用线路；此处的 WARP UDP 观测不适用。"
+msgstr ""
+
+msgid "当前使用 WARP 主线路"
+msgstr ""
+
+msgid "当前使用 Workers 备用"
+msgstr ""
+
+msgid "当前使用主线路，备用未接管。"
+msgstr ""
+
+msgid "当前使用备用线路。"
+msgstr ""
+
+msgid "当前保存的备用节点"
+msgstr ""
+
+msgid "当前保存目标："
+msgstr ""
+
+msgid "当前入口与最近结果"
+msgstr ""
+
+msgid "当前出口"
+msgstr "Current Exit"
+
+msgid "当前出口尚无有效检测"
+msgstr "Current exit has no valid check"
+
+msgid "当前出口未确认"
+msgstr "Current exit unconfirmed"
+
+msgid "当前出口检测失败"
+msgstr "Current exit failed its check"
+
+msgid "当前出口："
+msgstr "Current exit: "
+
+msgid "当前固件未提供按设备流量计数。"
+msgstr ""
+
+msgid "当前实例使用 "
+msgstr ""
+
+msgid "当前客户端支持入口 set/reset。"
+msgstr ""
+
+msgid "当前宽带接口没有可比较的运营商下发 DNS。"
+msgstr ""
+
+msgid "当前已保存地址："
+msgstr ""
+
+msgid "当前已保存版本："
+msgstr ""
+
+msgid "当前已保存订阅版本："
+msgstr ""
+
+msgid "当前接收积压："
+msgstr ""
+
+msgid "当前接管范围为「局域网」，此处策略仅在切换到「按设备选择」后生效。"
+msgstr ""
+
+msgid "当前未接管网络，规则已保存"
+msgstr ""
+
+msgid "当前没有可显示的设备。"
+msgstr ""
+
+msgid "当前没有运行中的隧道观测。"
+msgstr ""
+
+msgid "当前版本未记录来源"
+msgstr ""
+
+msgid "当前线路状态尚未确认；保存的选择为主线路。"
+msgstr ""
+
+msgid "当前节点基础联网检测通过，可手动启用；检测不会切换现有主线路。"
+msgstr ""
+
+msgid "当前节点需要重新检测。"
+msgstr "Test the current node again."
+
+msgid "当前订阅版本："
+msgstr ""
+
+msgid "当前账户可用根域名："
+msgstr ""
+
+msgid "当前运行备用线路；账户出口未接管。"
+msgstr "The backup line is active. The account exit is inactive."
+
+msgid "当前运行版本尚未确认"
+msgstr ""
+
+msgid "当前连接所测网站通过"
+msgstr ""
+
+msgid "当前连接数未知"
+msgstr "Active connection count unknown"
+
+msgid "当前速率：未知"
+msgstr ""
+
+msgid "当前配置已确认应用"
+msgstr "Current settings confirmed"
+
+msgid "待应用入口方式（当前配置见上方）"
+msgstr ""
+
+msgid "待确认"
+msgstr "Pending confirmation"
+
+msgid "待确认订阅删除"
+msgstr ""
+
+msgid "待确认订阅新增"
+msgstr ""
+
+msgid "待确认订阅规则"
+msgstr ""
+
+msgid "必须使用 HTTPS"
+msgstr ""
+
+msgid "快捷操作"
+msgstr ""
+
+msgid "快捷迁移：在旧路由器“备份迁移”导出配置，到新路由器导入。导入后保持关闭；已导入组织名称时无需重复填写，仍需准备登录环境并注册新路由器。备份不包含登录凭据。"
+msgstr ""
+
+msgid "总览"
+msgstr "Overview"
+
+msgid "恢复上一版规则"
+msgstr ""
+
+msgid "恢复未确认，请手动检查。"
+msgstr ""
+
+msgid "恢复结果未知，可能直连；请人工检查，不会继续自动切换。"
+msgstr ""
+
+msgid "恢复请求等待超时，结果尚未确认；请读取当前状态。"
+msgstr ""
+
+msgid "成功标志：提示路由器已注册。若邮箱无权限，在 Cloudflare 的设备注册权限中允许该邮箱；链接失效则重新登录获取，不要反复粘贴旧链接。"
+msgstr ""
+
+msgid "成功标志：本页上方实际状态显示“登录环境已就绪”。首次启动可能稍慢；未就绪先不要点击邮箱登录。若提示缺少运行环境，请先按安装包说明安装配套运行环境。"
+msgstr ""
+
+msgid "我的客户端"
+msgstr "My Clients"
+
+msgid "所测网站存在失败"
+msgstr "Some tested sites failed"
+
+msgid "所测网站访问受限"
+msgstr "Tested sites have limited access"
+
+msgid "所选局域网"
+msgstr "Selected LANs"
+
+msgid "所选局域网（无需绑定设备）"
+msgstr ""
+
+msgid "所选设备"
+msgstr "Selected Devices"
+
+msgid "手写 IPv4:端口（自定义未经检测）"
+msgstr ""
+
+msgid "手写：自定义 IPv4 入口"
+msgstr ""
+
+msgid "手动切换已生效。"
+msgstr ""
+
+msgid "手动启用备用"
+msgstr ""
+
+msgid "手动备用的部署、转发与检测"
+msgstr "Deploy, relay and test the manual backup line"
+
+msgid "手机连接状态"
+msgstr "Phone Connection Status"
+
+msgid "打开 Cloudflare → 我的个人资料 → API 令牌"
+msgstr ""
+
+msgid "打开 Cloudflare 官方授权页"
+msgstr "Open Cloudflare Authorization"
+
+msgid "打开下方地址，用组织允许的邮箱完成验证。浏览器提示打开本机 Cloudflare 应用时取消；复制成功页的 com.cloudflare.warp:// 登录链接，粘贴到此处。"
+msgstr ""
+
+msgid "打开团队授权页完成邮箱登录。若浏览器询问是否打开 WARP，请先取消，然后复制成功页上的授权链接并粘贴到下方。"
+msgstr "Sign in with email on your team's authorization page. If the browser offers to open WARP, cancel and paste the authorization link from the success page below."
+
+msgid "打开备份迁移 →"
+msgstr ""
+
+msgid "打开账户与协议"
+msgstr "Open Account and Protocol"
+
+msgid "技术详情"
+msgstr "Technical Details"
+
+msgid "指定"
+msgstr ""
+
+msgid "指定一个"
+msgstr ""
+
+msgid "指定优选 IPv4（保持域名证书验证）"
+msgstr ""
+
+msgid "指定服务器"
+msgstr ""
+
+msgid "按当前范围显示适用设置；未启用的设备与网络不接管。"
+msgstr ""
+
+msgid "按设备的分流模式"
+msgstr ""
+
+msgid "按设备选择"
+msgstr ""
+
+msgid "换路由器但继续用同一 Cloudflare 账户：组织名称、现有虚拟网络及 VPS 出口可以沿用，不用重新创建；新路由器必须独立登录。先保持总览里的总开关关闭。"
+msgstr ""
+
+msgid "授权后可创建 Worker 并绑定子域名。"
+msgstr "Authorize your account to create a Worker and attach a subdomain."
+
+msgid "授权并注册"
+msgstr "Authorize and Register"
+
+msgid "接入方式"
+msgstr "Access Methods"
+
+msgid "接收观测不可用，不能确认队列或丢包情况。"
+msgstr ""
+
+msgid "接收观测已过期或连接已改变，旧数据不能代表当前网络。"
+msgstr ""
+
+msgid "接管的 LAN 接口（可多选）"
+msgstr ""
+
+msgid "接管范围"
+msgstr ""
+
+msgid "接管范围与分流"
+msgstr ""
+
+msgid "接管范围已更新，等待出口和 DNS 就绪"
+msgstr ""
+
+msgid "接管设备："
+msgstr ""
+
+msgid "推荐"
+msgstr ""
+
+msgid "提交响应未给出明确任务状态，请只读检查结果；不能据此确认创建成功。"
+msgstr ""
+
+msgid "握手失败："
+msgstr ""
+
+msgid "搜索内容 "
+msgstr ""
+
+msgid "搜索域名或 IP 网段"
+msgstr ""
+
+msgid "搜索规则"
+msgstr ""
+
+msgid "搜索规则内容"
+msgstr ""
+
+msgid "撤销与删除"
+msgstr "Revoke and Delete"
+
+msgid "撤销个人排除后，此条目是否生效取决于当前订阅或个人新增内容。"
+msgstr ""
+
+msgid "撤销会使已导出的配置失效。删除本地记录不会代替云端撤销。"
+msgstr "Revoking invalidates exported profiles. Deleting a local record leaves the cloud registration in place."
+
+msgid "撤销排除"
+msgstr ""
+
+msgid "操作"
+msgstr "Actions"
+
+msgid "操作未完成"
+msgstr ""
+
+msgid "操作未完成；请检查具体原因后重试。"
+msgstr ""
+
+msgid "操作说明"
+msgstr ""
+
+msgid "支持 v2/v3 JSON，文件上限 256 KiB。导出前会检查可导入性，超过上限会明确报错，不截断设置。"
+msgstr ""
+
+msgid "支持条件：目前只验证 GL-MT6000 / ARM64 OpenWrt 24.10，至少 500 MB 可用存储。不是在 Mac 或 Windows 上运行脚本。运行环境已存在时，安装脚本会停止以保护注册信息；更新已有插件只需安装新版 IPK，不要删除运行环境。安装结束默认关闭，之后再完成本向导登录。"
+msgstr ""
+
+msgid "改为 %s 并选用"
+msgstr "Switch to %s and select"
+
+msgid "改动后先保存并读取区域 / 部署；HTTPS 就绪后仍需独立联网检测。"
+msgstr ""
+
+msgid "断网保护"
+msgstr "Kill Switch"
+
+msgid "断网保护已取消"
+msgstr ""
+
+msgid "断网保护记录"
+msgstr ""
+
+msgid "新增一个客户端，为手机获取独立的注册身份。"
+msgstr "Add a client to register a separate identity for your phone."
+
+msgid "新增到本分类"
+msgstr ""
+
+msgid "新增客户端"
+msgstr "Add Client"
+
+msgid "新增客户端，自动使用本机的 Cloudflare 团队。"
+msgstr "New clients use this router's Cloudflare team."
+
+msgid "新备用：路由器 → Cloudflare 入口 → 自己的 Workers → 网站（部分目标使用公共转发）"
+msgstr ""
+
+msgid "新安装默认关闭。开关立即生效，无需点击页面底部保存；不会提交尚未保存的其他设置。"
+msgstr ""
+
+msgid "新设置等待应用"
+msgstr "Waiting to apply new settings"
+
+msgid "无"
+msgstr ""
+
+msgid "无有效握手"
+msgstr ""
+
+msgid "无有效结果"
+msgstr ""
+
+msgid "无法确认防火墙规则"
+msgstr ""
+
+msgid "无法连接"
+msgstr ""
+
+msgid "无需先复制账户 ID：留空后读取账户。有需要时也可在高级项手工填写 32 位账户 ID。子域名请用尚未使用的名称，例如 backup.你的域名。点击保存并读取可用域名，选择根域名，再填一个未使用的子域名前缀并部署。"
+msgstr ""
+
+msgid "无需选择或填写 IP。应用并检测后清除现有固定入口，由官方客户端管理入口；失败将尝试恢复并验证原设置。"
+msgstr ""
+
+msgid "旧测速结果已作废"
+msgstr "Previous measurement is invalid"
+
+msgid "旧版本未记录来源"
+msgstr ""
+
+msgid "显示已生效的 DNS，表单未保存的修改不会用于检测。清理只作用于本插件缓存，不重启隧道，也不清除动态分流规则。"
+msgstr ""
+
+msgid "显示此令牌可读取且已生效的根域名；绑定权限在占用检查和部署时另行确认。"
+msgstr ""
+
+msgid "显示私密订阅链接"
+msgstr "Show Private Subscription Link"
+
+msgid "暂不能确认"
+msgstr ""
+
+msgid "暂无成功记录"
+msgstr ""
+
+msgid "暂无本路由器创建记录。"
+msgstr "No deployments recorded on this router."
+
+msgid "暂无记录"
+msgstr ""
+
+msgid "暂时无法读取宽带下发 DNS，请重试。"
+msgstr ""
+
+msgid "暂时无法读取账户，可重新检查。"
+msgstr "Account access could not be verified. You can check again."
+
+msgid "暂未取得有效的 DNS 检测结果"
+msgstr ""
+
+msgid "暂未取得有效的网站检测结果，请重新检测。"
+msgstr ""
+
+msgid "暂未取得独立 DNS 状态"
+msgstr ""
+
+msgid "暂未观测到客户端公网 UDP 连接，不能据此认定没有丢包。"
+msgstr ""
+
+msgid "更改上游 DNS 传输"
+msgstr "Change upstream DNS transport"
+
+msgid "更新中 · "
+msgstr ""
+
+msgid "更新概况"
+msgstr "Update Status"
+
+msgid "更新状态、运行版本与订阅变化"
+msgstr "Update status, active versions and subscription changes"
+
+msgid "更新状态已过期，结果未知；可重新更新"
+msgstr ""
+
+msgid "更新私密订阅"
+msgstr "Update Private Subscription"
+
+msgid "更新计划"
+msgstr ""
+
+msgid "替换路由器中为本团队保存的服务授权"
+msgstr "Replace This Team's Saved Service Authorization"
+
+msgid "最后成功更新："
+msgstr ""
+
+msgid "最多下载 %s MB。"
+msgstr ""
+
+msgid "最多保存 6 项。启用项按列表顺序作为主用和备用。逐项用两个 Cloudflare 目标验证 HTTPS 转发，整条线路另测 Google 和 GitHub。连接失败时按顺序尝试下一项，失败项暂避 30 秒。检测结果有效 5 分钟，已中断的连接需重新建立。应用顺序后可回到最后一步检测和启用备用。"
+msgstr ""
+
+msgid "最终绑定的子域名"
+msgstr ""
+
+msgid "最近云端核对："
+msgstr "Last verified in the cloud: "
+
+msgid "最近尝试："
+msgstr ""
+
+msgid "最近成功："
+msgstr ""
+
+msgid "最近操作结果"
+msgstr ""
+
+msgid "最近更新："
+msgstr ""
+
+msgid "最近读取："
+msgstr ""
+
+msgid "最近连接失败"
+msgstr ""
+
+msgid "最近连接成功"
+msgstr ""
+
+msgid "最近采样峰值："
+msgstr ""
+
+msgid "有尚未保存的候选修改；保存后才能逐项检测或应用。"
+msgstr ""
+
+msgid "有未保存编辑"
+msgstr ""
+
+msgid "服务重启，测速已作废"
+msgstr ""
+
+msgid "未取得实例状态说明"
+msgstr ""
+
+msgid "未启用"
+msgstr "Disabled"
+
+msgid "未启用备用，请查看检测结果并重试。"
+msgstr ""
+
+msgid "未固定，交给官方客户端"
+msgstr ""
+
+msgid "未完成："
+msgstr ""
+
+msgid "未完整通过"
+msgstr ""
+
+msgid "未收到本次入口请求确认"
+msgstr ""
+
+msgid "未收到本次导入确认"
+msgstr ""
+
+msgid "未收到本次检测编号，请重新检测。"
+msgstr ""
+
+msgid "未收到本次请求确认，请读取当前状态后重试"
+msgstr ""
+
+msgid "未检测"
+msgstr ""
+
+msgid "未检测 / 已过期"
+msgstr ""
+
+msgid "未检测 / 旧结果已过期"
+msgstr ""
+
+msgid "未知"
+msgstr ""
+
+msgid "未知来源"
+msgstr ""
+
+msgid "未知选项"
+msgstr "Unknown Option"
+
+msgid "未确认"
+msgstr "Unconfirmed"
+
+msgid "未设置"
+msgstr ""
+
+msgid "未选择受保护设备"
+msgstr "No protected devices selected"
+
+msgid "未通过"
+msgstr ""
+
+msgid "未配置"
+msgstr ""
+
+msgid "本分类覆盖只影响使用该分类的分流模式。若要始终直连或代理，请到“自定义分流”。规则变更保存后仍需确认运行中生效。"
+msgstr ""
+
+msgid "本地分流暂不可用，正在恢复"
+msgstr ""
+
+msgid "本地客户端记录已创建，可以继续授权并注册。"
+msgstr "Client created locally. Continue with authorization and registration."
+
+msgid "本批因设置变化中断"
+msgstr ""
+
+msgid "本插件已关闭，未接管网络。"
+msgstr ""
+
+msgid "本机 API 令牌已清除，需重新授权后读取域名。"
+msgstr ""
+
+msgid "本机受管 DNS 入口解析通过"
+msgstr ""
+
+msgid "本机管理文件"
+msgstr ""
+
+msgid "本机管理配置"
+msgstr ""
+
+msgid "本次刷新失败"
+msgstr ""
+
+msgid "本次受控恢复已提交，等待后台验证结果"
+msgstr ""
+
+msgid "本次启动尚无断网保护事件"
+msgstr "No kill switch events since startup"
+
+msgid "本次未取得出口目录；不代表账户没有其他出口。"
+msgstr ""
+
+msgid "本次检测未完成，请重试"
+msgstr ""
+
+msgid "本次观测出口地区："
+msgstr ""
+
+msgid "本次观测新增丢弃："
+msgstr ""
+
+msgid "本次订阅删除"
+msgstr ""
+
+msgid "本次订阅新增"
+msgstr ""
+
+msgid "本次订阅更新变化"
+msgstr ""
+
+msgid "本次请求已被另一个设置请求替代，请核对当前结果。"
+msgstr ""
+
+msgid "本路由器创建的云端节点"
+msgstr ""
+
+msgid "本路由器配置"
+msgstr ""
+
+msgid "本轮推荐入口："
+msgstr ""
+
+msgid "本页使用各操作按钮单独提交；只保存同步间隔不会重连，应用入口可能重连。"
+msgstr ""
+
+msgid "权限添加：账户 → Workers Scripts → 编辑；区域 → Zone → 读取；区域 → DNS → 读取；区域 → Workers Routes → 编辑。不要使用 Global API Key。"
+msgstr ""
+
+msgid "来源与频率"
+msgstr "Sources and Schedule"
+
+msgid "来源与频率说明"
+msgstr ""
+
+msgid "来源为填写者声明，检测通过不代表维护方背书或长期可靠。"
+msgstr ""
+
+msgid "来源待确认"
+msgstr ""
+
+msgid "来源说明"
+msgstr ""
+
+msgid "查看 GL.iNet 记录的累计用量。"
+msgstr "View traffic totals recorded by GL.iNet."
+
+msgid "查看保存节点与检测结果"
+msgstr ""
+
+msgid "查看候选与逐项结果"
+msgstr ""
+
+msgid "查看分流"
+msgstr "View Routing"
+
+msgid "查看官方团队名称说明"
+msgstr ""
+
+msgid "查看当前出口和接管范围"
+msgstr ""
+
+msgid "查看线路路径"
+msgstr "View Traffic Paths"
+
+msgid "查看设备"
+msgstr "View Devices"
+
+msgid "查看详情"
+msgstr "View Details"
+
+msgid "查询 Worker 实例切换记录"
+msgstr ""
+
+msgid "查询未完成，可重新搜索或刷新"
+msgstr ""
+
+msgid "查询："
+msgstr ""
+
+msgid "核对并应用异常候选"
+msgstr ""
+
+msgid "核对设备"
+msgstr "Check Devices"
+
+msgid "检查 DNS"
+msgstr "Check DNS"
+
+msgid "检查 WARP"
+msgstr "Check WARP"
+
+msgid "检查名称与域名占用"
+msgstr ""
+
+msgid "检查名称和子域名是否占用"
+msgstr ""
+
+msgid "检查账户"
+msgstr "Check account"
+
+msgid "检查部署与证书状态"
+msgstr ""
+
+msgid "检测 HTTPS 能否建立连接；耗时不是 Ping，也不代表视频速度或网站登录一定可用。"
+msgstr ""
+
+msgid "检测与测速"
+msgstr "Network diagnostics and speed tests"
+
+msgid "检测中"
+msgstr "Testing"
+
+msgid "检测中…"
+msgstr ""
+
+msgid "检测出口地区"
+msgstr "Check exit region"
+
+msgid "检测到规则数量异常下降，本次候选尚未覆盖当前版本："
+msgstr ""
+
+msgid "检测到防火墙流量卸载"
+msgstr ""
+
+msgid "检测已中断或超时，结果未知；可以重新检测。"
+msgstr ""
+
+msgid "检测当前 DNS 解析"
+msgstr ""
+
+msgid "检测时间："
+msgstr ""
+
+msgid "检测线路"
+msgstr ""
+
+msgid "检测通过后手动启用备用。"
+msgstr "Enable the backup manually after testing."
+
+msgid "正在优选，已完成 "
+msgstr ""
+
+msgid "正在准备或更新订阅。"
+msgstr "Preparing or updating the subscription."
+
+msgid "正在切换，等待后台确认…"
+msgstr ""
+
+msgid "正在只读刷新；已保存绑定不变。 "
+msgstr ""
+
+msgid "正在应用分流配置"
+msgstr ""
+
+msgid "正在强制逐项检测，已完成 "
+msgstr ""
+
+msgid "正在恢复已保存的设置"
+msgstr ""
+
+msgid "正在提交 DNS 检测…"
+msgstr ""
+
+msgid "正在提交操作，请勿重复点击…"
+msgstr ""
+
+msgid "正在提交测速"
+msgstr ""
+
+msgid "正在提交规则变更…"
+msgstr ""
+
+msgid "正在提交，应用可能短暂重连…"
+msgstr ""
+
+msgid "正在检查本插件配置…"
+msgstr ""
+
+msgid "正在检查账户。"
+msgstr "Checking account access…"
+
+msgid "正在检测地区…"
+msgstr "Checking exit region…"
+
+msgid "正在检测备用线路，通过后继续启用…"
+msgstr ""
+
+msgid "正在检测，最长约 10 秒…"
+msgstr ""
+
+msgid "正在检测，最长约 40 秒…"
+msgstr ""
+
+msgid "正在测试候选服务器…"
+msgstr ""
+
+msgid "正在测速…"
+msgstr ""
+
+msgid "正在测量入口握手…"
+msgstr ""
+
+msgid "正在独立检测，最长约 90 秒；主线路未切换…"
+msgstr ""
+
+msgid "正在等待主线路状态。"
+msgstr "Waiting for the primary connection status."
+
+msgid "正在观测，但存在漏采或计数重置，数据不完整。"
+msgstr ""
+
+msgid "正在请求检测，等待新结果"
+msgstr ""
+
+msgid "正在读取…"
+msgstr ""
+
+msgid "正在读取入口设置…"
+msgstr ""
+
+msgid "正在读取协议…"
+msgstr "Reading protocol…"
+
+msgid "正在读取备用状态…"
+msgstr ""
+
+msgid "正在读取实际运行状态…"
+msgstr ""
+
+msgid "正在读取已下载版本的来源…"
+msgstr ""
+
+msgid "正在读取当前更新计划…"
+msgstr ""
+
+msgid "正在读取接收观测…"
+msgstr ""
+
+msgid "正在读取流量观测…"
+msgstr "Loading traffic statistics…"
+
+msgid "正在读取独立 DNS 状态…"
+msgstr ""
+
+msgid "正在读取规则内容…"
+msgstr ""
+
+msgid "正在读取规则状态…"
+msgstr ""
+
+msgid "正在读取设备流量…"
+msgstr ""
+
+msgid "正在读取账户出口，请稍候（客户端查询最长约 8 秒）…"
+msgstr ""
+
+msgid "正在进行只读接收观测。"
+msgstr ""
+
+msgid "正在连接并验证原出口…"
+msgstr ""
+
+msgid "正常"
+msgstr "Operational"
+
+msgid "此候选因规则数量异常下降而被暂缓。确认后以此候选替换已保存订阅，个人覆盖继续保留。"
+msgstr ""
+
+msgid "此地址仅通过 %s 测试。选用时会同时修改国内和代理 DNS 共用的传输设置，保存并应用后生效。"
+msgstr "This resolver passed only over %s. Selecting it also changes the transport shared by domestic and proxy DNS. Save and apply to use the changes."
+
+msgid "此时段没有采集数据"
+msgstr ""
+
+msgid "此条目将从本分类的实际生效规则中排除。排除记录会长期保存，订阅更新不会把它重新加入；可在“个人排除”中撤销。"
+msgstr ""
+
+msgid "此条目将作为个人规则加入本分类，长期保留，不会被订阅更新覆盖。"
+msgstr ""
+
+msgid "此记录属于其他团队，请为当前团队新增客户端。"
+msgstr "This record belongs to another team. Add a client for the current team."
+
+msgid "每条注册使用一种协议。"
+msgstr "Each registration uses one protocol."
+
+msgid "没有 API 令牌？按这里创建（新手指引）"
+msgstr ""
+
+msgid "没有受保护设备"
+msgstr ""
+
+msgid "没有当前有效的推荐结果；历史结果或没有通过的入口不能当作已完成优化。"
+msgstr ""
+
+msgid "没有符合条件的规则。可清空搜索，或选择其他分类、内容范围。"
+msgstr ""
+
+msgid "没有采集数据"
+msgstr ""
+
+msgid "注册后分配"
+msgstr "Assigned on Registration"
+
+msgid "注册此路由器"
+msgstr ""
+
+msgid "注册独立客户端"
+msgstr "Register Client"
+
+msgid "注册资料核验时间"
+msgstr "Registration Checked"
+
+msgid "流量统计时段"
+msgstr "Traffic Period"
+
+msgid "流量观测"
+msgstr ""
+
+msgid "测一下"
+msgstr ""
+
+msgid "测试 WARP 启动解析"
+msgstr ""
+
+msgid "测试代理 DNS 候选"
+msgstr ""
+
+msgid "测试国内 DNS 候选"
+msgstr ""
+
+msgid "测试未完成，请重试。"
+msgstr ""
+
+msgid "测试结果"
+msgstr "Test results"
+
+msgid "测速"
+msgstr ""
+
+msgid "测速已完成，已恢复保存的设置"
+msgstr ""
+
+msgid "测速或恢复未完成，请查看总览"
+msgstr ""
+
+msgid "测速期间暂停受管设备的代理流量，受保护设备保持断网。测速最长 %s 秒，随后恢复已保存配置。"
+msgstr ""
+
+msgid "测速站点限流"
+msgstr ""
+
+msgid "测速结果"
+msgstr ""
+
+msgid "测速超时"
+msgstr ""
+
+msgid "测量已有候选"
+msgstr ""
+
+msgid "测量未完成"
+msgstr ""
+
+msgid "测量线路速度和网站连通性"
+msgstr "Measure throughput and website connectivity"
+
+msgid "测量路由器到出口的速度，局域网设备体验需另测。"
+msgstr ""
+
+msgid "浏览器不支持安全请求标识，请更新浏览器后重试"
+msgstr ""
+
+msgid "浏览规则，维护长期保留的个人新增和排除"
+msgstr "Browse rules and manage persistent additions and exclusions"
+
+msgid "添加个人规则"
+msgstr ""
+
+msgid "添加候选"
+msgstr ""
+
+msgid "添加设备"
+msgstr "Add Device"
+
+msgid "添加设备策略"
+msgstr "Add Device Policy"
+
+msgid "清理本插件 DNS 缓存"
+msgstr ""
+
+msgid "清除本机 API 令牌"
+msgstr ""
+
+msgid "清除本机 API 授权"
+msgstr ""
+
+msgid "源配置时间："
+msgstr ""
+
+msgid "点击“邮箱登录”，在弹窗打开团队登录地址。使用组织允许的邮箱收验证码，或按组织要求完成登录。"
+msgstr ""
+
+msgid "点击下方按钮。它只启动独立登录环境，不接管局域网，不需要先打开总开关。"
+msgstr ""
+
+msgid "版本待读取"
+msgstr "Loading Version"
+
+msgid "版本未知"
+msgstr "Unknown Version"
+
+msgid "状态变化"
+msgstr ""
+
+msgid "状态已过期，当前连接未确认"
+msgstr "Status expired. The connection is unconfirmed."
+
+msgid "状态待确认"
+msgstr "Status unconfirmed"
+
+msgid "状态更新时间："
+msgstr "Status updated: "
+
+msgid "独立 DNS 正在运行"
+msgstr ""
+
+msgid "独立 DNS 状态与缓存"
+msgstr ""
+
+msgid "独立开关"
+msgstr "Routing Switch"
+
+msgid "独立检测与测速"
+msgstr ""
+
+msgid "独立检测与测速（约 1 MiB）"
+msgstr ""
+
+msgid "独立检测已结束，但未通过、已过期或节点已变化；当前不能据此启用备用。"
+msgstr ""
+
+msgid "独立检测通过后，可手动启用备用。"
+msgstr ""
+
+msgid "独立维护始终直连和始终代理的规则"
+msgstr "Manage always-direct and always-proxied rules"
+
+msgid "独立设备策略"
+msgstr "Per-device policies"
+
+msgid "现在重新选择"
+msgstr ""
+
+msgid "生效国内上游："
+msgstr ""
+
+msgid "用当前 Worker 测试最多 8 个入口。"
+msgstr ""
+
+msgid "登录团队"
+msgstr "Sign In to Your Team"
+
+msgid "登录成功页的完整登录链接"
+msgstr ""
+
+msgid "登录独立路由器客户端"
+msgstr ""
+
+msgid "登录环境尚未确认就绪，请先准备路由器登录环境并等待状态更新。"
+msgstr ""
+
+msgid "登录环境已就绪"
+msgstr ""
+
+msgid "登录环境已就绪，分流尚未开启；已读到 "
+msgstr ""
+
+msgid "登录环境已就绪；出口目录暂未取得，可重新检查账户，或到分流设置刷新目录"
+msgstr ""
+
+msgid "登录身份与主线路连接协议"
+msgstr "Sign-in and primary tunnel protocol"
+
+msgid "目录可能已变化，上次读取："
+msgstr "Directory may have changed. Last read: "
+
+msgid "目录已读取（未验证联网）"
+msgstr ""
+
+msgid "目录待确认"
+msgstr "Directory unconfirmed"
+
+msgid "目录暂不可用，请刷新；不代表账户没有出口。"
+msgstr "Directory unavailable. Refresh to check account exits."
+
+msgid "目录读取与检测状态"
+msgstr ""
+
+msgid "目录读取时间："
+msgstr "Directory read at: "
+
+msgid "目录超过 16 个出口，请选择单个测试。"
+msgstr ""
+
+msgid "目标版本："
+msgstr ""
+
+msgid "直接导入／二维码"
+msgstr "Direct Import / QR Code"
+
+msgid "直接连接节点域名 · 443"
+msgstr ""
+
+msgid "直接选择账户出口与接管范围"
+msgstr "Choose an account exit and routing scope"
+
+msgid "直连和代理各最多下载 200 MB。测速从路由器发起。"
+msgstr ""
+
+msgid "直连域名"
+msgstr ""
+
+msgid "直连域名名单"
+msgstr ""
+
+msgid "直连线路 · 已观测"
+msgstr "Direct · Observed"
+
+msgid "短暂中断，等待原客户端恢复"
+msgstr ""
+
+msgid "短测，非带宽上限"
+msgstr ""
+
+msgid "确认"
+msgstr "Confirm"
+
+msgid "确认个人新增"
+msgstr ""
+
+msgid "确认删除个人新增"
+msgstr ""
+
+msgid "确认变更"
+msgstr ""
+
+msgid "确认应用异常候选"
+msgstr ""
+
+msgid "确认应用此候选"
+msgstr ""
+
+msgid "确认恢复上一版已保存订阅？个人覆盖、来源和更新频率设置保持当前值；后续自动更新仍按保存的计划执行。"
+msgstr ""
+
+msgid "确认恢复上一版规则"
+msgstr ""
+
+msgid "确认恢复并验证"
+msgstr ""
+
+msgid "确认恢复此版本"
+msgstr ""
+
+msgid "确认撤销排除"
+msgstr ""
+
+msgid "确认有效期至："
+msgstr ""
+
+msgid "确认测速"
+msgstr ""
+
+msgid "确认线路对比测速"
+msgstr ""
+
+msgid "确认重建"
+msgstr ""
+
+msgid "确认长期排除"
+msgstr ""
+
+msgid "私人备用节点链接"
+msgstr ""
+
+msgid "私密 API 令牌"
+msgstr ""
+
+msgid "移除"
+msgstr ""
+
+msgid "空答案"
+msgstr ""
+
+msgid "立即更新已保存来源"
+msgstr ""
+
+msgid "站点返回 HTTP "
+msgstr ""
+
+msgid "等待 WARP 实例启动"
+msgstr ""
+
+msgid "等待主线路开始测速"
+msgstr ""
+
+msgid "等待出口和 DNS 就绪"
+msgstr ""
+
+msgid "等待后台联网检测"
+msgstr "Waiting for automatic connectivity checks"
+
+msgid "等待开始"
+msgstr "Ready to start"
+
+msgid "等待异常候选确认，自动更新暂缓"
+msgstr ""
+
+msgid "等待当前云端操作完成。"
+msgstr ""
+
+msgid "等待当前备用操作完成。"
+msgstr "Wait for the current backup operation to finish."
+
+msgid "等待当前转发操作完成。"
+msgstr ""
+
+msgid "等待本次 DNS 检测作业，最长约 40 秒…"
+msgstr ""
+
+msgid "等待本次入口优选完成。"
+msgstr ""
+
+msgid "等待核对设备地址"
+msgstr "Waiting to verify device addresses"
+
+msgid "等待检测"
+msgstr ""
+
+msgid "等待结果"
+msgstr ""
+
+msgid "等待设备 DHCP 租约"
+msgstr ""
+
+msgid "等待超过120秒，结果尚未确认；请读取当前状态，勿将保存成功当成已应用。"
+msgstr ""
+
+msgid "等待连接"
+msgstr "Waiting for Connection"
+
+msgid "答案异常"
+msgstr ""
+
+msgid "策略路由表"
+msgstr ""
+
+msgid "管理全部出口 →"
+msgstr ""
+
+msgid "管理手机等设备的独立身份与出口，不影响路由器主线路、DNS 和分流。"
+msgstr "Manage separate identities and exits for phones and other devices. Router settings are unaffected."
+
+msgid "粘贴 VLESS＋WS＋TLS 链接"
+msgstr ""
+
+msgid "系统会检查占用；不用先到 Cloudflare 添加这条 DNS。"
+msgstr ""
+
+msgid "累计"
+msgstr "Total"
+
+msgid "累计为自此时间起的观测下限："
+msgstr ""
+
+msgid "约每 100 毫秒采样，每秒更新。队列表示内核接收内存，峰值取最近约 60 秒。新增丢弃从各连接建立观测基线后累计，包含已识别隧道和其他公网 UDP。"
+msgstr ""
+
+msgid "线路对比测速中"
+msgstr ""
+
+msgid "线路已变化，本次结果失效。"
+msgstr ""
+
+msgid "线路或候选已变化，请重新测量。"
+msgstr ""
+
+msgid "线路正在重连或重新应用入口"
+msgstr ""
+
+msgid "线路测速"
+msgstr ""
+
+msgid "线路等待恢复"
+msgstr "Waiting for tunnel recovery"
+
+msgid "线路运行后可检测地区。"
+msgstr "You can check the region once the connection is running."
+
+msgid "组织名称"
+msgstr ""
+
+msgid "组织名称已保存"
+msgstr ""
+
+msgid "组织名称（只在首次登录时填写）"
+msgstr ""
+
+msgid "组织策略"
+msgstr ""
+
+msgid "绑定的子域名"
+msgstr ""
+
+msgid "结果"
+msgstr ""
+
+msgid "结果记录时间："
+msgstr ""
+
+msgid "统计口径与采样详情"
+msgstr ""
+
+msgid "缓存条目："
+msgstr ""
+
+msgid "编辑来源与频率"
+msgstr ""
+
+msgid "编辑设备策略"
+msgstr "Edit Device Policy"
+
+msgid "缺少本次保存确认，未启动登录环境"
+msgstr ""
+
+msgid "网站"
+msgstr ""
+
+msgid "网站检测"
+msgstr "Website test"
+
+msgid "网站连通性检测"
+msgstr ""
+
+msgid "联网检测"
+msgstr "Run Connection Checks"
+
+msgid "自动优选"
+msgstr ""
+
+msgid "自动优选 Cloudflare 入口 IP"
+msgstr ""
+
+msgid "自动更新使用已保存的来源与间隔。"
+msgstr ""
+
+msgid "自动更新间隔（小时）"
+msgstr ""
+
+msgid "自动更新频率"
+msgstr ""
+
+msgid "自定义"
+msgstr ""
+
+msgid "自定义 IPv4，最多 4 个"
+msgstr ""
+
+msgid "自定义分流"
+msgstr "Custom Routing"
+
+msgid "自定义分流设置"
+msgstr ""
+
+msgid "自定义地址 / 保留当前地址"
+msgstr ""
+
+msgid "自己填写"
+msgstr ""
+
+msgid "至少保留一项候选。"
+msgstr "Keep at least one candidate."
+
+msgid "若浏览器询问是否打开电脑上的 Cloudflare 应用，选择取消。你要注册的是新路由器，不是这台电脑。"
+msgstr ""
+
+msgid "虚拟 IPv4"
+msgstr "Virtual IPv4"
+
+msgid "虚拟 IPv6"
+msgstr "Virtual IPv6"
+
+msgid "观测下限，不作账单；历史可能存在采集中断。"
+msgstr ""
+
+msgid "观测开始："
+msgstr ""
+
+msgid "规则与更新"
+msgstr "Rules and Updates"
+
+msgid "规则与更新页面"
+msgstr ""
+
+msgid "规则与状态目录"
+msgstr ""
+
+msgid "规则内容浏览"
+msgstr ""
+
+msgid "规则内容范围"
+msgstr ""
+
+msgid "规则内容读取失败："
+msgstr ""
+
+msgid "规则分类"
+msgstr ""
+
+msgid "规则分类 "
+msgstr ""
+
+msgid "规则变更可能影响受管设备的分流；保存成功后仍需确认运行状态。版本已变化或候选已过期时，操作会拒绝执行。"
+msgstr ""
+
+msgid "规则变更未完成："
+msgstr ""
+
+msgid "规则已保存，正在确认实际生效状态。"
+msgstr ""
+
+msgid "规则更新反馈"
+msgstr "Rule Update Status"
+
+msgid "规则更新请求未确认。"
+msgstr ""
+
+msgid "规则更新进度"
+msgstr ""
+
+msgid "规则更新需要主线路已开启或登录环境已就绪；当前仅可浏览已有规则。"
+msgstr ""
+
+msgid "规则来源与更新频率"
+msgstr ""
+
+msgid "规则正在更新"
+msgstr ""
+
+msgid "规则版本与个人覆盖"
+msgstr ""
+
+msgid "规则版本与执行计划"
+msgstr ""
+
+msgid "规则版本或查询条件已改变，请刷新后重试"
+msgstr ""
+
+msgid "规则状态读取失败："
+msgstr ""
+
+msgid "规则管理"
+msgstr "Manage Rules"
+
+msgid "解析、缓存与候选测试"
+msgstr "Resolution, cache and resolver tests"
+
+msgid "解析明细"
+msgstr "Resolution details"
+
+msgid "计数范围和起点取决于固件。请在固件的流量页面核对统计范围。"
+msgstr "Counting coverage and start time depend on the firmware. Check the firmware traffic page for coverage."
+
+msgid "订阅内容已核对；手机是否已更新尚未检测"
+msgstr "Subscription content verified. Check the update on your phone."
+
+msgid "订阅原始规则"
+msgstr ""
+
+msgid "订阅结果待核对，原链接保留。"
+msgstr "Subscription unconfirmed. The original link is retained."
+
+msgid "订阅预设"
+msgstr ""
+
+msgid "设备"
+msgstr "Devices"
+
+msgid "设备分流"
+msgstr "Device Routing"
+
+msgid "设备名称"
+msgstr "Device Name"
+
+msgid "设备断网保护"
+msgstr "Device Leak Protection"
+
+msgid "设备流量"
+msgstr ""
+
+msgid "设备流量读取失败，请刷新重试。"
+msgstr ""
+
+msgid "设备策略"
+msgstr "Device Policies"
+
+msgid "设备累计流量"
+msgstr ""
+
+msgid "设置合适的到期时间。创建后复制令牌，仅粘贴到本页私密输入框，不发聊天、不放普通备份。"
+msgstr ""
+
+msgid "设置已保存，等待主线路开启后由后台应用。"
+msgstr ""
+
+msgid "设置已保存，等待后台处理本次请求…"
+msgstr ""
+
+msgid "设置已变化，已按当前设置恢复"
+msgstr ""
+
+msgid "访问受限"
+msgstr ""
+
+msgid "访问受限 / 限流"
+msgstr ""
+
+msgid "详情"
+msgstr "Details"
+
+msgid "详情与诊断"
+msgstr "Details and Diagnostics"
+
+msgid "说明"
+msgstr ""
+
+msgid "请先保存备用节点。"
+msgstr ""
+
+msgid "请先到“总览”关闭总开关；已有连接无需重新登录。"
+msgstr ""
+
+msgid "请先在总览启用 WARP 主线路。"
+msgstr "Enable the primary WARP connection in Overview first."
+
+msgid "请先在总览手动开启，并等待主线路已连接后再检测。"
+msgstr ""
+
+msgid "请先开启 imOK 并确认当前线路状态。"
+msgstr ""
+
+msgid "请先点击“同步凭据与出口”，读取此身份可用的团队出口。"
+msgstr "Choose Sync Credentials and Exits to load the team's exits for this identity."
+
+msgid "请先读取账户下可用域名"
+msgstr ""
+
+msgid "请先输入需要新增的域名或 IP 网段。"
+msgstr ""
+
+msgid "请先选择候选入口或填写 IPv4:端口"
+msgstr ""
+
+msgid "请刷新页面核对配置后再重试。"
+msgstr ""
+
+msgid "请单独保留个人规则新增和排除、WARP 更新检查频率、运行环境、下载规则和历史统计，以及路由器身份、API 令牌、备用节点凭据、客户端独立身份及私密订阅凭据。"
+msgstr ""
+
+msgid "请另行检测实际出口。"
+msgstr ""
+
+msgid "请在 Cloudflare Zero Trust 创建服务令牌，并在团队的设备注册权限中添加匹配该令牌的 Service Auth 规则。"
+msgstr "Create a service token in Cloudflare Zero Trust and add a matching Service Auth rule to the team's device enrollment permissions."
+
+msgid "请明确选择一个账户出口"
+msgstr ""
+
+msgid "请核对当前状态，再重试。"
+msgstr "Check the current status before retrying."
+
+msgid "请核对提示后重试。"
+msgstr ""
+
+msgid "请检查代理设备及其断网保护设置"
+msgstr ""
+
+msgid "请检查保护范围和设备设置"
+msgstr ""
+
+msgid "请检查权限或连接后重新读取。"
+msgstr "Check permissions or connectivity and retry."
+
+msgid "请求已提交，正在等待后台接收确认"
+msgstr ""
+
+msgid "请求已提交，等待后台开始更新…"
+msgstr ""
+
+msgid "请等待本次检测完成。"
+msgstr ""
+
+msgid "请粘贴邮箱登录后的授权链接或团队 JWT"
+msgstr "Paste the authorization link or team JWT from your email sign-in."
+
+msgid "请读取当前状态，核对恢复结果。"
+msgstr "Refresh the status to check the recovery result."
+
+msgid "请输入 RESTORE"
+msgstr ""
+
+msgid "请选择 1–8 个 LAN 接口"
+msgstr ""
+
+msgid "请选择出口"
+msgstr "Select an Exit"
+
+msgid "请选择已授权账户"
+msgstr ""
+
+msgid "请选择根域名"
+msgstr ""
+
+msgid "请选择节点，不会自动选择"
+msgstr ""
+
+msgid "请选择设备，或手动填写"
+msgstr "Select a device or enter its details"
+
+msgid "请重新测试候选，确认所选传输方式。"
+msgstr "Retest the candidates to verify the selected transport."
+
+msgid "读取中"
+msgstr "Loading"
+
+msgid "读取到的客户端协议："
+msgstr ""
+
+msgid "读取同一团队的云端出口目录；不会跟随路由器切换线路。"
+msgstr "Reads this team's exit directory. The router's exit can change independently."
+
+msgid "读取后选择候选"
+msgstr ""
+
+msgid "读取失败，请重试；当前出口与配置未改动。若持续失败，请检查登录环境。"
+msgstr ""
+
+msgid "读取实例切换记录"
+msgstr ""
+
+msgid "读取客户端最新本地候选（不切换）"
+msgstr ""
+
+msgid "读取当前协议"
+msgstr "Read current protocol"
+
+msgid "读取当前设置 / 应用结果"
+msgstr ""
+
+msgid "读取账户域名并选择部署子域名。"
+msgstr ""
+
+msgid "账户 ID（可选，手工填写）"
+msgstr ""
+
+msgid "账户与协议"
+msgstr "Account and Protocol"
+
+msgid "账户出口"
+msgstr ""
+
+msgid "账户出口、国家 / 地区与接管范围"
+msgstr ""
+
+msgid "账户出口列表"
+msgstr ""
+
+msgid "账户可读取"
+msgstr ""
+
+msgid "账户可选网络"
+msgstr ""
+
+msgid "账户和区域资源只选此次要部署的账户和域名。"
+msgstr "Limit account and zone access to the account and domain for this deployment."
+
+msgid "账户已变更，请重新读取域名"
+msgstr ""
+
+msgid "账户已就绪"
+msgstr "Account ready"
+
+msgid "账户待确认"
+msgstr ""
+
+msgid "账户待确认。已有账户可直接检查，首次使用请按下方步骤登录。"
+msgstr "Account access is unconfirmed. Check an existing account or follow the sign-in steps below."
+
+msgid "账户目录中没有可选虚拟网络。"
+msgstr ""
+
+msgid "账户目录可访问；无需重复注册"
+msgstr ""
+
+msgid "账户目录已可访问，无需重复邮箱注册。"
+msgstr ""
+
+msgid "账户目录时间与刷新"
+msgstr ""
+
+msgid "超时"
+msgstr ""
+
+msgid "跟随默认"
+msgstr "Use Default"
+
+msgid "路由器 CPU 平均 "
+msgstr ""
+
+msgid "路由器将使用本团队已保存的服务授权，为此设备申请独立身份。"
+msgstr "The router will use this team's saved authorization to register a separate identity for this device."
+
+msgid "路由器的开机保护入口未启用"
+msgstr ""
+
+msgid "路由器网站检测已通过"
+msgstr "Router website checks passed."
+
+msgid "身份与核对信息"
+msgstr "Identity Details"
+
+msgid "转发主机:端口"
+msgstr ""
+
+msgid "转发异常："
+msgstr ""
+
+msgid "较长时间未收到完成确认，当前结果未知；请只读检查状态，避免反复创建。"
+msgstr ""
+
+msgid "运行版本："
+msgstr ""
+
+msgid "运行状态尚未确认"
+msgstr "Runtime status unconfirmed"
+
+msgid "运行状态已过期，无法确认 WARP 或直连是否生效；请检查服务。"
+msgstr ""
+
+msgid "运行状态："
+msgstr ""
+
+msgid "近 7 天"
+msgstr ""
+
+msgid "近七天已观测流量，蓝色代理，青色直连"
+msgstr ""
+
+msgid "近期所测网站通过"
+msgstr "Recent website checks passed"
+
+msgid "还未确认协议是否由组织管理。"
+msgstr "Protocol management status is unconfirmed."
+
+msgid "还没有客户端"
+msgstr "No Clients Yet"
+
+msgid "还没有设备策略。点击「添加设备」开始设置。"
+msgstr "No device policies yet. Choose Add Device to get started."
+
+msgid "这是 WARP 主线路的出口；启用下方备用线路时暂不使用此出口。按设备分流不会改变主线路出口。列表来自当前账户，已列出不代表可用，读取不会切换。"
+msgstr ""
+
+msgid "这是上次保存目标的结果；表单有未保存编辑，不能代表新目标已经创建。"
+msgstr ""
+
+msgid "这里是客户端读取结果；编辑项保留在右侧，不会因读取而提交。"
+msgstr ""
+
+msgid "这项已在列表底部。"
+msgstr "This candidate is last in the list."
+
+msgid "这项已在列表顶部。"
+msgstr "This candidate is first in the list."
+
+msgid "连接入口："
+msgstr ""
+
+msgid "连接协议"
+msgstr "Connection Protocol"
+
+msgid "连接已恢复 / 已运行"
+msgstr ""
+
+msgid "连接已改变，请刷新后确认缓存状态"
+msgstr ""
+
+msgid "连接异常"
+msgstr ""
+
+msgid "连接成功 "
+msgstr ""
+
+msgid "连接数："
+msgstr ""
+
+msgid "连接状态"
+msgstr "Connection Status"
+
+msgid "连接记录与开关说明"
+msgstr ""
+
+msgid "连接详情"
+msgstr "Connection Details"
+
+msgid "选好出口后，点击「保存并应用」。"
+msgstr "Choose an exit, then select Save & Apply."
+
+msgid "选择"
+msgstr ""
+
+msgid "选择「账户与协议」中团队所属的账户。首次绑定需允许读取该账户的 Zero Trust 组织。"
+msgstr ""
+
+msgid "选择代理出口"
+msgstr "Choose a proxy exit"
+
+msgid "选择代理出口和设备接管范围。"
+msgstr ""
+
+msgid "选择候选入口"
+msgstr ""
+
+msgid "选择出口"
+msgstr "Select an Exit"
+
+msgid "选择官方客户端本地候选中的一个 IPv4 入口。应用并检测后固定使用；失败将尝试恢复并验证原入口。定期同步候选不会自动更换固定入口。"
+msgstr ""
+
+msgid "选择局域网"
+msgstr "Select a LAN"
+
+msgid "选择已保存（未验证运行）"
+msgstr ""
+
+msgid "选择已授权的 Cloudflare 账户"
+msgstr ""
+
+msgid "选择并应用团队出口，再扫码或下载配置导入小火箭。"
+msgstr "Apply a team exit, then scan the code or import the downloaded profile into Shadowrocket."
+
+msgid "选择或编辑订阅地址，设置自动更新间隔"
+msgstr "Choose subscription URLs and the update interval"
+
+msgid "选择文件即导入，完成后分流关闭。"
+msgstr ""
+
+msgid "选择根域名后自动组成"
+msgstr ""
+
+msgid "选择设备"
+msgstr "Select Devices"
+
+msgid "选择设备后自动填入 MAC 地址和当前 IPv4。列表中找不到设备时，可按路由器的 DHCP 租约手动填写。"
+msgstr "Selecting a device fills in its MAC address and current IPv4. If it is missing, enter the values from the router's DHCP lease."
+
+msgid "选择账户下可用的根域名"
+msgstr ""
+
+msgid "选择账户出口后保存并应用。"
+msgstr ""
+
+msgid "选择预设或编辑 HTTPS 地址后保存；自动更新按计划执行，立即下载请到"
+msgstr ""
+
+msgid "逐台选择分流模式，启用的设备共用所选代理出口。"
+msgstr ""
+
+msgid "逐项强制检测 PROXYIP"
+msgstr ""
+
+msgid "逐项检测结束：通过 "
+msgstr ""
+
+msgid "通过"
+msgstr ""
+
+msgid "避免电脑尚未关闭 Cloudflare One 时叠加隧道；关闭电脑客户端后，普通网页仍按本插件分流。"
+msgstr ""
+
+msgid "邮箱授权"
+msgstr "Email Authorization"
+
+msgid "邮箱登录"
+msgstr ""
+
+msgid "邮箱验证与路由器注册"
+msgstr ""
+
+msgid "部分 DNS 入口未就绪或没有完整解析结果"
+msgstr ""
+
+msgid "部分 DNS 解析检测失败"
+msgstr ""
+
+msgid "部分可用"
+msgstr "Partially Available"
+
+msgid "部分网站检测失败"
+msgstr "Some website checks failed"
+
+msgid "部署、优选和独立检测"
+msgstr ""
+
+msgid "部署与授权"
+msgstr ""
+
+msgid "部署与授权操作结果"
+msgstr ""
+
+msgid "部署就绪，待设为备用"
+msgstr ""
+
+msgid "配置入口不等于实际远端观测；自定义地址未经检测。"
+msgstr ""
+
+msgid "配置名"
+msgstr ""
+
+msgid "配置导出失败。"
+msgstr ""
+
+msgid "配置已应用，等待规则更新反馈…"
+msgstr ""
+
+msgid "配置已提交，正在等待实际应用结果…"
+msgstr ""
+
+msgid "配置应用"
+msgstr "Settings Applied"
+
+msgid "配置提交未确认。"
+msgstr "Settings submission is unconfirmed."
+
+msgid "配置未保存，后续操作未执行"
+msgstr ""
+
+msgid "采集已暂停或过期；以下仅为历史观测，不是当前用量。"
+msgstr ""
+
+msgid "采集开始后显示每日趋势。"
+msgstr ""
+
+msgid "重新选择启动解析"
+msgstr ""
+
+msgid "链接只保存在路由器私有文件，不进入普通配置导出。"
+msgstr ""
+
+msgid "长期排除"
+msgstr ""
+
+msgid "防火墙保护规则已重建"
+msgstr ""
+
+msgid "阻断 IPv6"
+msgstr "Block IPv6"
+
+msgid "阻断 IPv6（默认）"
+msgstr ""
+
+msgid "阻断：禁止受管设备 IPv6 转发并过滤本插件 DNS 的 AAAA。允许直连：IPv6 不经过代理隧道，也不遵循本插件代理或域名规则，可能使用宽带真实出口；不创建 IPv6 网络，不覆盖其他防火墙。LAN 模式统一作用于所有勾选接口，忽略设备表覆盖；按设备模式可单独选择。未接管设备不受此选项影响。"
+msgstr ""
+
+msgid "隧道状态"
+msgstr "Tunnel Status"
+
+msgid "需在手机客户端查看"
+msgstr "Check in the phone client"
+
+msgid "页面底部“保存并应用”只提交本页设置；读取、检测和清缓存不会提交编辑。"
+msgstr ""
+
+msgid "项目归属与占用"
+msgstr ""
+
+msgid "预注册公钥指纹（用于结果未知时核对）"
+msgstr "Pre-registration public key fingerprint for checking uncertain results"
+
+msgid "首次使用"
+msgstr "Getting Started"
+
+msgid "首次使用请先安装路由器的 WARP 运行环境。"
+msgstr ""
+
+msgid "首次填写；已保存时留空即可保留。"
+msgstr ""
+
+msgid "首次登录与重新注册"
+msgstr "First-time sign-in and re-registration"
+
+msgid "首次绑定或更换账户时，添加账户权限 Access: Organizations, Identity Providers, and Groups → 读取。"
+msgstr "For initial setup or an account change, grant Read access to Access: Organizations, Identity Providers, and Groups."
+
+msgid "验证域名："
+msgstr ""
+
+msgid "验证账户"
+msgstr ""
+
+msgid "高级连接参数"
+msgstr "Advanced Connection Parameters"
+
+msgid "默认每24小时读取客户端本地候选"
+msgstr ""
+
+msgid "默认网络不作为可选出口。目录名称与选择状态随同步更新。"
+msgstr "Choose a named exit. Sync to update names and selection status."
+
+msgid "默认跟随现有客户端设置。选择 MASQUE / WireGuard 后仅管理本路由器客户端，应用时重连；不自动换出口、不改其他设备或缓冲。WireGuard 尚未在本机切换验收。"
+msgstr ""
+
+msgid "默认：官方自动"
+msgstr ""
+
+msgid "（5 分钟内有效）"
+msgstr " (valid for 5 minutes)"
+
+msgid "（上次确认）"
+msgstr ""
+
+msgid "（上次读取）"
+msgstr " (last read)"
+
+msgid "（下载样本已用完）"
+msgstr ""
+
+msgid "（可能随连接变化）"
+msgstr ""
+
+msgid "（失败后的重试计划）"
+msgstr ""
+
+msgid "（已达测速上限）"
+msgstr " (download limit reached)"
+
+msgid "（当前暂停，恢复运行后再执行）"
+msgstr ""
+
+msgid "（正在更新）"
+msgstr ""
+
+msgid "，排除 "
+msgstr ""
+
+msgid "，直连 "
+msgstr ""
+
+msgid "，请保存。"
+msgstr ""
+
+msgid "，选择创建令牌 → 创建自定义令牌。"
+msgstr ""
+
+msgid "："
+msgstr ""
+
+msgid "：新增 "
+msgstr ""
+
+msgid "；保留上次目录"
+msgstr ""
+
+msgid "；尚未应用。可应用推荐入口，也可保留原入口进入下一步。"
+msgstr ""
+
+msgid "；已保存，下一步独立检测。"
+msgstr ""
+
+msgid "；直连上传 "
+msgstr ""
+
+msgid "；结果已过期、节点 / 候选改变或有项目未通过，请查看逐项结果。"
+msgstr ""
+
+msgid "；缓存控制暂不可用，转发仍独立运行"
+msgstr ""
+
+msgid "；请点击“应用已通过的主备顺序”，检测不会自动保存应用。"
+msgstr ""
+
+msgid "？ 客户端状态无法识别"
+msgstr "? Client status unrecognized"
+
+msgid "？ 状态未知"
+msgstr "? Unknown status"

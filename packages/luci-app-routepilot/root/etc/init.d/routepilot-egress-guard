@@ -1,0 +1,9 @@
+#!/bin/sh /etc/rc.common
+# Install the closed gate before netifd (START=20), without relying on ubus.
+START=18
+start() {
+	/usr/bin/python3 -B /usr/lib/routepilot/egress_guard.py boot
+}
+stop() {
+	: # The gate must stay installed until the router shuts down.
+}

@@ -61,3 +61,22 @@ assert.equal(feedback.workerJobProgress({state:'running',started_at:1,results:[]
 console.log('Worker feedback: old success isolation, real phase counters, certificate wait, errors and missing/expired confirmation passed');
 
 for(const state of ['unreachable','deployment_error'])assert.equal(feedback.workerJobProgress({...uploading,state},pending,104000,'cloud',0).state,'error');
+
+const saved = { enabled: true, nonce: 'n1' };
+const summary = (next, proof) => feedback.overviewSummary(saved, next, proof, now);
+assert.equal(feedback.overviewSummary({ enabled: false }, null, null, now).reason, 'disabled');
+assert.equal(summary({ ...status, time: 80 }).reason, 'stale');
+assert.equal(summary({ ...status, state: 'waiting_devices' }).reason, 'devices');
+assert.equal(summary({ ...status, egress_guard: 'blocking' }).reason, 'guard');
+assert.equal(summary({ ...status, applied_nonce: 'previous' }).reason, 'apply');
+assert.equal(summary({ ...status, tunnel_status: 'unknown' }).reason, 'unknown_tunnel');
+assert.equal(summary(status, 'error').reason, 'website');
+assert.equal(summary(status, 'success').reason, 'verified');
+assert.equal(summary(status, 'warning').state, 'partial');
+assert.deepEqual(summary(status, null), {
+  state: 'unverified',
+  reason: 'not_tested',
+  page: 'overview#imok-network-diagnostics'
+});
+assert.equal(summary(status, 'busy').state, 'unverified');
+assert.equal(summary(status, 'stale').state, 'unverified');

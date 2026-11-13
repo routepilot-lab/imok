@@ -1,0 +1,240 @@
+{
+  "version": "0.2.38-17",
+  "all_passed": true,
+  "checks": [
+    {
+      "check": "python-main",
+      "exit": 0,
+      "tests": 663,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "python-server",
+      "exit": 0,
+      "tests": 5,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "python-release",
+      "exit": 0,
+      "tests": 11,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "assets",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "versions",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "ruff",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "eslint",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "luci-contract",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_center_scope",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_client_access",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_client_modal_native",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_client_subscription_worker",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_diagnostics_contract",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_exit_loading",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_feedback_render",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_feedback_ui",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_flat_settings",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_guard_save",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_null_render",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_overview_loading",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_overview_v2",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_pages_v2",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_request_binding",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_rules_sections",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_rules_ui",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_runtime_ui",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_speed_ui",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_warp_dns_ui",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_wizard",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_worker_auto_enable",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "test_worker_template",
+      "exit": 0,
+      "tests": null,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "check": "syntax-build-integrity",
+      "status": "passed",
+      "exit": 0
+    }
+  ],
+  "integrity": {
+    "version": "0.2.38-17",
+    "syntax_files": 89,
+    "worker_hash": true,
+    "reproducible": true,
+    "package_sha256": "95b5e8d1030f79c7c32fa66fa020511610f7609d5d416eda3bb6cb4379e75810",
+    "package_files": 88
+  },
+  "release": {
+    "name": "imOK · Cloudflare 分流助手 v0.2.38-17",
+    "prerelease": true
+  }
+}

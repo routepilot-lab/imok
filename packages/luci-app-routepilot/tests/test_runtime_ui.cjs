@@ -19,8 +19,10 @@ function setup(){
  const rpc={exec(file,args=[]){calls.push([file,args]);if(file.endsWith('runtime-status'))return Promise.resolve({code:0,stdout:JSON.stringify(data)});if(args[0]==='prepare')return Promise.resolve({code:0,stdout:'{"ready":true}'});const req=JSON.parse(writes.at(-1)[1]);if(args[0]==='prepare-online')data={...data,online:{state:'ready',version:'2026.8.2115.0'},job:{state:'success',message:'模拟下载已准备，尚未安装'}};if(args[0]==='execute')data={...data,job:{state:'running',message:'模拟请求执行中'}};return Promise.resolve({code:0,stdout:JSON.stringify({request_id:req.request_id,...(args[0]==='plan'?{plan:{id:'b'.repeat(32),version:'2026.9.1.0',operation:req.payload.operation}}:{submitted:true})})});},write(...a){writes.push(a);return Promise.resolve();}};
  const Module=new Function('baseclass','fs','ui','poll','L','E','request','rpc','FormData',source)(Base,rpc,ui,{add(fn,interval){assert.equal(interval,2);tick=fn;}},{url:p=>'/'+p,env:{cgi_base:'/cgi-bin/luci'}},E,{post(url,form,options){uploads.push({url,fields:form.fields});options.progress({loaded:1,total:1});return Promise.resolve({json:()=>({size:1024})});}},{getSessionID:()=> 'SYNTHETIC session'},class Form{constructor(){this.fields={};}append(k,v){this.fields[k]=v;}}),module=new Module();
  const bind=payload=>{const id=(++serial).toString(16).padStart(32,'0');return {id,token:id+':synthetic',text:JSON.stringify({request_id:id,payload})};};
- return {module,render:()=>module.render(data,'style.css',bind),rpc,ui,dlg,doc,calls,writes,uploads,setData:d=>{data=d;},poll:()=>tick?.()};
+ return {module,render:()=>module.render(data,'style.css',bind,new Shared().when),rpc,ui,dlg,doc,calls,writes,uploads,setData:d=>{data=d;},poll:()=>tick?.()};
 }
+const sharedName=view.match(/require routepilot\.(page_shared_[a-f0-9]{12}) as pageShared/)[1];
+const Shared=new Function('baseclass','_',fs.readFileSync(path.join(root,'htdocs/luci-static/resources/routepilot',sharedName+'.js'),'utf8'))(Base,x=>x);
 const primary=['overview','runtime','cloudflare','clients','rules','backup'];assert.deepEqual(primary.map((key)=>menu['admin/services/routepilot/'+key].order),[0,1,2,3,4,5],'Primary entries need unique predictable order');
 (async()=>{
  const t=setup();await t.module.load();assert.deepEqual(t.calls,[['/usr/libexec/routepilot-runtime-status',[]]]);
@@ -35,6 +37,10 @@ const primary=['overview','runtime','cloudflare','clients','rules','backup'];ass
  await Promise.all([confirm.click(),confirm.click()]);assert.equal(c.calls.filter(v=>v[1][0]==='execute').length,1,'No duplicate upgrade submission');
  assert.equal(JSON.parse(c.writes.at(-1)[1]).payload.confirmation,'CONFIRM');assert.ok(page.textContent.includes('模拟请求执行中'));
  const check=setup(),checkPage=check.render();await find(checkPage,'检查更新').click();assert.equal(check.calls.filter(v=>v[1][0]==='check').length,1);assert.ok(!checkPage.textContent.includes('正在提交版本检查'),'Accepted check must clear its transient submitting message');
+ const unverified=setup();unverified.setData({...fixture(),cli_version_verified:false});
+ assert.ok(unverified.render().textContent.includes('此版本的 warp-cli 输出尚未验证'));
+ const verified=setup();verified.setData({...fixture(),cli_version_verified:true});
+ assert.ok(!verified.render().textContent.includes('此版本的 warp-cli 输出尚未验证'));
  const missing=setup();missing.setData({...fixture(),installed:false,runtime_exists:false,local_version:null,latest_version:null,update_available:false});const m=missing.render();assert.ok(m.textContent.includes('尚未安装'));assert.ok(!/null|undefined/.test(m.textContent));assert.ok(find(m,'备份并升级').disabled);
  const noRuntime={...fixture(),installed:false,runtime_exists:false,local_version:null,latest_version:null,update_available:false};
  const auto=setup();auto.setData(noRuntime);const a=auto.render();assert.equal(auto.writes.length,0,'Opening setup must not start downloading');assert.equal(find(a,'自动下载并准备安装').disabled,false);assert.ok(nodes(a).find(e=>e.tag==='details'&&e.textContent.startsWith('高级：离线')).attrs.open==null,'Offline import is advanced and initially collapsed');
@@ -45,8 +51,8 @@ const primary=['overview','runtime','cloudflare','clients','rules','backup'];ass
  const uploading=find(up,'上传运行环境包').click();for(let i=0;i<4;i++)await Promise.resolve();const file=nodes(u.dlg).find(e=>e.tag==='input'&&e.attrs.type==='file');file.files=[{name:'SYNTHETIC.tgz',size:1024}];await find(u.dlg,'上传文件').click();await uploading;assert.equal(u.uploads.length,1);assert.equal(u.uploads[0].url,'/cgi-bin/luci/cgi-upload');assert.equal(u.uploads[0].fields.filename,'/opt/routepilot/runtime-uploads/runtime.tgz');assert.equal(u.uploads[0].fields.sessionid,'SYNTHETIC session');assert.ok(up.textContent.includes('尚未安装'));assert.equal(u.calls.filter(v=>v[1][0]==='execute').length,0,'Upload cannot execute install');
  const offline=setup();offline.setData({...fixture(),latest_version:null,update_available:false,check:{state:'failed',message:'模拟网络中断'}});const o=offline.render();assert.ok(o.textContent.includes('检查失败'));assert.ok(find(o,'备份并升级').disabled);
  const readACL=JSON.parse(fs.readFileSync(path.join(root,'root/usr/share/rpcd/acl.d/luci-app-routepilot.json')))['luci-app-routepilot'];assert.ok(readACL.read.file['/usr/libexec/routepilot-runtime-status']);assert.ok(!readACL.read.file['/usr/libexec/routepilot-runtime']);assert.ok(readACL.write.file['/usr/libexec/routepilot-runtime']);
- const load=view.slice(view.indexOf(' load: function()'),view.indexOf('\n render: function'));
- assert.ok(load.indexOf("if(leaf==='runtime')")<load.indexOf("uci.load('routepilot')"));
+ const start=view.search(/\bload:\s*function\s*\(/),end=view.search(/\brender:\s*function\s*\(/);assert.ok(start>=0&&end>start);const load=view.slice(start,end);
+ const runtimeRoute=load.search(/if\s*\(leaf\s*===\s*'runtime'\)/),mainLoad=load.indexOf("uci.load('routepilot')");assert.ok(runtimeRoute>=0&&runtimeRoute<mainLoad);
  assert.ok(!source.includes("fs.exec('/usr/libexec/routepilot',"));
  console.log('Runtime UI: automatic preparation, separate confirmed installation, advanced offline fallback, read-only loading, malformed data, first-install wording, update states, native modal/Escape, explicit acknowledgment, one submission and idle polling passed');
 })().catch(e=>{console.error(e);process.exit(1);});

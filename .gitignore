@@ -28,3 +28,6 @@ docs/WARP_PROTOCOL_AND_COUNTRY.md
 *.pem
 *.key
 *cookie*.json
+
+# Development check caches
+.ruff_cache/

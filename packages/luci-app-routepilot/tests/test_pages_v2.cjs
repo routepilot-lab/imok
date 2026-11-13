@@ -8,6 +8,10 @@ const cases=String.raw`
  const node=await new View().render([null,null,[],directory,null,{nodes:[]}]);await new Promise(setImmediate);
  const before=JSON.stringify(config),beforeCalls=commandCalls.length;
  const workspace=node.find(e=>e.attrs.class==='imok-worker-workspace');assert.ok(workspace);
+ assert.equal(node.find(e=>e.attrs.id==='imok-worker-deploy').attrs['data-current'],'true');
+ const scan=node.find(e=>e.attrs.id==='imok-worker-scan');
+ assert.equal(scan.find(e=>e.tag==='button'&&e.textContent.startsWith('开始自动优选')).disabled,true);
+ assert.ok(scan.textContent.includes('先到「导入、检测与启用」保存备用节点。'));
  for(const stage of ['deploy','relay','scan','use']){
   const button=node.find(e=>e.attrs['aria-controls']==='imok-worker-'+stage);assert.ok(button);
   button.attrs.click();assert.equal(button.attrs['aria-pressed'],'true');
@@ -20,9 +24,17 @@ const cases=String.raw`
  const all=node.find(e=>e.tag==='button'&&e.textContent==='展开全部设置');all.attrs.click();assert.equal(workspace.attrs['data-show-all'],'true');all.attrs.click();assert.equal(workspace.attrs['data-show-all'],'false');
  assert.equal(JSON.stringify(config),before);assert.equal(commandCalls.length,beforeCalls,'UI navigation never submits a command');
  for(const title of ['保存令牌并读取账户 / 域名','检查名称和子域名是否占用','一键创建 Workers 并绑定域名','检查部署与证书状态','清除本机 API 令牌','保存备用节点（不切换）','手动启用备用','切回主线路'])assert.ok(node.find(e=>e.tag==='button'&&e.textContent===title),title+' retained');
+ backupNodeReply={configured:true,fingerprint:'phase4-node',sni:'saved.example.com'};
+ const ready=await new View().render([null,null,[],directory,null,{nodes:[],node:backupNodeReply,cloud:{configured:true,hostname:'other.example.com',projects:[]}}]);
+ await new Promise(setImmediate);await tick();
+ assert.equal(ready.find(e=>e.attrs.id==='imok-worker-relay').attrs['data-current'],'true','API authorization does not send a saved node back to deployment');
+ assert.equal(ready.find(e=>e.tag==='button'&&e.textContent.startsWith('开始自动优选')).disabled,false);
  location.pathname='/admin/services/routepilot/cloudflare/dns';const dns=await new View().render([null,null,[],directory]);
- const diagnostics=dns.find(e=>e.attrs.class==='imok-diagnostics');assert.equal(diagnostics.tag,'details');assert.ok(diagnostics.textContent.includes('WARP 客户端 UDP 接收观测'));
- const settings=dns.find(e=>e.attrs.class==='imok-panel');assert.ok(!settings.find(e=>e.tag==='details'),'editable DNS settings stay directly visible');
+ assert.ok(!dns.textContent.includes('WARP 客户端 UDP 接收观测'));
+ const settings=dns.find(e=>e.attrs.class==='imok-panel');assert.ok(settings.find(e=>e.attrs.id==='cbi-routepilot-main-dns_domestic'),'editable DNS settings stay directly visible');
+ location.pathname='/admin/services/routepilot/overview';const overview=await new View().render([null,null,[],directory]);
+ const diagnostics=overview.find(e=>e.attrs.id==='imok-network-diagnostics');assert.equal(diagnostics.tag,'details');assert.ok(diagnostics.textContent.includes('WARP 客户端 UDP 接收观测'));assert.ok(diagnostics.textContent.includes('线路测速'));
+ location.pathname='/admin/services/routepilot/cloudflare/dns';
  const view=new View();await view.render([null,null,[],directory]);let modalClasses;const nativeModal=ui.showModal;ui.showModal=function(title,children,...classes){modalClasses=classes;return nativeModal(title,children);};uci.save=()=>Promise.resolve();view.map.save=()=>Promise.resolve();await view.applySettings();assert.deepEqual(modalClasses,['imok-dialog'],'only imOK modal requests its owner class');assert.ok(lastModal.find(e=>e.tag==='button'&&e.textContent==='关闭'),'original close action retained');
  location.pathname='/admin/services/routepilot/cloudflare/devices';const saved=JSON.stringify(config),callsBefore=commandCalls.length;
  await new View().render([null,{'02:00:00:00:00:01':{name:'示例手机',ipaddrs:['10.77.50.9']},'02:00:00:00:00:02':{name:'旧式提示',ipv4:'10.77.50.10'},'02:00:00:00:00:03':{name:'仅 IPv6',ip6addrs:['2001:db8::1']},invalid:{ipaddrs:['10.77.50.11']},'02:00:00:00:00:04':{ipaddrs:['999.1.2.3']}},[],directory]);

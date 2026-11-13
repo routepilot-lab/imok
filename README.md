@@ -1,10 +1,16 @@
-# imOK 2.0
+# imOK · Cloudflare 分流助手
 
 > **最新正式版 v0.2.37-5**。总览减少重复重绘，安装包构建不再回写源码。包含独立客户端双协议、按客户端选出口和局域网设备流量统计。[本版更新](docs/releases/v0.2.37-5.md)
 
+> **预发布 v0.2.38-17**。路由器在后台自动检测联网并更新总览，同时包含 DNS、测速与恢复修复。[预发布说明](docs/releases/v0.2.38-17.md) · [下载](https://github.com/routepilot-lab/imok/releases)
+
+## 使用前提
+
+准备自己的 Cloudflare Zero Trust 团队及已部署出口。已验证平台为 GL.iNet GL-MT6000、ARM64、OpenWrt 24.10。全新设备及其他架构请先核对[已知限制](docs/KNOWN_LIMITS.md)和[实机验收清单](docs/HARDWARE_ACCEPTANCE.md)。
+
 ### 借助 Cloudflare 全球网络，让路由器和手机的接入更灵活、全球出口更可控。
 
-**imOK 是面向 OpenWrt / LuCI 的开源网络管理插件。** 它把 Cloudflare WARP / MASQUE、已有云端出口、设备分流、DNS、规则更新和手机独立接入，整合成一个清晰的控制台。
+**imOK 是面向 OpenWrt / LuCI 的开源分流助手。** 它把 Cloudflare WARP / MASQUE、已有云端出口、设备分流、DNS、规则更新和手机独立接入，整合成一个清晰的控制台。
 
 我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
@@ -116,7 +122,7 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 - 本版总览通过隔离浏览器验证，流量数据不变时，图表保留键盘焦点。此前已在路由器管理页核对协议选项与局域网设备流量，也验证了独立 WireGuard 客户端联网及首尔出口。
 - 实机验证采用受控更新，保留原主线路与客户端记录。常规 IPK 升级可能短暂重连。
 
-正式插件版面向已具备兼容运行环境的设备。全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收。详见[本版检查摘要](docs/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
+正式插件版面向已具备兼容运行环境的设备。全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收。详见[预发布检查摘要](docs/evidence/0.2.38-17/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
 
 主线路故障撤回接管时可能使用宽带直连；本插件不提供 IPv6 代理，可阻断 IPv6 或明确允许其直连。普通“导出配置”不包含客户端私钥、手机订阅、个人规则覆盖及第三方授权，迁移前请阅读说明。
 

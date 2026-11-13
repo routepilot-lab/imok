@@ -1,13 +1,19 @@
 #!/usr/bin/python3
-import json,sys
-sys.path.insert(0,'/usr/lib/routepilot')
+import json, sys
+
+sys.path.insert(0, "/usr/lib/routepilot")
 from worker_backend import list_saved
-if len(sys.argv)!=1:raise SystemExit(1)
+
+if len(sys.argv) != 1:
+    raise SystemExit(1)
 try:
- data=list_saved()
- from cloud_worker import metadata
- data['cloud']=metadata()
- from relay_pool import metadata as relay_metadata
- data['relays']=relay_metadata()
- print(json.dumps(data,ensure_ascii=False))
-except Exception:raise SystemExit('无法读取已有备用节点；未显示凭据')
+    data = list_saved()
+    from cloud_worker import metadata
+
+    data["cloud"] = metadata()
+    from relay_pool import metadata as relay_metadata
+
+    data["relays"] = relay_metadata()
+    print(json.dumps(data, ensure_ascii=False))
+except Exception:
+    raise SystemExit("无法读取已有备用节点；未显示凭据")

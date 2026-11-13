@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 import sys
-sys.path.insert(0, '/usr/lib/routepilot')
+
+sys.path.insert(0, "/usr/lib/routepilot")
 from traffic_observer import run
+
 if len(sys.argv) != 1:
-    raise SystemExit('No arguments supported')
+    raise SystemExit("No arguments supported")
 run()

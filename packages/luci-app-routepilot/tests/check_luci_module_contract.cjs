@@ -30,4 +30,11 @@ assert.ok(Class.isSubclass(Client), 'Client access must satisfy the target LuCI 
 const clientInstance = Client.instantiate([]);
 assert.equal(typeof clientInstance.load, 'function');
 assert.equal(typeof clientInstance.render, 'function');
-console.log(JSON.stringify({luci_core_sha256:crypto.createHash('sha256').update(raw).digest('hex'),abi:'passed',client_abi:'passed',same_exit_recovery:'passed'}));
+const pageImports = Array.from(viewSource.matchAll(/'require routepilot\.(page_[a-z]+_[a-f0-9]{12}) as (page[A-Z][A-Za-z]*)';/g));
+for (const [,name] of pageImports) {
+  const pageSource = fs.readFileSync(path.join(root, 'htdocs/luci-static/resources/routepilot', name + '.js'), 'utf8');
+  const Page = new Function('baseclass', pageSource)(Class);
+  assert.ok(Class.isSubclass(Page), name + ' must satisfy the target LuCI constructor predicate');
+  assert.ok(Page.instantiate([]));
+}
+console.log(JSON.stringify({page_modules:pageImports.length,luci_core_sha256:crypto.createHash('sha256').update(raw).digest('hex'),abi:'passed',client_abi:'passed',same_exit_recovery:'passed'}));

@@ -1,13 +1,16 @@
 #!/usr/bin/python3
 """Read-only ACL entry: arguments can never dispatch a mutation."""
+
 import json
 import sys
-sys.path.insert(0, '/usr/lib/routepilot')
+
+sys.path.insert(0, "/usr/lib/routepilot")
 try:
     if len(sys.argv) != 1:
         raise ValueError()
     from client_access import listing
+
     print(json.dumps(listing(), ensure_ascii=False))
 except Exception:
-    print(json.dumps({'error': '客户端列表不可用，请核对私有记录与权限'}, ensure_ascii=False))
+    print(json.dumps({"error": "客户端列表不可用，请核对私有记录与权限"}, ensure_ascii=False))
     raise SystemExit(1) from None

@@ -1,12 +1,15 @@
 #!/usr/bin/python3
 """Read-only RPC executable; never accepts a mutating action."""
+
 import json
 import sys
-sys.path.insert(0, '/usr/lib/routepilot')
+
+sys.path.insert(0, "/usr/lib/routepilot")
 from exits import read_networks
+
 if len(sys.argv) != 1:
-    raise SystemExit('只支持读取出口目录')
+    raise SystemExit("只支持读取出口目录")
 try:
     print(json.dumps(read_networks(), ensure_ascii=False))
 except Exception:
-    raise SystemExit('未能读取出口目录，请检查登录环境后刷新；当前出口未更改')
+    raise SystemExit("未能读取出口目录，请检查登录环境后刷新；当前出口未更改")

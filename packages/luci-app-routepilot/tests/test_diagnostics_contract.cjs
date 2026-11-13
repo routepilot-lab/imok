@@ -8,7 +8,7 @@ const testdir=__dirname;
 const harness=fs.readFileSync(path.join(testdir,'test_feedback_render.cjs'),'utf8').split('(async()=>{')[0];
 const cases=String.raw`
 (async()=>{
- location.pathname='/admin/services/routepilot/cloudflare/dns';
+ location.pathname='/admin/services/routepilot/overview';
  const good={...current,state:'done',finished_at:Date.now()/1000,results:[{id:'google',state:'ok',message:'可连接',ms:1}]};
  const faults=[];
  for(const [name,bad] of [['missing',null],['wrong rows',{...good,results:{}}],['null row',{...good,results:[null]}]]){
@@ -25,6 +25,7 @@ const cases=String.raw`
   catch(error){faults.push('helper: '+error.name);}
  }
 
+ location.pathname='/admin/services/routepilot/cloudflare/dns';
  dnsData={...current,schema:1,state:'running',process_instance:'dns-1',control_available:true,upstreams:{dns_domestic:'223.5.5.5',dns_foreign:'1.1.1.1'},policies:[{index:0,cache_entries:0,cache_hits:0,requests:0,errors:0}]};
  const goodDNS={...current,state:'done',finished_at:Date.now()/1000,process_instance:'dns-1',results:['domestic','proxy'].flatMap(target=>['udp','tcp'].map(protocol=>({policy:0,target,protocol,state:'ok',domain:'example.test',upstream:'1.1.1.1',message:'解析通过'})))};
  for(const bad of [null,{...goodDNS,results:[null]},{...goodDNS,results:{}}]){

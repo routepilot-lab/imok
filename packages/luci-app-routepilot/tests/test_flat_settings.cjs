@@ -49,7 +49,7 @@ const cases=String.raw`
    const importSettings=nodes(panel).find(e=>e.tag==='section'&&e.children.some(c=>c instanceof Element&&c.tag==='h4'&&c.textContent==='备用节点设置（手动导入 / 调整入口）'));assert.ok(importSettings);
    assert.ok(panel.find(e=>e.attrs['aria-label']==='Cloudflare 账户 ID'),'manual account setting is directly available');
   }
-  if(page==='dns')assert.ok(panel.find(e=>e.tag==='h3'&&e.textContent==='WARP 客户端 UDP 接收观测'));
+  if(page==='dns')assert.ok(!panel.find(e=>e.tag==='h3'&&e.textContent==='WARP 客户端 UDP 接收观测'));
  }
  location.pathname='/admin/services/routepilot/rules';const rules=await new View().render([null,null,[]]);await new Promise(setImmediate);
  for(const name of ['当前下载版本来源与校验摘要','本次订阅更新变化']){const section=nodes(rules).find(e=>e.tag==='section'&&e.children.some(c=>c instanceof Element&&c.tag==='h4'&&c.textContent===name));assert.ok(section,name+' is visible without expanding');}

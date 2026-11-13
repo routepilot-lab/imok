@@ -19,7 +19,7 @@ const cases=String.raw`
  assert.equal(readCalls.length,readsBefore,'first poll reuses the startup request');
  assert.equal(pollInterval,2);
  mockedFS.read=originalRead;const readsAfter=readCalls.length;await tick();
- assert.equal(readCalls.length-readsAfter,4,'later polls retain the same four scoped reads');
+ assert.equal(readCalls.length-readsAfter,6,'later polls include the two relocated diagnostic snapshots');
  assert.equal(JSON.stringify(config),before);assert.deepEqual(commandCalls,[]);
  // A failed startup status cannot suppress the first recovery poll or report success.
  mockedFS.read=p=>p.endsWith('/status.json')?Promise.reject(Error('synthetic transport error')):originalRead(p);
