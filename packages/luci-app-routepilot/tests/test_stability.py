@@ -1,4 +1,5 @@
 from input_fixture import stage
+import base64
 import json
 import sys
 import tempfile
@@ -12,12 +13,49 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "root/usr/lib/route
 import mplane
 import service
 import supervisor
+import control
 import auth_control as auth
 from public_errors import ControlError
 from worker_backend import WorkerLineFailure
 
 
 class StabilityTest(unittest.TestCase):
+    def test_uninstall_cleanup_waits_for_supervisor_lock(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(control, "RUN", Path(folder)),
+            patch.object(control.fcntl, "flock", side_effect=[BlockingIOError, None]) as lock,
+            patch.object(control.time, "sleep") as wait,
+            patch.object(control, "Service") as service_factory,
+        ):
+            service_factory.return_value.stop.return_value = {"direct": True}
+            control.cleanup()
+            self.assertEqual(lock.call_count, 2)
+            wait.assert_called_once()
+            service_factory.return_value.stop.assert_called_once_with()
+
+    def test_uninstall_cleanup_does_not_run_if_supervisor_lock_never_releases(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(control, "RUN", Path(folder)),
+            patch.object(control.fcntl, "flock", side_effect=BlockingIOError),
+            patch.object(control.time, "monotonic", side_effect=[10, 18]),
+            patch.object(control, "Service") as service_factory,
+        ):
+            with self.assertRaisesRegex(SystemExit, "主进程仍在运行"):
+                control.cleanup()
+            service_factory.assert_not_called()
+
+    def test_uninstall_cleanup_reports_unconfirmed_network_recovery(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(control, "RUN", Path(folder)),
+            patch.object(control, "Service") as service_factory,
+        ):
+            service_factory.return_value.stop.return_value = {"direct": False}
+            with self.assertRaisesRegex(SystemExit, "无法确认已撤回"):
+                control.cleanup()
+
     def test_worker_local_health_failures_allow_capture_only_recovery(self):
         s = service.Service()
         s.backend = "worker"
@@ -175,6 +213,67 @@ class AuthTest(unittest.TestCase):
             auth.register(stage(auth.RUN / "auth-input"))
             self.assertEqual(cli.call_count, 2)
             self.assertFalse((self.run / "auth-pending.json").exists())
+
+    def test_timed_out_registration_can_reuse_identity_written_by_current_attempt(self):
+        profile = self.identity / "reg.json"
+        calls = []
+
+        def cli(*args):
+            calls.append(args)
+            if args[:2] == ("registration", "new"):
+                profile.write_text("synthetic identity created by this request")
+                raise auth.subprocess.TimeoutExpired("warp-cli", 30)
+
+        with patch.object(auth, "cli", side_effect=cli):
+            self.assertEqual(auth.login(), "https://test-team.cloudflareaccess.com/warp")
+            self.assertEqual(auth.login(), "https://test-team.cloudflareaccess.com/warp")
+            self.input()
+            auth.register(stage(auth.RUN / "auth-input"))
+        self.assertEqual([args[1] for args in calls], ["new", "token"])
+        self.assertEqual(profile.read_text(), "synthetic identity created by this request")
+
+    def test_pasted_authorization_formats_are_normalized_for_official_client(self):
+        host = "test-team.cloudflareaccess.com"
+        prefix = f"com.cloudflare.warp://{host}/auth?token="
+        claims = {"iss": "https://" + host, "exp": time.time() + 300}
+
+        def jwt():
+            payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+            return "e30." + payload + ".synthetic_signature"
+
+        token = jwt()
+        escaped = (prefix + token).replace("://", r"\://", 1)
+        for value in (
+            token,
+            f"token={token}';\"",
+            prefix + token,
+            f"""onclick="location.href = '{escaped}';" """,
+            f'<meta http-equiv="refresh" content="0;url={prefix}{token}">',
+        ):
+            with self.subTest(form=value[:32]):
+                self.assertEqual(auth.registration_link(value, "test-team"), prefix + token)
+
+        with patch.object(auth, "cli") as cli:
+            auth.login()
+            base = auth.RUN / "auth-input"
+            for bad, message in (
+                (prefix + token + "&another=value", "格式不正确"),
+                (prefix + token + "#suffix", "格式不正确"),
+                (prefix + token + " " + prefix + "different", "多条授权链接"),
+                (prefix.replace(host, "other.cloudflareaccess.com") + token, "团队不一致"),
+            ):
+                with self.assertRaisesRegex(ControlError, message):
+                    auth.register(stage(base, {"token": bad}))
+            claims["iss"] = "https://other.cloudflareaccess.com"
+            with self.assertRaisesRegex(ControlError, "团队不一致"):
+                auth.register(stage(base, {"token": jwt()}))
+            claims.update(iss="https://" + host, exp=time.time() - 1)
+            with self.assertRaisesRegex(ControlError, "已过期"):
+                auth.register(stage(base, {"token": jwt()}))
+            self.assertEqual(cli.call_count, 1)
+            result = auth.register(stage(base, {"token": f"""onclick="location.href='{escaped}';" """}))
+            self.assertTrue(result["registered"])
+            cli.assert_called_with("registration", "token", prefix + token)
 
     def test_changed_or_expired_pending_request_cannot_register(self):
         with patch.object(auth, "cli") as cli:

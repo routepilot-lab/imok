@@ -13,8 +13,11 @@ import uuid
 
 from runtime import atomic, read_config, RUN, RULES
 import speed_compare
+import prepared_exit
 from masque_config import (
+    EmptyChinaRules,
     compile_config,
+    live_lan_networks,
     selected_lans,
     resolve_exit,
 )
@@ -99,13 +102,7 @@ def validate_configuration(cfg, service, schedule, endpoint_manager):
     if enabled:
         service.egress_guard.configure(cfg)
         service.egress_guard.require_supported()
-        choices = {item["name"]: item for item in lan_interfaces()}
-        selected = selected_lans(cfg["main"])
-        if any(name not in choices or not choices[name]["up"] for name in selected):
-            raise ValueError("所选 LAN 接口缺失、未启用或无唯一有效私网网段，请重新选择")
-        cfg["main"]["lan_networks"] = [
-            {"interface": name, "network": choices[name]["network"]} for name in selected
-        ]
+        cfg["main"]["lan_networks"] = live_lan_networks(selected_lans(cfg["main"]), lan_interfaces())
     preparing = cfg["main"].get("preparing") == "1"
     return enabled, preparing
 
@@ -131,6 +128,8 @@ def handle_preparing(cfg, service, schedule, last_nonce):
         egress_guard=service.egress_guard.state,
         applied_nonce=cfg["main"].get("apply_nonce", ""),
     )
+    if prepared_exit.run_pending(cfg["main"], service):
+        return last_nonce
     nonce = cfg["main"].get("update_nonce", "")
     if nonce and nonce != last_nonce:
         try:
@@ -176,50 +175,60 @@ def handle_preparing(cfg, service, schedule, last_nonce):
 
 
 def apply_running_configuration(cfg, service, previous):
+    from rules_catalog import directory_revision
+    from rules_overrides import effective_revision, load as load_personal
+
     waiting = preflight(cfg)
     waiting_message = waiting_device_message(waiting)
     needed = {
-        "bypass_cn": "china.txt",
-        "gfw": "gfw.txt",
-        "whitelist": "whitelist.txt",
+        "bypass_cn": "china",
+        "gfw": "gfw",
+        "whitelist": "whitelist",
     }
     policies = (
         [{"enabled": "1", "mode": cfg["main"].get("lan_mode", "bypass_cn")}]
         if cfg["main"].get("scope") == "lan"
         else [policy for policy in cfg["policies"] if policy["id"] not in waiting]
     )
-    with rule_snapshot() as snapshot:
-        from rules_overrides import load as load_personal
-
-        cfg["rule_overrides"] = load_personal(RULES)
-        missing_rules = any(
-            p.get("enabled") == "1"
-            and p.get("mode") in needed
-            and not (snapshot / needed[p["mode"]]).exists()
-            and not cfg["rule_overrides"][needed[p["mode"]].removesuffix(".txt")]["added"]
-            for p in policies
-        )
-    if missing_rules:
+    required = {
+        needed[mode]
+        for p in policies
+        if p.get("enabled") == "1" and (mode := p.get("mode", "bypass_cn")) in needed
+    }
+    for allow_bootstrap in (True, False):
+        with rule_snapshot() as snapshot:
+            cfg["rule_overrides"] = load_personal(RULES)
+            missing_rules = set()
+            if allow_bootstrap:
+                missing_rules = {
+                    kind
+                    for kind in required
+                    if not (snapshot / (kind + ".txt")).exists()
+                    and not cfg["rule_overrides"][kind]["added"]
+                }
+            if not missing_rules:
+                config_digest = routing_digest(cfg, snapshot)
+                digest = config_digest
+                if waiting:
+                    digest = hashlib.sha256(
+                        (config_digest + ":" + ",".join(sorted(waiting))).encode()
+                    ).hexdigest()
+                try:
+                    compiled = compile_config(cfg, snapshot, waiting) if digest != previous else None
+                except EmptyChinaRules:
+                    if not allow_bootstrap:
+                        raise
+                    missing_rules = {"china"}
+                else:
+                    if compiled is not None:
+                        compiled["rules_revision"] = effective_revision(
+                            directory_revision(snapshot), cfg["rule_overrides"]
+                        )
+                    break
+        # Download outside the shared snapshot lock. Other sources stay on their schedule.
         vnet = "" if service.backend == "worker" else resolve_exit(cfg["main"])
         service.plane.connect(vnet)
-        update_rules()
-    # Existing valid local rules permit startup even if an update source fails.
-    with rule_snapshot() as snapshot:
-        cfg["rule_overrides"] = load_personal(RULES)
-        config_digest = routing_digest(cfg, snapshot)
-        digest = (
-            hashlib.sha256((config_digest + ":" + ",".join(sorted(waiting))).encode()).hexdigest()
-            if waiting
-            else config_digest
-        )
-        compiled = compile_config(cfg, snapshot, waiting) if digest != previous else None
-        if compiled is not None:
-            from rules_catalog import directory_revision
-            from rules_overrides import effective_revision
-
-            compiled["rules_revision"] = effective_revision(
-                directory_revision(snapshot), cfg["rule_overrides"]
-            )
+        update_rules(required=missing_rules, expected_nonce=cfg["main"].get("apply_nonce", ""))
     if compiled is not None:
         compiled["config_digest"] = config_digest
         compiled["dns"]["generation"] = digest

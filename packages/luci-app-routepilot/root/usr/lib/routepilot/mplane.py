@@ -25,6 +25,7 @@ from warp_cli import (
 
 ROOT = Path("/opt/routepilot/runtime")
 NS = "routepilot"
+EXIT_SELECTION_MISMATCH = "WARP 当前出口与已保存出口不同；检测未切换出口"
 HOST = "rp-host"
 PEER = "rp-client"
 NETNS_CONFIG = Path("/etc/netns") / NS / "resolv.conf"
@@ -297,7 +298,7 @@ class Plane:
         except (OSError, ValueError):
             pass  # Older kernels may not provide pidfd_getfd; keep the tunnel usable.
 
-    def connect(self, vnet, *, deadline=None, checkpoint=None):
+    def connect(self, vnet, *, deadline=None, checkpoint=None, keep_selection=False):
         def bounded_timeout(default):
             if checkpoint:
                 checkpoint()
@@ -316,6 +317,8 @@ class Plane:
         current = tunnel_cli("vnet", "--no-paginate", check=False).stdout
         selected = parse_selected_network(current)
         if selected != vnet:
+            if keep_selection:
+                raise ValueError(EXIT_SELECTION_MISMATCH)
             try:
                 directory = parse_directory(current)
             except InvalidDirectory:

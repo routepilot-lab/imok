@@ -95,7 +95,7 @@ def validate_rule_text(kind, text):
             value = value.lower()
         clean.append(value)
     if not clean:
-        raise ValueError("规则为空，保留上一版本")
+        raise ValueError("规则为空")
     if len(clean) > 100000:
         raise ValueError("规则条目过多")
     return "\n".join(sorted(set(clean))) + "\n"

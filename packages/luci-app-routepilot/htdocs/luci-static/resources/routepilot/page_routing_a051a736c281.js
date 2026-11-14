@@ -6,17 +6,17 @@ return baseclass.extend({
     return centerGroup(
       'basic',
       _('账户出口、国家 / 地区与接管范围'),
-      _('选择代理出口和设备接管范围。'),
+      _('在「账户与协议」登录并读取出口后，选择主线路与设备接管范围。'),
       [
         E('div', { class: 'imok-route-layout' }, [
           panel(
             _('代理出口'),
-            _('选择账户出口后保存并应用。'),
+            _('从账户目录选择出口，再保存设置。目录列出的网络需另行检测连通性。'),
             selectFields(['exit', '_discover', '_exit_directory'])
           ),
           panel(
             _('接管范围与分流'),
-            _('按当前范围显示适用设置；未启用的设备与网络不接管。'),
+            _('按设备选择时，请到「设备」启用需要代理的设备；局域网模式按所选网络接管。'),
             selectFields([
               'scope',
               'lan_interfaces',
@@ -121,6 +121,7 @@ return baseclass.extend({
     allExits,
     cancelExits,
     comparisonStatus,
+    comparisonOverview,
     directoryRows
   }) {
     var o = pageOption('basic', form.ListValue, 'scope', _('接管范围'));
@@ -233,6 +234,7 @@ return baseclass.extend({
           E('h4', {}, _('账户出口列表')),
           E('div', { class: 'rp-actions' }, [allExits, cancelExits]),
           comparisonStatus,
+          comparisonOverview,
           E('table', { class: 'table imok-exit-table' }, [
             E(
               'thead',

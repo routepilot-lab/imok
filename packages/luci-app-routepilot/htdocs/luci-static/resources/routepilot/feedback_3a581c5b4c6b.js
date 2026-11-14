@@ -2,8 +2,99 @@
 'require baseclass';
 // Pure display decisions; no network or configuration writes.
 return baseclass.extend({
+  firstSetup: function ({
+    config,
+    status,
+    registered,
+    runtime,
+    runtimePending,
+    runtimeUnavailable,
+    networks,
+    registrationCompleted,
+    directoryChecked,
+    directoryPending,
+    directoryExpired,
+    now
+  }) {
+    var fresh = this.fresh(status, now);
+    var warp = fresh && status.state === 'running' && status.backend === 'masque';
+    var connected =
+      config.enabled &&
+      warp &&
+      config.nonce &&
+      status.applied_nonce === config.nonce &&
+      status.exit === config.exit &&
+      status.runtime_id &&
+      status.exit_ip &&
+      status.tunnel_status !== 'unknown';
+    if (connected) return { stage: 'checks', reason: 'connected' };
+
+    if (!config.enabled && runtimePending) return { stage: 'install', reason: 'runtime_check' };
+    if (!config.enabled && runtimeUnavailable && config.backend !== 'worker')
+      return { stage: 'install', reason: 'runtime_unavailable' };
+    if (
+      !config.enabled &&
+      runtime &&
+      (runtime.installed === false || runtime.recovery_required === true)
+    )
+      return {
+        stage: 'install',
+        reason: runtime.runtime_exists || runtime.recovery_required ? 'runtime_review' : 'install'
+      };
+
+    if (!config.enabled && registered !== true && runtime?.registration_files_present === false)
+      return { stage: 'account', reason: 'registration' };
+    if (!config.enabled && Array.isArray(networks) && !networks.length)
+      return { stage: 'account', reason: 'catalog_empty' };
+    if (!config.enabled && directoryExpired && config.preparing)
+      return { stage: 'account', reason: 'catalog_expired' };
+    if (!config.enabled && registrationCompleted && !Array.isArray(networks))
+      return {
+        stage: 'account',
+        reason: directoryPending || !directoryChecked ? 'catalog_pending' : 'catalog_failed'
+      };
+
+    var hasExit = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(config.exit_id || '');
+    var hasScope =
+      (config.scope === 'lan' && config.lans > 0) ||
+      (config.scope === 'devices' && config.devices > 0);
+    if (!hasExit || !hasScope || !config.nonce) {
+      if (registered !== true && !warp && !(hasExit && config.nonce))
+        return {
+          stage: 'account',
+          reason: runtime?.registration_files_present ? 'account_check' : 'registration'
+        };
+      return {
+        stage: 'routing',
+        reason: hasExit && config.scope === 'devices' && !hasScope ? 'devices' : 'settings'
+      };
+    }
+    if (
+      !config.enabled &&
+      Array.isArray(networks) &&
+      !networks.some(function (item) {
+        return item.id === config.exit_id;
+      })
+    )
+      return { stage: 'routing', reason: 'exit_unavailable' };
+    if (!config.enabled)
+      return {
+        stage: 'power',
+        reason: config.preparing || (fresh && status.state === 'preparing') ? 'preparing' : 'off'
+      };
+    if (fresh && status.attempted_nonce === config.nonce && status.state === 'error')
+      return { stage: 'connecting', reason: 'failed' };
+    if (fresh && status.applied_nonce === config.nonce && status.state === 'waiting_devices')
+      return { stage: 'connecting', reason: 'waiting_devices' };
+    if (fresh && status.state === 'running' && status.backend === 'worker')
+      return { stage: 'connecting', reason: 'backup' };
+    return { stage: 'connecting', reason: fresh ? 'waiting' : 'unavailable' };
+  },
+
   overviewSummary: function (saved, status, website, now) {
     if (!saved.enabled) return { state: 'off', reason: 'disabled', page: 'overview#imok-power' };
+    if (saved.nonce && status?.state === 'disabled' && status.applied_nonce !== saved.nonce)
+      return { state: 'unverified', reason: 'starting', page: 'overview#imok-power' };
     if (!this.fresh(status, now))
       return { state: 'unavailable', reason: 'stale', page: 'cloudflare/dns' };
     if (status.state !== 'running')
@@ -214,7 +305,7 @@ return baseclass.extend({
       ? 'success'
       : 'stale';
   },
-  wizardSteps: function (config, catalog, status, test, actions, now) {
+  wizardSteps: function (config, catalog, status, test, actions, now, registeredHere) {
     actions = actions || {};
     var readAge = now - Number(catalog.read_at),
       directory =
@@ -236,7 +327,7 @@ return baseclass.extend({
       },
       {
         id: 'auth',
-        state: directory ? 'success' : 'pending',
+        state: directory || registeredHere ? 'success' : 'pending',
         reason: catalog.last_success_at ? 'access_previous' : 'access'
       }
     ];

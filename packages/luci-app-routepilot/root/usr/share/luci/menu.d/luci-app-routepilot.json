@@ -4,7 +4,7 @@
     "order": 75,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "depends": {
       "acl": [
@@ -16,7 +16,7 @@
     "order": 1,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "hidden": true
   },
@@ -24,7 +24,7 @@
     "order": 2,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "hidden": true
   },
@@ -32,7 +32,7 @@
     "order": 3,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "hidden": true
   },
@@ -41,14 +41,14 @@
     "order": 4,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/advanced": {
     "order": 5,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "hidden": true
   },
@@ -64,7 +64,7 @@
     "order": 5,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/overview": {
@@ -72,14 +72,14 @@
     "order": 0,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/workers": {
     "order": 6,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     },
     "hidden": true
   },
@@ -88,7 +88,7 @@
     "order": 2,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/account": {
@@ -96,7 +96,7 @@
     "order": 0,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/routing": {
@@ -104,7 +104,7 @@
     "order": 1,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/devices": {
@@ -112,7 +112,7 @@
     "order": 2,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/dns": {
@@ -120,7 +120,7 @@
     "order": 3,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/workers": {
@@ -128,7 +128,7 @@
     "order": 4,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/cloudflare/endpoint": {
@@ -136,7 +136,7 @@
     "order": 1,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/rules/overview": {
@@ -144,7 +144,7 @@
     "order": 0,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/rules/sources": {
@@ -152,7 +152,7 @@
     "order": 1,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/rules/manage": {
@@ -160,7 +160,7 @@
     "order": 2,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/rules/custom": {
@@ -168,7 +168,7 @@
     "order": 3,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/clients": {
@@ -176,7 +176,7 @@
     "order": 3,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   },
   "admin/services/routepilot/runtime": {
@@ -184,7 +184,7 @@
     "order": 1,
     "action": {
       "type": "view",
-      "path": "routepilot_masque_4a7201a51cd1"
+      "path": "routepilot_masque_334aa4339635"
     }
   }
 }

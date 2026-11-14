@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import uuid
 
@@ -34,6 +35,23 @@ KEY_SHA256 = "0f37fc298c98e88ee3c0ee68c95b69f1dba9eb477abe3167e13982105911264d"
 MAX_UPLOAD = 256 * 1024 * 1024
 MAX_UNPACKED = 1536 * 1024 * 1024
 OMIT = {"proc", "sys", "dev", "run", "tmp"}
+JOB_PHASES = {
+    "queued",
+    "check_version",
+    "download_base",
+    "verify_base",
+    "verify_sources",
+    "download_warp",
+    "download_packages",
+    "verify_packages",
+    "ready",
+    "prepare_install",
+    "install_packages",
+    "verify_install",
+    "commit",
+    "installed",
+    "complete",
+}
 
 
 def directory(path):
@@ -90,12 +108,12 @@ def prepare():
 
 
 @contextmanager
-def job_lock():
+def job_lock(*, wait=False):
     directory(PRIVATE)
     fd = os.open(PRIVATE / ".job.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(fd, fcntl.LOCK_EX if wait else fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise ControlError("已有版本检查或维护任务正在执行，请稍后再试") from None
         yield
@@ -178,15 +196,17 @@ def offline_network():
         os._exit(126)
 
 
-def run(args, timeout=30, isolated=False):
+def run(args, timeout=30, isolated=False, *, input_data=None, operation=None, pass_fds=()):
     child = None
     try:
         child = subprocess.Popen(
             args,
+            stdin=subprocess.PIPE if input_data is not None else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             start_new_session=True,
             preexec_fn=offline_network if isolated else None,
+            pass_fds=pass_fds,
             env={
                 **os.environ,
                 "DEBIAN_FRONTEND": "noninteractive",
@@ -194,7 +214,7 @@ def run(args, timeout=30, isolated=False):
                 "LC_ALL": "C",
             },
         )
-        out, _ = child.communicate(timeout=timeout)
+        out, _ = child.communicate(input=input_data, timeout=timeout)
     except subprocess.TimeoutExpired:
         if child is not None:
             try:
@@ -202,10 +222,16 @@ def run(args, timeout=30, isolated=False):
             except ProcessLookupError:
                 pass
             child.communicate()
-        raise ControlError("维护命令超时，已终止本次维护命令组；未提交现用环境") from None
+        raise ControlError(
+            (operation or "维护命令") + "超时，已终止本次命令组；未提交现用环境"
+        ) from None
     except (OSError, subprocess.SubprocessError):
-        raise ControlError("维护命令或隔离环境未能启动，未提交升级") from None
+        raise ControlError(
+            (operation or "维护命令") + "无法在隔离环境中启动；未提交现用环境"
+        ) from None
     if child.returncode:
+        if operation:
+            raise ControlError(operation + "失败；未提交现用环境")
         raise ControlError(
             "安装或校验命令失败，现用环境未提交；请检查官方源连通性、依赖、隔离权限与存储空间"
         )
@@ -215,6 +241,11 @@ def run(args, timeout=30, isolated=False):
 def download(relative, destination, limit):
     if not re.fullmatch(r"(pubkey\.gpg|dists/bookworm/main/binary-arm64/Packages)", relative):
         raise ControlError("软件源地址无效")
+    retry = (
+        ["--connect-timeout", "10", "--retry", "2", "--retry-connrefused", "--retry-max-time", "30"]
+        if relative.endswith("/Packages")
+        else []
+    )
     run(
         [
             "curl",
@@ -229,6 +260,7 @@ def download(relative, destination, limit):
             str(limit),
             "--output",
             str(destination),
+            *retry,
             SOURCE + relative,
         ],
         50,
@@ -259,8 +291,14 @@ def candidate(text):
     return max(rows, key=lambda r: version_key(r["version"]))
 
 
-def check():
+def check(*, scheduled=False):
     with job_lock():
+        if scheduled and (
+            document(PRIVATE / "job.json", {}).get("state") == "running"
+            or not package_info(BASE / "runtime", probe=False)
+            or not due()
+        ):
+            return
         previous = document(PRIVATE / "check.json", {})
         state = {
             **previous,
@@ -271,11 +309,11 @@ def check():
         save(PRIVATE / "check.json", state)
         cache = PRIVATE / "Packages.download"
         try:
-            value = candidate(
-                download(
-                    "dists/bookworm/main/binary-arm64/Packages", cache, 8 * 1024 * 1024
-                ).decode()
-            )
+            try:
+                catalog = download("dists/bookworm/main/binary-arm64/Packages", cache, 8 * 1024 * 1024)
+            except ControlError:
+                raise ControlError("未能读取 Cloudflare 官方版本目录") from None
+            value = candidate(catalog.decode())
             state.update(
                 state="checked",
                 candidate=value,
@@ -287,7 +325,7 @@ def check():
                 state="failed",
                 message=str(e)
                 if isinstance(e, ControlError)
-                else "版本检查失败；未将历史结果当作最新结果",
+                else "未能处理 Cloudflare 官方版本目录",
             )
         finally:
             cache.unlink(missing_ok=True)
@@ -377,13 +415,21 @@ def context():
     ).hexdigest()
 
 
+def mount_points():
+    return [
+        re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), line.split()[4])
+        for line in Path("/proc/self/mountinfo").read_text().splitlines()
+    ]
+
+
 def inactive():
     cfg = read_config()["main"]
     if cfg.get("enabled", "0") != "0" or cfg.get("preparing", "0") != "0":
         raise ControlError(
             "请先在总览关闭 imOK，并结束登录准备，再进行安装、升级或回滚；版本检查不受影响"
         )
-    if (RUN / "masque-owner.json").exists():
+    owner = RUN / "masque-owner.json"
+    if owner.exists() or owner.is_symlink():
         raise ControlError("WARP 运行环境仍被占用，请等待关闭完成后刷新")
     root = str(BASE / "runtime")
     try:
@@ -393,11 +439,7 @@ def inactive():
                     raise ControlError("WARP 环境还有进程运行，未替换文件")
             except (FileNotFoundError, PermissionError):
                 pass
-        mounts = Path("/proc/self/mountinfo").read_text()
-        if any(
-            line.split()[4].replace("\\040", " ").startswith(root + "/")
-            for line in mounts.splitlines()
-        ):
+        if any(path == root or path.startswith(root + "/") for path in mount_points()):
             raise ControlError("WARP 环境仍有挂载，请由管理员检查，未自动卸载")
     except FileNotFoundError:
         raise ControlError("无法确认 Linux 进程和挂载状态，未执行维护") from None
@@ -433,6 +475,24 @@ def backups():
     return sorted(result, key=lambda r: r["created_at"], reverse=True)
 
 
+def registration_files_present(root):
+    try:
+        profile = root / "var/lib/cloudflare-warp"
+        if not stat.S_ISDIR(profile.lstat().st_mode):
+            return None
+        for name in ("reg.json", "reg_mdm_orgs.json"):
+            try:
+                file = (profile / name).lstat()
+            except FileNotFoundError:
+                continue
+            return True if stat.S_ISREG(file.st_mode) else None
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return None
+    return False
+
+
 def status():
     c = document(PRIVATE / "check.json", {})
     s = settings()
@@ -448,11 +508,31 @@ def status():
             "state": "interrupted",
             "message": "维护任务未完成，请核对恢复副本；未自动重试安装",
         }
+    download_id = j.pop("download_id", None)
+    apt_status_name = j.pop("apt_status_name", None)
+    j.pop("bytes_done", None)
+    j.pop("bytes_total", None)
+    phase = j.get("phase")
+    if not isinstance(phase, str) or phase not in JOB_PHASES:
+        j.pop("phase", None)
+    if j.get("state") == "running" and phase in (
+        "download_base",
+        "download_warp",
+        "download_packages",
+    ):
+        j.update(bootstrap.download_progress(sys.modules[__name__], download_id, phase))
+    if j.get("state") == "running" and phase in ("prepare_install", "install_packages"):
+        j["elapsed_seconds"] = max(0, int(time.time() - j.get("updated_at", time.time())))
+        if phase == "install_packages":
+            j.update(apt_progress(apt_status_name))
     return {
         "schema": 1,
         "supported": supported(),
         "installed": info is not None,
         "runtime_exists": (BASE / "runtime").exists(),
+        "registration_files_present": registration_files_present(BASE / "runtime")
+        if info
+        else None,
         "local_version": info["version"] if info else None,
         "cli_version_verified": info["version"] in VERIFIED_VERSIONS
         if info and info["version"]
@@ -468,7 +548,7 @@ def status():
         "latest_version": remote["version"] if remote else None,
         "backups": backups(),
         "job": j,
-        "recovery_required": (BASE / ".runtime-transaction.json").exists(),
+        "recovery_required": recovery_required(),
         "next_check_at": c.get("last_attempt_at", 0) + s["hours"] * 3600
         if s["hours"] and c.get("last_attempt_at")
         else 0,
@@ -536,7 +616,12 @@ def upload_hash():
         return h.hexdigest(), s.st_size
 
 
-def make_plan(payload):
+def recovery_required():
+    journal = BASE / ".runtime-transaction.json"
+    return journal.exists() or journal.is_symlink()
+
+
+def make_plan(payload, *, expected_context=None):
     if not supported():
         raise ControlError("目前只支持 ARM64 OpenWrt 24.10，其他环境不执行安装")
     inactive()
@@ -544,7 +629,7 @@ def make_plan(payload):
     if action not in ("install", "online-install", "upgrade", "rollback", "recover"):
         raise ControlError("维护操作无效")
     info = package_info(BASE / "runtime")
-    if (BASE / ".runtime-transaction.json").exists() and action not in ("rollback", "recover"):
+    if recovery_required() and action not in ("rollback", "recover"):
         raise ControlError("上次替换未完成，请先回滚恢复")
     p = {
         "id": uuid.uuid4().hex,
@@ -553,6 +638,8 @@ def make_plan(payload):
         "context": context(),
         "old_version": info["version"] if info else None,
     }
+    if expected_context is not None and p["context"] != expected_context:
+        raise ControlError("准备期间账户或配置已变化，请重新确认安装；未提交现用环境")
     need = 512 * 1024 * 1024
     if action == "online-install":
         if (BASE / "runtime").exists() or (BASE / "runtime").is_symlink():
@@ -739,14 +826,47 @@ def test_runtime(root, version=None):
         and info["version"] != version
     ):
         raise ControlError("运行环境不是受支持的 Debian 12 ARM64 WARP，未替换现用环境")
-    text = run(["chroot", str(root), "/usr/bin/warp-cli", "--version"], 15, isolated=True)
+    daemon = root / "usr/bin/warp-svc"
+    if (
+        daemon.is_symlink()
+        or not stat.S_ISREG(daemon.stat().st_mode)
+        or not os.access(daemon, os.X_OK)
+    ):
+        raise ControlError("WARP 服务程序文件异常；未提交现用环境")
+    with daemon.open("rb") as stream:
+        header = stream.read(20)
+    if header[:6] != b"\x7fELF\x02\x01" or int.from_bytes(header[18:20], "little") != 183:
+        raise ControlError("WARP 服务程序不是 ARM64 ELF；未提交现用环境")
+    text = run(
+        ["chroot", str(root), "/usr/bin/warp-cli", "--version"],
+        30,
+        isolated=True,
+        operation="读取 WARP 客户端版本",
+    )
     if parse_version(text) != info["version"]:
         raise ControlError("WARP 程序自检版本不一致，未提交")
-    run(["chroot", str(root), "/usr/bin/warp-svc", "--help"], 15, isolated=True)
+    # warp-svc can enter daemon initialization even with --help. The Debian
+    # loader checks that the binary and its dependencies load without running it.
+    loader = ["chroot", str(root), "/lib/ld-linux-aarch64.so.1"]
+    run(
+        loader + ["--verify", "/usr/bin/warp-svc"],
+        30,
+        isolated=True,
+        operation="验证 WARP 服务程序格式",
+    )
+    output = run(
+        loader + ["--list", "/usr/bin/warp-svc"],
+        30,
+        isolated=True,
+        operation="检查 WARP 服务程序的依赖",
+    )
+    if "not found" in output:
+        raise ControlError("WARP 服务程序缺少运行依赖；未提交现用环境")
     return info
 
 
 def upgrade_copy(root, plan):
+    progress("正在读取官方软件源并验证签名；不会启动隧道", phase="verify_sources")
     keyfile = PRIVATE / "key.download"
     try:
         key = download("pubkey.gpg", keyfile, 65536)
@@ -799,7 +919,9 @@ def upgrade_copy(root, plan):
         "install",
         "cloudflare-warp=" + plan["version"],
     ]
+    progress("正在下载已确认的 WARP 版本；现用环境尚未替换", phase="download_packages")
     run(args + ["--download-only"] + install, 600)
+    progress("正在校验下载的软件包；现用环境尚未替换", phase="verify_packages")
     files = list(cache.glob("cloudflare-warp_*.deb"))
     wanted = plan["candidate"]
     if (
@@ -808,11 +930,70 @@ def upgrade_copy(root, plan):
         or file_hash(files[0]) != wanted["sha256"]
     ):
         raise ControlError("软件下载结果与确认版本的校验值不一致，未安装")
-    run(args + ["--no-download"] + install, 600, isolated=True)
+    install_apt(
+        args + ["--no-download"] + install, 600, "正在独立副本中安装已校验组件；未启动隧道"
+    )
 
 
-def progress(message, state="running"):
+def apt_progress(name):
+    if not isinstance(name, str) or not re.fullmatch(r"warp-apt-[a-z0-9_]{6,40}", name):
+        return {}
+    try:
+        fd = os.open(RUN / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as f:
+            info = os.fstat(f.fileno())
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_uid != os.geteuid()
+                or info.st_mode & 0o077
+            ):
+                return {}
+            offset = max(0, info.st_size - 8192)
+            f.seek(offset)
+            events = f.read(info.st_size - offset).split(b"\n")
+    except OSError:
+        return {}
+    result = {}
+    for event in events[bool(offset) : -1]:
+        row = re.fullmatch(rb"pmstatus:[a-z0-9+.-]+:(\d{1,3})(?:\.\d+)?:([\x20-\x7e]+)", event)
+        if not row or int(row[1]) > 100:
+            continue
+        result["install_percent"] = max(result.get("install_percent", 0), int(row[1]))
+        if row[2].startswith(
+            (b"Preparing to configure ", b"Configuring ", b"Installed ", b"Running post-installation ")
+        ):
+            result["install_step"] = "configure"
+        elif row[2].startswith((b"Preparing ", b"Unpacking ", b"Installing ")):
+            result["install_step"] = "unpack"
+    return result
+
+
+def install_apt(args, timeout, message):
+    directory(RUN)
+    # APT marks its status descriptor close-on-exec. Keep stdout/stderr separate
+    # so dpkg and its scripts can still write to their normal outputs.
+    with tempfile.NamedTemporaryFile(prefix="warp-apt-", dir=RUN) as status_file:
+        progress(message, phase="install_packages", apt_status_name=Path(status_file.name).name)
+        fd = status_file.fileno()
+        run(
+            args + ["-o", f"APT::Status-Fd={fd}", "-o", "Dpkg::Use-Pty=0"],
+            timeout,
+            isolated=True,
+            operation="安装 WARP 和依赖",
+            pass_fds=(fd,),
+        )
+
+
+def progress(message, state="running", *, phase=None, download_id=None, apt_status_name=None):
     previous = document(PRIVATE / "job.json", {})
+    previous.pop("download_id", None)
+    previous.pop("apt_status_name", None)
+    if phase is not None:
+        previous["phase"] = phase
+    if download_id is not None:
+        previous["download_id"] = download_id
+    if apt_status_name is not None:
+        previous["apt_status_name"] = apt_status_name
     save(
         PRIVATE / "job.json",
         {**previous, "state": state, "message": message, "updated_at": time.time()},
@@ -925,7 +1106,7 @@ def recover(plan):
         raise ControlError("不能证明文件替换已安全结束，请选择恢复副本回滚")
     path.unlink()
     sync_directory(BASE)
-    progress("未完成维护已核对，现用文件保持；仍需手动开启并检查联网", "success")
+    progress("未完成维护已核对，现用文件保持；仍需手动开启并检查联网", "success", phase="complete")
 
 
 def execute(plan_id, confirmation):
@@ -942,6 +1123,8 @@ def execute(plan_id, confirmation):
 
         with maintenance(RUN, BASE):
             inactive()
+            if recovery_required() and p["operation"] not in ("rollback", "recover"):
+                raise ControlError("检测到未完成的环境替换，请先核对恢复状态")
             (PRIVATE / "plan.json").unlink()
             if shutil.disk_usage(BASE).free < p["required_bytes"]:
                 raise ControlError("可用存储已变化，未开始维护")
@@ -951,11 +1134,13 @@ def execute(plan_id, confirmation):
             stage = BASE / (".runtime-stage-" + uuid.uuid4().hex)
             upload_copy = PRIVATE / ("claimed-" + uuid.uuid4().hex + ".tgz")
             try:
-                progress("正在准备独立副本；原环境尚未替换")
+                progress("正在准备独立副本；原环境尚未替换", phase="prepare_install")
                 if p["operation"] == "install":
                     stage.mkdir(mode=0o700)
                     claim_upload(p["sha256"], upload_copy)
+                    progress("正在解包运行环境；尚未提交安装", phase="install_packages")
                     unpack(upload_copy, stage)
+                    progress("运行环境已解包，正在自检；尚未提交安装", phase="verify_install")
                     test_runtime(stage)
                     registration = stage / "var/lib/cloudflare-warp"
                     if (
@@ -969,8 +1154,8 @@ def execute(plan_id, confirmation):
                 elif p["operation"] == "upgrade":
                     copy_runtime(BASE / "runtime", stage)
                     original_identity = identity(BASE / "runtime")
-                    progress("正在副本中下载并验证官方签名；不会启动隧道")
                     upgrade_copy(stage, p)
+                    progress("正在自检升级副本；现用环境尚未替换", phase="verify_install")
                     test_runtime(stage, p["version"])
                     if identity(stage) != original_identity:
                         raise ControlError("升级程序改动了账户或配置，未提交该副本")
@@ -1001,11 +1186,12 @@ def execute(plan_id, confirmation):
                         BASE / "runtime"
                     ):
                         raise ControlError("恢复副本未能保留当前身份，未回滚")
+                    progress("正在自检恢复副本；现用环境尚未替换", phase="verify_install")
                     test_runtime(stage, p["version"])
                 inactive()
                 if p["context"] != context():
                     raise ControlError("维护期间账户或配置已变化，未提交新环境；请重新检查后确认")
-                progress("副本检查通过；正在保留原环境并提交替换")
+                progress("副本检查通过；正在提交运行环境", phase="commit")
                 swap(stage, package_info(stage)["version"])
                 if p["operation"] == "online-install":
                     save(
@@ -1016,6 +1202,10 @@ def execute(plan_id, confirmation):
                             "message": "WARP 已安装，请登录自己的账户并手动开启",
                         },
                     )
+                    try:
+                        bootstrap.cleanup_ready(sys.modules[__name__])
+                    except (OSError, ControlError):
+                        pass  # A committed runtime is independent of its old preparation cache.
                 progress(
                     "WARP 环境已安装"
                     if p["operation"] in ("install", "online-install")
@@ -1023,12 +1213,23 @@ def execute(plan_id, confirmation):
                     if p["operation"] == "upgrade"
                     else "WARP 已回滚，当前账户配置已保留",
                     "success",
+                    phase="installed"
+                    if p["operation"] in ("install", "online-install")
+                    else "complete",
                 )
             except Exception as e:
-                if p["operation"] == "online-install":
+                if p["operation"] == "online-install" and isinstance(e, bootstrap.StalePreparation):
+                    bootstrap.invalidate_ready(sys.modules[__name__], e)
+                elif p["operation"] == "online-install":
+                    retry = (
+                        bootstrap.retry_state(sys.modules[__name__], p, e)
+                        if isinstance(e, bootstrap.OnlineSelfTestError)
+                        else None
+                    )
                     save(
                         PRIVATE / "online.json",
-                        {
+                        retry
+                        or {
                             "state": "failed",
                             "message": str(e)
                             if isinstance(e, ControlError)
@@ -1059,6 +1260,65 @@ def launch(action, token):
     )
 
 
+def ensure_no_active_job():
+    j = document(PRIVATE / "job.json", {})
+    pending = document(PRIVATE / "pending.json", {})
+    now = time.time()
+    if (
+        j.get("state") == "running" and -5 <= now - j.get("updated_at", 0) < 1800
+        or pending.get("token") and -5 <= now - pending.get("created_at", 0) < 60
+    ):
+        raise ControlError("已有维护任务正在执行，请等待结果")
+
+
+def queue(action, payload):
+    with job_lock():
+        ensure_no_active_job()
+        if action == "first-install":
+            inactive()
+            runtime = BASE / "runtime"
+            if runtime.exists() or runtime.is_symlink():
+                raise ControlError("已检测到运行环境，不会覆盖安装；请使用更新")
+            if recovery_required():
+                raise ControlError("请先核对上次未完成的维护")
+            bootstrap.cleanup_orphaned_ready(sys.modules[__name__])
+            env = bootstrap.detect(sys.modules[__name__])
+            if not env["can_prepare"]:
+                raise ControlError("；".join(env["issues"]))
+            payload = {"context": context()}
+        token = uuid.uuid4().hex
+        save(
+            PRIVATE / "pending.json",
+            {"action": action, "token": token, "payload": payload, "created_at": time.time()},
+        )
+        local = package_info(BASE / "runtime")
+        save(
+            PRIVATE / "job.json",
+            {"state": "queued", "local_version": local["version"] if local else None},
+        )
+        messages = {
+            "check": "正在检查版本",
+            "prepare-online": "正在自动检测并准备安装文件",
+            "first-install": "正在检查首次安装条件",
+            "execute": "维护请求已提交；正在再次核对条件",
+        }
+        progress(messages[action], phase="check_version" if action == "check" else "queued")
+    try:
+        launch(action, token)
+    except Exception:
+        with job_lock(wait=True):
+            if document(PRIVATE / "pending.json", {}).get("token") == token:
+                (PRIVATE / "pending.json").unlink()
+                progress("维护进程未能启动，请重试；未执行安装", "failed")
+        raise ControlError("维护进程未能启动") from None
+
+
+def first_install():
+    prepare()
+    queue("first-install", {})
+    return {"queued": True}
+
+
 def dispatch(action, request_id):
     prepare()
     with claim_request(RUN / "runtime-input", request_id, 4096) as payload:
@@ -1072,42 +1332,18 @@ def dispatch(action, request_id):
             result = {"saved": True}
         elif action == "plan":
             with job_lock():
-                j = document(PRIVATE / "job.json", {})
-                if j.get("state") == "running" and time.time() - j.get("updated_at", 0) < 1800:
-                    raise ControlError("已有维护任务正在执行，请等待结果")
+                ensure_no_active_job()
                 result = {"plan": make_plan(payload)}
-        elif action in ("check", "execute", "prepare-online"):
-            with job_lock():
-                j = document(PRIVATE / "job.json", {})
-                if j.get("state") == "running" and time.time() - j.get("updated_at", 0) < 1800:
-                    raise ControlError("已有维护任务正在执行，请等待结果")
-                token = uuid.uuid4().hex
-                save(
-                    PRIVATE / "pending.json",
-                    {
-                        "action": action,
-                        "token": token,
-                        "payload": payload,
-                        "created_at": time.time(),
-                    },
-                )
-                local = package_info(BASE / "runtime")
-                save(
-                    PRIVATE / "job.json",
-                    {"state": "queued", "local_version": local["version"] if local else None},
-                )
-                progress(
-                    "正在检查版本"
-                    if action == "check"
-                    else "正在自动检测并准备安装文件"
-                    if action == "prepare-online"
-                    else "维护请求已提交；正在再次核对条件"
-                )
-            try:
-                launch(action, token)
-            except Exception:
-                progress("维护进程未能启动，请重试；未执行安装", "failed")
-                raise ControlError("维护进程未能启动") from None
+        elif action in ("check", "execute", "prepare-online", "first-install"):
+            if (
+                action == "prepare-online"
+                and "refresh" in payload
+                and payload["refresh"] not in bootstrap.COMPONENTS
+            ):
+                raise ControlError("请选择有效的下载组件")
+            if action == "first-install" and payload != {"confirmation": "CONFIRM"}:
+                raise ControlError("请先确认首次安装 WARP")
+            queue(action, payload)
             result = {"submitted": True}
         else:
             raise ControlError("不支持的维护操作")
@@ -1116,21 +1352,37 @@ def dispatch(action, request_id):
 
 def job(action, token):
     # Claim a queued operation once; a scheduler cannot consume a UI confirmation.
-    with job_lock():
+    with job_lock(wait=True):
         d = document(PRIVATE / "pending.json", {})
-        if (
-            d.get("token") != token
-            or d.get("action") != action
-            or not -5 <= time.time() - d.get("created_at", 0) < 60
-        ):
+        if d.get("token") != token or d.get("action") != action:
             raise ControlError("维护队列已过期")
         (PRIVATE / "pending.json").unlink()
+        if not -5 <= time.time() - d.get("created_at", 0) < 60:
+            progress("维护任务未及时启动，请重新提交", "failed")
+            raise ControlError("维护队列已过期")
     try:
         if action == "check":
             c = check()
-            progress(c["message"], "success" if c["state"] == "checked" else "failed")
+            progress(
+                c["message"],
+                "success" if c["state"] == "checked" else "failed",
+                phase="complete" if c["state"] == "checked" else "check_version",
+            )
         elif action == "prepare-online":
-            bootstrap.prepare(sys.modules[__name__])
+            bootstrap.prepare(sys.modules[__name__], refresh=d["payload"].get("refresh"))
+        elif action == "first-install":
+            expected = d["payload"]["context"]
+            if expected != context():
+                raise ControlError("账户或配置已变化，请重新确认安装")
+            module = sys.modules[__name__]
+            try:
+                with job_lock():
+                    plan = make_plan({"operation": "online-install"}, expected_context=expected)
+            except bootstrap.StalePreparation:
+                bootstrap.prepare(module, continuous=True)
+                with job_lock():
+                    plan = make_plan({"operation": "online-install"}, expected_context=expected)
+            execute(plan["id"], "CONFIRM")
         elif action == "execute":
             p = d["payload"]
             execute(p.get("plan_id"), p.get("confirmation"))
@@ -1148,10 +1400,16 @@ def watch():
             j = document(PRIVATE / "job.json", {})
             if j.get("state") == "running" and time.time() - j.get("updated_at", 0) > 120:
                 with job_lock():
-                    progress("上次维护进程未完成，请核对恢复状态；未自动重试安装", "interrupted")
+                    j = document(PRIVATE / "job.json", {})
+                    if j.get("state") == "running" and time.time() - j.get("updated_at", 0) > 120:
+                        progress("上次维护进程未完成，请核对恢复状态；未自动重试安装", "interrupted")
                 j = document(PRIVATE / "job.json", {})
-            if j.get("state") != "running" and due():
-                check()
+            if (
+                j.get("state") != "running"
+                and package_info(BASE / "runtime", probe=False)
+                and due()
+            ):
+                check(scheduled=True)
         except Exception:
             pass
         time.sleep(60)

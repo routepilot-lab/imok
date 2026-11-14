@@ -20,6 +20,7 @@ return baseclass.extend({
     ]);
   },
   create: function ({
+    base,
     bootstrapCustom,
     bootstrapMode,
     bootstrapPinned,
@@ -55,8 +56,17 @@ return baseclass.extend({
       if (JSON.stringify(saved) !== JSON.stringify(draft))
         return submitInput('warp-dns-input', 'warp-dns-validate', draft);
     }
-    function renderBootstrap(panel, selectFields) {
-      return panel(_('WARP 启动解析'), _('为 WARP 启动选 DNS，下次启动生效。'), [
+    function renderBootstrap(selectFields) {
+      return E('details', { class: 'imok-panel' }, [
+        E('summary', {}, _('高级 · WARP 启动解析')),
+        E(
+          'p',
+          { class: 'rp-help' },
+          _(
+            '首次安装可保留「自动优选」。WARP 启动时优先尝试宽带下发的 DNS，必要时自动尝试备用服务器。'
+          )
+        ),
+        E('p', { class: 'rp-help' }, _('保存后在下次 WARP 启动时生效。')),
         ...selectFields(['warp_dns_mode', 'warp_dns_pinned', 'warp_dns_custom']),
         bootstrapStatus,
         bootstrapDraft,
@@ -67,16 +77,11 @@ return baseclass.extend({
         ])
       ]);
     }
-    function renderLanCandidates(panel) {
+    function renderLanCandidates() {
       return E('section', { class: 'imok-card-section' }, [
         E('h4', {}, _('局域网 DNS 候选')),
-        E('p', { class: 'rp-help' }, _('国内候选含宽带下发地址。')),
-        E('div', { class: 'rp-actions' }, [domesticDnsTest.nodes[0], foreignDnsTest.nodes[0]]),
-        E('details', { class: 'imok-result-details' }, [
-          E('summary', {}, _('候选结果')),
-          domesticDnsTest.nodes[1],
-          foreignDnsTest.nodes[1]
-        ])
+        domesticDnsTest.node,
+        foreignDnsTest.node
       ]);
     }
     function chooseBootstrap(row) {
@@ -191,7 +196,7 @@ return baseclass.extend({
       }
       renderResolverResults(bootstrapResults, result, chooseBootstrap);
     }
-    function renderResolverResults(output, result, choose) {
+    function renderResolverResults(output, result, choose, actionLabel) {
       var dual = result.transport === 'udp' || result.transport === 'tcp';
       var reasons = {
         timeout: _('超时'),
@@ -217,7 +222,7 @@ return baseclass.extend({
             'tr',
             { class: 'tr' },
             [
-              _('分组'),
+              actionLabel ? _('服务器来源') : _('分组'),
               _('名称'),
               _('地址'),
               ...(dual ? ['UDP', 'TCP'] : [_('结果')]),
@@ -250,7 +255,7 @@ return baseclass.extend({
                           choose(row);
                         }
                       },
-                      _('使用这个')
+                      actionLabel || _('使用这个')
                     )
               ].map(function (item) {
                 return E('td', { class: 'td' }, item);
@@ -260,7 +265,7 @@ return baseclass.extend({
         ])
       );
     }
-    function chooseLanResolver(option, row, testedTransport) {
+    function chooseLanResolver(option, row, testedTransport, selectedMessage) {
       var widget = option.getUIElement && option.getUIElement('main');
       if (!widget || !widget.setValue) return;
       var transport =
@@ -269,7 +274,7 @@ return baseclass.extend({
         'tcp';
       function selectAddress() {
         widget.setValue(row.address);
-        notify(_('已选 ') + row.address + _('，请保存。'));
+        notify(selectedMessage.replace('%s', row.address));
       }
       if (!testedTransport) {
         notify(_('请重新测试候选，确认所选传输方式。'), true);
@@ -309,8 +314,12 @@ return baseclass.extend({
         ])
       ]);
     }
-    function lanDnsTest(kind, label, option) {
+    function lanDnsTest(kind, option, labels) {
       var output = E('div', { class: 'rp-help', 'aria-live': 'polite' });
+      var details = E('details', { class: 'imok-result-details' }, [
+        E('summary', {}, labels.result),
+        output
+      ]);
       var pending = 0;
       var button = E(
         'button',
@@ -319,7 +328,8 @@ return baseclass.extend({
           click: function () {
             pending = Date.now();
             button.disabled = true;
-            if (output.parentNode) output.parentNode.open = true;
+            domesticDnsTest.details.open = kind === 'domestic';
+            foreignDnsTest.details.open = kind === 'foreign';
             output.textContent = _('正在测试候选服务器…');
             return command('lan-dns-' + kind).catch(function (error) {
               pending = 0;
@@ -328,10 +338,16 @@ return baseclass.extend({
             });
           }
         },
-        label
+        labels.test
       );
       return {
-        nodes: [button, output],
+        details: details,
+        node: E('section', { class: 'imok-card-section' }, [
+          E('h4', {}, labels.title),
+          E('p', { class: 'rp-help' }, labels.description),
+          E('div', { class: 'rp-actions' }, [button]),
+          details
+        ]),
         update: function (status, result) {
           button.disabled =
             Boolean(pending) ||
@@ -357,14 +373,33 @@ return baseclass.extend({
             output.textContent = result.message || _('测试未完成，请重试。');
             return;
           }
-          renderResolverResults(output, result, function (row) {
-            chooseLanResolver(option, row, result.transport);
-          });
+          renderResolverResults(
+            output,
+            result,
+            function (row) {
+              chooseLanResolver(option, row, result.transport, labels.selected);
+            },
+            labels.select
+          );
         }
       };
     }
-    var domesticDnsTest = lanDnsTest('domestic', _('测试国内 DNS 候选'), domesticDns);
-    var foreignDnsTest = lanDnsTest('foreign', _('测试代理 DNS 候选'), foreignDns);
+    var domesticDnsTest = lanDnsTest('domestic', domesticDns, {
+      title: _('国内 DNS · 宽带直连'),
+      description: _('经宽带测试，包含运营商下发的 DNS。'),
+      test: _('测试国内 DNS 候选'),
+      result: _('国内 DNS 候选结果'),
+      select: _('填入国内 DNS'),
+      selected: _('已将 %s 填入国内 DNS，请保存并应用。')
+    });
+    var foreignDnsTest = lanDnsTest('foreign', foreignDns, {
+      title: _('代理 DNS · WARP 隧道'),
+      description: _('主线路就绪后，经 WARP 隧道测试。'),
+      test: _('测试代理 DNS 候选'),
+      result: _('代理 DNS 候选结果'),
+      select: _('填入代理 DNS'),
+      selected: _('已将 %s 填入代理 DNS，请保存并应用。')
+    });
     var dnsInfo = E('p', { role: 'status', 'aria-live': 'polite' }, _('正在读取独立 DNS 状态…')),
       dnsCounts = E('p'),
       dnsEffective = E('p'),
@@ -457,26 +492,35 @@ return baseclass.extend({
         )
       )
     ]);
+    var dnsOverview = E('a', { href: base + '/overview', hidden: true }, _('前往总览'));
     var dnsTestCard = E('section', { class: 'imok-card-section' }, [
       E('h3', {}, _('DNS 解析检测')),
       E('p', { class: 'rp-help' }, _('从路由器测试生效的国内和代理 DNS。')),
       dnsProbeButton,
       dnsTestInfo,
+      dnsOverview,
       E('details', { class: 'imok-result-details' }, [E('summary', {}, _('解析明细')), dnsResults])
     ]);
     function updateDNS(data, test, status) {
       liveDNS = data;
       var now = Date.now(),
         state = feedback.dnsState(data, status, now);
+      var statusFresh = feedback.fresh(status, now);
+      var inactiveHint = !statusFresh
+        ? _('正在读取分流状态。')
+        : status.state === 'preparing'
+          ? _('请在总览结束登录准备，再开启 imOK。分流启动后即可检测。')
+          : _('请在总览确认 imOK 已开启，并等待分流运行后再检测。');
       dnsInfo.textContent = {
         running: _('独立 DNS 正在运行'),
-        inactive: _('分流未运行，独立 DNS 当前不可用'),
+        inactive: statusFresh ? _('独立 DNS 随分流启动，当前尚未运行。') : _('正在读取分流状态。'),
         stale: _('DNS 状态已过期或连接已改变'),
         unavailable: _('暂未取得独立 DNS 状态')
       }[state];
       dnsCounts.textContent = '';
       dnsEffective.textContent = '';
       var valid = state === 'running';
+      dnsOverview.hidden = state !== 'inactive' || !statusFresh;
       dnsClearButton.disabled = clearPending || !valid || !data.control_available;
       if (valid) {
         var entries = 0,
@@ -524,18 +568,21 @@ return baseclass.extend({
         dnsJobPending && (!test || (dnsJobPending.id && test.request_id !== dnsJobPending.id));
       if (dnsJobPending && !awaiting && ts !== 'busy') dnsJobPending = null;
       dnsProbeButton.disabled = dnsSubmitting || !valid || ts === 'busy' || !!dnsJobPending;
-      dnsTestInfo.textContent = awaiting
-        ? _('等待本次 DNS 检测作业，最长约 40 秒…')
-        : {
-            busy: _('正在检测，最长约 40 秒…'),
-            success: _('本机受管 DNS 入口解析通过'),
-            error: _('部分 DNS 解析检测失败'),
-            warning: _('部分 DNS 入口未就绪或没有完整解析结果'),
-            stale: _('历史 DNS 结果已过期或检测环境已改变，请重新检测'),
-            pending: _('暂未取得有效的 DNS 检测结果'),
-            unavailable: _('当前 DNS 未运行，尚不能检测')
-          }[ts];
-      if (test && test.finished_at)
+      dnsTestInfo.textContent =
+        state === 'inactive'
+          ? inactiveHint
+          : awaiting
+            ? _('等待本次 DNS 检测作业，最长约 40 秒…')
+            : {
+                busy: _('正在检测，最长约 40 秒…'),
+                success: _('本机受管 DNS 入口解析通过'),
+                error: _('部分 DNS 解析检测失败'),
+                warning: _('部分 DNS 入口未就绪或没有完整解析结果'),
+                stale: _('历史 DNS 结果已过期或检测环境已改变，请重新检测'),
+                pending: _('暂未取得有效的 DNS 检测结果'),
+                unavailable: _('当前 DNS 未运行，尚不能检测')
+              }[ts];
+      if (state !== 'inactive' && test && test.finished_at)
         dnsTestInfo.textContent += ' · ' + _('检测时间：') + when(test.finished_at);
       var rows = (test && Array.isArray(test.results) ? test.results : []).map(function (r) {
         return E('tr', {}, [

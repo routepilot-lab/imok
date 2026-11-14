@@ -33,18 +33,17 @@ return baseclass.extend({
     bytes,
     getCatalog,
     connectionDirectory,
-    data,
     directoryLabel,
     feedback,
-    isCurrentView,
     page,
     powerButton,
     refreshDirectory,
     switchFeedback,
+    setupGuide,
     when,
     wizardConfig,
     enabled,
-    getStatus
+    preparingToLogin
   }) {
     var overviewState = E('strong', { class: 'rp-overview-state' }, _('读取中'));
     var overviewBadge = E('span', { class: 'rp-status-badge' }, _('读取中'));
@@ -71,38 +70,6 @@ return baseclass.extend({
     );
     var overviewSummary = E('p', { class: 'rp-help', role: 'status' });
     var overviewAction = E('a', { class: 'btn' }, _('查看详情'));
-    var overviewSetup = E('section', { class: 'cbi-section', hidden: '' });
-    var runtimeInfo = null;
-    function updateSetup(v) {
-      var setup = wizardConfig();
-      var active = v && v.state === 'running';
-      var steps = [
-        [_('安装运行环境'), 'runtime', active || (runtimeInfo && runtimeInfo.installed)],
-        [_('登录团队'), 'cloudflare/account', active || getCatalog().available],
-        [_('选择出口'), 'cloudflare/routing', active || !!setup.exit_id],
-        setup.scope === 'lan'
-          ? [_('选择局域网'), 'cloudflare/routing', active || setup.lans > 0]
-          : [_('选择设备'), 'cloudflare/devices', active || setup.devices > 0],
-        [_('启用'), 'overview#imok-power', enabled()]
-      ];
-      overviewSetup.hidden = !!steps.every(function (step) {
-        return step[2];
-      });
-      if (overviewSetup.hidden) return;
-      overviewSetup.replaceChildren(
-        E('h3', {}, _('首次使用')),
-        E(
-          'ol',
-          {},
-          steps.map(function (step) {
-            return E('li', {}, [
-              E('a', { href: base + '/' + step[1] }, step[0]),
-              step[2] ? _(' · 已完成') : _(' · 待完成')
-            ]);
-          })
-        )
-      );
-    }
     var overviewHero = E('section', { class: 'cbi-section rp-overview-hero' }, [
       E('div', { class: 'rp-hero-heading' }, [
         E('div', { class: 'imok-connection-heading' }, [E('h3', {}, _('连接状态')), overviewState]),
@@ -110,7 +77,7 @@ return baseclass.extend({
       ]),
       E('div', { class: 'rp-actions' }, [overviewSummary, overviewAction]),
       overviewFactsNode,
-      overviewSetup,
+      setupGuide,
       overviewLine,
       E('details', { class: 'rp-stat-details' }, [E('summary', {}, _('连接详情')), overviewMeta]),
       switchFeedback
@@ -231,6 +198,7 @@ return baseclass.extend({
         ])
       );
     var versionInfo = E('p', { class: 'rp-help' }, _('客户端版本正在读取…'));
+    var runtimeNotice = E('p', { class: 'rp-help', hidden: true });
     var quickCard = E('section', { class: 'cbi-section', 'aria-label': _('快捷操作') }, [
       E(
         'div',
@@ -251,34 +219,33 @@ return baseclass.extend({
             E('span', {}, [E('strong', {}, q[2]), E('small', {}, q[3])])
           ]);
         })
-      )
+      ),
+      runtimeNotice
     ]);
-    if (page === 'overview' && data.runtimeRead)
-      data.runtimeRead.then(function (info) {
-        if (!isCurrentView()) return;
-        runtimeInfo = info;
-        updateSetup(getStatus());
-        if (
-          !isCurrentView() ||
-          !info ||
-          !(
-            info.update_available ||
-            !info.installed ||
-            (info.check && info.check.state === 'failed')
-          )
-        )
-          return;
-        quickCard.appendChild(
-          E('p', { class: 'rp-help' }, [
-            info.update_available
-              ? _('WARP 有新版本可供检查与手动升级。')
-              : !info.installed
-                ? _('首次使用请先安装路由器的 WARP 运行环境。')
-                : _('WARP 版本检查失败，最新版本暂未确认。'),
-            E('a', { href: base + '/runtime' }, _(' 前往 WARP 安装与更新'))
-          ])
+    function updateRuntime(info) {
+      var version =
+        info?.installed === true && typeof info.local_version === 'string' && info.local_version;
+      versionInfo.textContent =
+        'imOK ' +
+        (buildInfo.package || _('版本待读取')) +
+        ' · WARP ' +
+        (version || _('版本未知')) +
+        _(' · 仅显示本机读到的版本；是否有更新请核对官方发布记录。');
+      var notice = info?.update_available
+        ? _('WARP 有新版本可供检查与手动升级。')
+        : info?.installed === false
+          ? _('首次使用请先安装路由器的 WARP 运行环境。')
+          : info?.check?.state === 'failed'
+            ? _('WARP 版本检查失败，最新版本暂未确认。')
+            : '';
+      runtimeNotice.hidden = !notice;
+      if (notice)
+        runtimeNotice.replaceChildren(
+          notice,
+          E('a', { href: base + '/runtime' }, _(' 前往 WARP 安装与更新'))
         );
-      });
+      else runtimeNotice.replaceChildren();
+    }
     function validTrafficCounts(v) {
       return (
         v &&
@@ -433,64 +400,73 @@ return baseclass.extend({
             ? _(' 有无法归属到日期的流量，仅纳入累计。')
             : '')
         : _('升级前的流量无法补算。');
-      versionInfo.textContent =
-        'imOK ' +
-        (buildInfo.package || _('版本待读取')) +
-        ' · WARP ' +
-        (v && v.client_version ? v.client_version : _('版本未知')) +
-        _(' · 仅显示本机读到的版本；是否有更新请核对官方发布记录。');
     }
-    function updateOverview(v, t) {
+    function updateOverview(v, t, statusMessage) {
       var now = Date.now(),
         config = wizardConfig(),
         catalog = getCatalog(),
         fresh = feedback.fresh(v, now),
+        starting =
+          enabled() && config.nonce && v?.state === 'disabled' && v.applied_nonce !== config.nonce,
         running = fresh && v.state === 'running',
+        activeScope = running && enabled() && ['lan', 'devices'].includes(v.scope),
+        scope = activeScope ? v.scope : config.scope,
+        scopeLabel = scope === 'lan' ? _('所选局域网') : scope === 'devices' ? _('所选设备') : '',
+        scopeText = scopeLabel || _('未确认'),
         activeExit = running
           ? v.backend === 'worker'
             ? v.backup_name || _('Workers 备用')
             : directoryLabel(v.exit, catalog)
           : _('当前出口未确认'),
-        tone = !fresh
-          ? 'unknown'
-          : running && v.tunnel_status !== 'unknown'
-            ? 'good'
-            : v.state === 'error'
-              ? 'bad'
-              : 'warn';
+        tone = starting
+          ? 'warn'
+          : !fresh
+            ? 'unknown'
+            : running && v.tunnel_status !== 'unknown'
+              ? 'good'
+              : v.state === 'error'
+                ? 'bad'
+                : 'warn';
+      if (scopeLabel && !activeScope) scopeText += _('（已保存）');
+      else if (activeScope && scope === 'devices' && Array.isArray(v.devices))
+        scopeText += ' · ' + v.devices.length + _(' 条接管策略');
       overviewBadge.setAttribute('data-tone', tone);
-      overviewBadge.textContent = !fresh
-        ? _('？ 状态未知')
-        : running
-          ? v.backend === 'worker'
-            ? _('✓ 备用线路运行中（TCP）')
-            : v.tunnel_status === 'unknown'
-              ? _('？ 客户端状态无法识别')
-              : _('✓ 隧道已连接')
-          : v.state === 'error'
-            ? _('! 连接故障，请查看详情')
-            : v.state === 'disabled'
-              ? _('○ 已关闭')
-              : v.state === 'preparing'
-                ? _('◷ 登录准备中')
-                : _('◷ 等待连接');
-      overviewLine.textContent = !fresh
-        ? _('状态已过期，当前连接未确认')
-        : running
-          ? (v.backend === 'worker' ? _('Workers 备用') : _('WARP 主线路')) +
-            ' · ' +
-            _('实际协议：') +
-            (v.protocol || _('待确认')) +
-            ' · ' +
-            activeExit +
-            ' · IP ' +
-            (v.exit_ip || '—')
-          : v.message || _('等待连接');
+      overviewBadge.textContent = starting
+        ? _('◷ 正在启动隧道')
+        : !fresh
+          ? _('？ 状态未知')
+          : running
+            ? v.backend === 'worker'
+              ? _('✓ 备用线路运行中（TCP）')
+              : v.tunnel_status === 'unknown'
+                ? _('？ 客户端状态无法识别')
+                : _('✓ 隧道已连接')
+            : v.state === 'error'
+              ? _('! 连接故障，请查看详情')
+              : v.state === 'disabled'
+                ? _('○ 已关闭')
+                : v.state === 'preparing'
+                  ? _('◷ 登录准备中')
+                  : _('◷ 等待连接');
+      overviewLine.textContent = starting
+        ? _('开启请求已保存，正在等待后台启动。')
+        : !fresh
+          ? _('状态已过期，当前连接未确认')
+          : running
+            ? (v.backend === 'worker' ? _('Workers 备用') : _('WARP 主线路')) +
+              ' · ' +
+              _('实际协议：') +
+              (v.protocol || _('待确认')) +
+              ' · ' +
+              activeExit +
+              ' · IP ' +
+              (v.exit_ip || '—')
+            : statusMessage || v.message || _('等待连接');
       overviewMeta.textContent =
         _('状态更新时间：') +
         when(v && v.time) +
         _(' · 接管范围：') +
-        (v && v.scope === 'lan' ? _('所选局域网') : _('所选设备')) +
+        scopeText +
         (v && v.tunnel_warning ? ' ' + v.tunnel_warning : '') +
         (v && v.protocol_warning ? ' ' + v.protocol_warning : '') +
         (running && v.device_wait_message ? ' · ' + v.device_wait_message : '');
@@ -499,10 +475,7 @@ return baseclass.extend({
       overviewFacts.enabled.textContent = enabled() ? _('已启用') : _('已关闭');
       overviewFacts.protocol.textContent = fresh && v && v.protocol ? v.protocol : _('未确认');
       overviewFacts.exit.textContent = activeExit;
-      overviewFacts.scope.textContent = fresh
-        ? (v.scope === 'lan' ? _('所选局域网') : _('所选设备')) +
-          (Array.isArray(v.devices) ? ' · ' + v.devices.length + _(' 条接管策略') : '')
-        : _('未确认');
+      overviewFacts.scope.textContent = scopeText;
       overviewFacts.applied.textContent =
         fresh &&
         ['running', 'disabled', 'preparing'].indexOf(v.state) >= 0 &&
@@ -526,6 +499,7 @@ return baseclass.extend({
       };
       var reasons = {
         disabled: _('分流开关已关闭'),
+        starting: _('正在启动隧道'),
         stale: _('运行状态尚未确认'),
         tunnel: _('线路等待恢复'),
         devices: _('等待核对设备地址'),
@@ -541,7 +515,25 @@ return baseclass.extend({
       overviewState.textContent = titles[summary.state];
       overviewState.setAttribute('data-state', summary.state);
       overviewSummary.textContent = reasons[summary.reason];
+      if (summary.reason === 'website' || summary.reason === 'restricted') {
+        var labels = {
+          google: _('Google（代理）'),
+          youtube: _('YouTube（代理）'),
+          github: _('GitHub（代理）'),
+          taobao: _('淘宝（直连）'),
+          baidu: _('百度（直连）')
+        };
+        var affected = t.results
+          .filter(function (item) {
+            return item.state === (summary.reason === 'website' ? 'failed' : 'restricted');
+          })
+          .map(function (item) {
+            return labels[item.id];
+          });
+        if (affected.length) overviewSummary.textContent += ' · ' + affected.join('、');
+      }
       overviewAction.setAttribute('href', base + '/' + summary.page);
+      overviewAction.hidden = summary.reason === 'disabled' && preparingToLogin();
       overviewAction.textContent =
         {
           disabled: _('前往启用'),
@@ -552,7 +544,6 @@ return baseclass.extend({
           apply: _('查看分流'),
           unknown_tunnel: _('检查 WARP')
         }[summary.reason] || _('联网检测');
-      updateSetup(fresh ? v : null);
       var guardLabel = {
         off: _('未启用'),
         blocking: _('受保护设备正在等待放行'),
@@ -605,6 +596,7 @@ return baseclass.extend({
       quick: quickCard,
       version: versionInfo,
       update: updateOverview,
+      updateRuntime,
       updateTraffic
     };
   }

@@ -21,6 +21,10 @@
   --imok-control-border: #8b95a5;
   --imok-accent: #2563eb;
   --imok-accent-hover: #1d4ed8;
+  --imok-accent-text: #1d4ed8;
+  --imok-accent-bg: #edf3ff;
+  --imok-chart-proxy-stripe: #5c7edd;
+  --imok-chart-direct-stripe: #3e9f90;
   --imok-direct: #0f766e;
   --imok-warning-border: #f2d6a5;
   --imok-on-accent: #fff;
@@ -29,6 +33,7 @@
   --imok-warning: #92400e;
   --imok-warning-bg: #fffaeb;
   --imok-danger: #b42318;
+  --imok-danger-fill: #b42318;
   --imok-danger-bg: #fef3f2;
   --imok-neutral: #475467;
   --imok-neutral-bg: #f2f4f7;
@@ -49,11 +54,43 @@
   --imok-shadow-dialog: 0 0.5rem 2rem #1822301a;
   --imok-duration: 140ms;
   --imok-focus: 2px solid var(--imok-accent);
+  color-scheme: light;
   color: var(--imok-text);
   font-size: var(--imok-text-body);
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: normal;
+}
+/* The marker records Argon's effective mode, including its forced light/dark setting. */
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions, .imok-notice) {
+  color-scheme: dark;
+  --imok-bg: #1e1e1e;
+  --imok-surface: #25262b;
+  --imok-surface-subtle: #2c2e35;
+  --imok-text: #eef0f5;
+  --imok-text-secondary: #c1c7d4;
+  --imok-text-muted: #a8b0c1;
+  --imok-border: #41444f;
+  --imok-control-border: #777f92;
+  --imok-accent: #4644b5;
+  --imok-accent-hover: #4b4abb;
+  --imok-accent-text: #b6c2ff;
+  --imok-accent-bg: #303458;
+  --imok-chart-proxy-stripe: #899cfa;
+  --imok-chart-direct-stripe: #3c967d;
+  --imok-direct: #79d8bc;
+  --imok-warning-border: #6c522f;
+  --imok-success: #8be0b9;
+  --imok-success-bg: #223c34;
+  --imok-warning: #f7cd86;
+  --imok-warning-bg: #422f20;
+  --imok-danger: #ffb4ad;
+  --imok-danger-fill: #953d39;
+  --imok-danger-bg: #462a2c;
+  --imok-neutral: #d5dbe7;
+  --imok-neutral-bg: #333640;
+  --imok-shadow-dialog: 0 0.5rem 2rem #0006;
+  --imok-focus: 2px solid var(--imok-accent-text);
 }
 .rp-layout
   :is(button, input, select, textarea):not([class^='icon-']):not([class*=' icon-']):not(
@@ -140,7 +177,7 @@
   --rp-ink: var(--imok-text);
   --rp-muted: var(--imok-text-secondary);
   --rp-line: var(--imok-border);
-  --rp-blue: var(--imok-accent);
+  --rp-blue: var(--imok-accent-text);
   min-width: 0;
   max-width: 100%;
 }
@@ -284,7 +321,7 @@
   padding-top: 0.5em;
 }
 .rp-layout .rp-danger-area > summary {
-  color: #a42319;
+  color: var(--imok-danger);
 }
 
 /* These are generated help/status paragraphs, not native form descriptions. */
@@ -326,24 +363,24 @@
 }
 .rp-layout .rp-step-badge {
   margin-right: 0.5em;
-  background: #f2f4f7;
+  background: var(--imok-neutral-bg);
   color: var(--rp-muted);
 }
 .rp-layout .rp-guide-step[data-state='success'] .rp-step-badge {
-  background: #e9f7ef;
-  color: #087443;
+  background: var(--imok-success-bg);
+  color: var(--imok-success);
 }
 .rp-layout .rp-guide-step[data-state='error'] .rp-step-badge {
-  background: #fff0ed;
-  color: #b42318;
+  background: var(--imok-danger-bg);
+  color: var(--imok-danger);
 }
 .rp-layout .rp-guide-step[data-state='busy'] .rp-step-badge {
-  background: #edf3ff;
-  color: #1946ad;
+  background: var(--imok-accent-bg);
+  color: var(--imok-accent-text);
 }
 .rp-layout .rp-guide-step[data-state='warning'] .rp-step-badge {
-  background: #fff7e5;
-  color: #875500;
+  background: var(--imok-warning-bg);
+  color: var(--imok-warning);
 }
 .rp-layout .rp-cloud-grid {
   display: grid;
@@ -382,10 +419,10 @@
   overflow-wrap: anywhere;
 }
 .rp-layout .rp-route-explainer {
-  border-left: 3px solid #a5b9ed;
+  border-left: 3px solid var(--imok-accent);
   margin: 0.5em 0;
   padding-left: 0.6em;
-  color: #234071;
+  color: var(--imok-accent-text);
   overflow-wrap: anywhere;
 }
 .rp-layout .rp-section-nav {
@@ -398,22 +435,22 @@
 /* Feedback preserves explicit state text and progress without another card shell. */
 .rp-layout .rp-operation-feedback,
 .rp-layout .rp-worker-activity {
-  border-left: 3px solid #98a2b3;
+  border-left: 3px solid var(--imok-control-border);
   padding: 0 0 0 0.6em;
   margin: 0.5em 0;
   overflow-wrap: anywhere;
 }
 .rp-layout .rp-operation-feedback[data-state='success'],
 .rp-layout .rp-worker-activity[data-state='success'] {
-  border-left-color: #12805c;
+  border-left-color: var(--imok-success);
 }
 .rp-layout .rp-operation-feedback[data-state='error'],
 .rp-layout .rp-worker-activity[data-state='error'] {
-  border-left-color: #b42318;
+  border-left-color: var(--imok-danger);
 }
 .rp-layout .rp-operation-feedback[data-state='busy'],
 .rp-layout .rp-worker-activity[data-state='busy'] {
-  border-left-color: #2554cf;
+  border-left-color: var(--imok-accent-text);
 }
 .rp-layout .rp-operation-feedback[data-state='waiting'],
 .rp-layout .rp-operation-feedback[data-state='unknown'],
@@ -421,7 +458,7 @@
 .rp-layout .rp-worker-activity[data-state='waiting'],
 .rp-layout .rp-worker-activity[data-state='unknown'],
 .rp-layout .rp-worker-activity[data-state='warning'] {
-  border-left-color: #a15c00;
+  border-left-color: var(--imok-warning);
 }
 .rp-layout .rp-operation-feedback progress {
   display: block;
@@ -447,24 +484,24 @@
 }
 .rp-layout .rp-job-steps [data-state='success'],
 .rp-layout .rp-center-ok {
-  color: #087443;
+  color: var(--imok-success);
 }
 .rp-layout .rp-job-steps [data-state='error'] {
-  color: #b42318;
+  color: var(--imok-danger);
 }
 /* Stage status remains visible without a second bordered card. */
 .rp-layout .rp-worker-stage[data-state='success'] > .rp-worker-stage-heading .rp-group-state {
-  color: #087443;
+  color: var(--imok-success);
 }
 .rp-layout .rp-worker-stage[data-state='error'] > .rp-worker-stage-heading .rp-group-state {
-  color: #b42318;
+  color: var(--imok-danger);
 }
 .rp-layout .rp-worker-stage[data-state='busy'] > .rp-worker-stage-heading .rp-group-state {
-  color: #1946ad;
+  color: var(--imok-accent-text);
 }
 .rp-layout .rp-worker-stage[data-state='waiting'] > .rp-worker-stage-heading .rp-group-state,
 .rp-layout .rp-worker-stage[data-state='unknown'] > .rp-worker-stage-heading .rp-group-state {
-  color: #875500;
+  color: var(--imok-warning);
 }
 .rp-layout .rp-worker-inventory {
   margin: 0.75em 0;
@@ -509,26 +546,26 @@
   display: inline-block;
   padding: 0 0.35em;
   border-radius: 3px;
-  background: #edf0f4;
-  color: #344054;
+  background: var(--imok-neutral-bg);
+  color: var(--imok-neutral);
 }
 .rp-layout [data-tone='good'] .rp-status-badge {
-  background: #d8f1e4;
-  color: #086343;
+  background: var(--imok-success-bg);
+  color: var(--imok-success);
 }
 .rp-layout [data-tone='bad'] .rp-status-badge {
-  background: #ffe2dc;
-  color: #a42319;
+  background: var(--imok-danger-bg);
+  color: var(--imok-danger);
 }
 .rp-layout [data-tone='warn'] .rp-status-badge {
-  background: #fff0cb;
-  color: #7d4a00;
+  background: var(--imok-warning-bg);
+  color: var(--imok-warning);
 }
 .rp-layout .rp-data-note {
-  border-left: 3px solid #efd8a4;
+  border-left: 3px solid var(--imok-warning-border);
   padding: 0 0 0 0.6em !important;
   margin: 0.5em 0;
-  color: #734600;
+  color: var(--imok-warning);
 }
 .rp-layout .rp-metric-grid {
   display: grid;
@@ -564,7 +601,7 @@
   color: var(--rp-blue);
 }
 .rp-layout .rp-direct .rp-metric-icon {
-  color: #096d5b;
+  color: var(--imok-direct);
 }
 .rp-layout .rp-metric-number {
   display: block;
@@ -572,7 +609,7 @@
   font-variant-numeric: tabular-nums;
 }
 .rp-layout [data-stale='true'] .rp-metric-number {
-  color: #667085;
+  color: var(--imok-text-muted);
 }
 .rp-layout .rp-segments {
   display: inline-flex;
@@ -604,7 +641,7 @@
   display: flex;
   flex-direction: column-reverse;
   justify-content: flex-start;
-  background: #f2f4f7;
+  background: var(--imok-neutral-bg);
   overflow: hidden;
   position: relative;
 }
@@ -614,25 +651,25 @@
   flex-shrink: 0;
 }
 .rp-layout .rp-bar-proxy {
-  background: repeating-linear-gradient(135deg, #315bce 0, #315bce 5px, #5c7edd 5px, #5c7edd 8px);
+  background: repeating-linear-gradient(135deg, var(--imok-accent) 0, var(--imok-accent) 5px, var(--imok-chart-proxy-stripe) 5px, var(--imok-chart-proxy-stripe) 8px);
 }
 .rp-layout .rp-bar-direct {
-  background: repeating-linear-gradient(135deg, #128573 0, #128573 5px, #3e9f90 5px, #3e9f90 8px);
+  background: repeating-linear-gradient(135deg, var(--imok-direct) 0, var(--imok-direct) 5px, var(--imok-chart-direct-stripe) 5px, var(--imok-chart-direct-stripe) 8px);
 }
 .rp-layout .rp-no-data {
   position: absolute;
   inset: 40% 0;
-  color: #667085;
+  color: var(--imok-text-muted);
 }
 .rp-layout .rp-day-label {
   white-space: nowrap;
 }
 .rp-layout .rp-legend-proxy {
-  color: #2348aa;
+  color: var(--imok-accent-text);
   margin-right: 0.75em;
 }
 .rp-layout .rp-legend-direct {
-  color: #096d5b;
+  color: var(--imok-direct);
 }
 .rp-layout .rp-quick-grid {
   display: grid;
@@ -659,12 +696,12 @@
 .rp-layout .rp-section-nav a[aria-current='page'],
 .rp-layout .rp-segments button[aria-pressed='true'] {
   background: var(--imok-accent);
-  color: #fff;
-  border-color: var(--imok-accent);
+  color: var(--imok-on-accent);
+  border-color: var(--imok-accent-text);
 }
 .rp-layout :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
 .imok-dialog :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--imok-accent);
+  outline: var(--imok-focus);
   outline-offset: 3px;
 }
 @media (max-width: 700px) {
@@ -753,7 +790,7 @@
   max-width: 76rem;
   margin-inline: auto;
   background: var(--imok-bg);
-  --rp-blue: var(--imok-accent);
+  --rp-blue: var(--imok-accent-text);
   --rp-muted: var(--imok-text-secondary);
   --rp-line: var(--imok-border);
 }
@@ -837,8 +874,8 @@
 }
 .rp-layout[data-page='overview'] .cbi-button-action {
   background: var(--imok-accent);
-  color: #fff;
-  border-color: var(--imok-accent);
+  color: var(--imok-on-accent);
+  border-color: var(--imok-accent-text);
 }
 .rp-layout[data-page='overview'] .cbi-button-action:hover {
   background: var(--imok-accent-hover);
@@ -976,7 +1013,7 @@
 }
 .rp-layout[data-page='overview'] .rp-segments button[aria-pressed='true'] {
   background: var(--imok-accent);
-  color: #fff;
+  color: var(--imok-on-accent);
 }
 .rp-layout[data-page='overview'] .rp-trend-heading {
   margin: 1.5rem 0 0.75rem;
@@ -1013,7 +1050,7 @@
   white-space: normal;
 }
 .rp-layout[data-page='overview'] .rp-legend-proxy {
-  color: var(--imok-accent);
+  color: var(--imok-accent-text);
 }
 .rp-layout[data-page='overview'] .rp-legend-direct {
   color: var(--imok-direct);
@@ -1045,7 +1082,7 @@
   color: var(--imok-text);
 }
 .rp-layout[data-page='overview'] a {
-  color: var(--imok-accent);
+  color: var(--imok-accent-text);
   overflow-wrap: anywhere;
 }
 .rp-layout[data-page='overview'] .rp-group-state {
@@ -1118,9 +1155,9 @@
 
 .rp-layout .rp-rule-source-field select[data-selected='preset'],
 .rp-layout .rp-rule-source-field select[data-selected='custom'] {
-  background: #edf2ff;
-  color: var(--imok-accent-hover);
-  border-color: var(--imok-accent);
+  background: var(--imok-accent-bg);
+  color: var(--imok-accent-text);
+  border-color: var(--imok-accent-text);
 }
 .rp-layout .cbi-dropdown li[aria-selected='true'],
 .rp-layout .cbi-dropdown li[selected],
@@ -1225,12 +1262,12 @@
 .rp-layout:not([data-page='overview']) :is(.cbi-button-action, .cbi-button-apply),
 .imok-page-actions .cbi-button-apply {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .rp-layout:not([data-page='overview']) .rp-section-nav a[aria-current='page'] {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .rp-layout:not([data-page='overview']) button:disabled,
@@ -1758,7 +1795,7 @@
 }
 .rp-layout[data-page='workers'] .imok-stage-link[aria-pressed='true'] {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .rp-layout[data-page='workers'] .imok-stage-link[aria-pressed='true'] small {
@@ -2083,7 +2120,7 @@
 }
 .imok-dialog .cbi-button-action {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .imok-dialog :is(button, input, select, textarea, a):focus-visible {
@@ -2189,7 +2226,7 @@
 }
 .imok-dialog.imok-device-dialog > .button-row .cbi-button-positive {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 @media (max-width: 34rem) {
@@ -2307,12 +2344,12 @@
 /* Argon forces native add/remove captions white; preserve semantic contrast. */
 .rp-layout:not([data-page='overview']) :is(.cbi-button-add, .cbi-button-positive) {
   background-color: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .rp-layout:not([data-page='overview']) :is(.cbi-button-remove, .cbi-button-negative) {
-  background-color: var(--imok-danger);
-  border-color: var(--imok-danger);
+  background-color: var(--imok-danger-fill);
+  border-color: var(--imok-danger-fill);
   color: var(--imok-on-accent);
 }
 
@@ -2377,7 +2414,7 @@
 }
 .rp-layout[data-page='clients'] .imok-client-item[aria-pressed='true'] {
   background: var(--imok-accent);
-  border-color: var(--imok-accent);
+  border-color: var(--imok-accent-text);
   color: var(--imok-on-accent);
 }
 .rp-layout[data-page='clients'] .imok-client-item[aria-pressed='true'] :is(span, small) {
@@ -2700,7 +2737,7 @@
 }
 .imok-runtime-dialog .cbi-button-apply:not(:disabled):hover {
   background: var(--imok-accent-hover);
-  border-color: var(--imok-accent-hover);
+  border-color: var(--imok-accent-text);
 }
 .imok-runtime-dialog button:disabled {
   background: var(--imok-neutral-bg);
@@ -2744,10 +2781,10 @@
   color: var(--imok-text);
 }
 .rp-layout .rp-layout-status[data-tone='success'] {
-  border-inline-start: 3px solid #087443;
+  border-inline-start: 3px solid var(--imok-success);
 }
 .rp-layout .rp-layout-status[data-tone='warning'] {
-  border-inline-start: 3px solid #a15c00;
+  border-inline-start: 3px solid var(--imok-warning);
 }
 .rp-layout .rp-layout-status.rp-center-summary {
   justify-content: space-between;
@@ -2922,10 +2959,10 @@
   display: grid;
   gap: 0.75rem;
 }
-.rp-layout[data-page='account'] :is(.rp-account-status, .rp-account-next) {
+.rp-layout[data-page='account'] .rp-account-status {
   justify-content: space-between;
 }
-.rp-layout[data-page='account'] :is(.rp-account-status, .rp-account-next) :is(h3, p) {
+.rp-layout[data-page='account'] .rp-account-status p {
   margin: 0;
   padding: 0;
 }
@@ -2937,8 +2974,24 @@
 .rp-layout[data-page='account'] .rp-account-check .cbi-value-title {
   display: none;
 }
-.rp-layout[data-page='account'] .rp-account-next[hidden] {
-  display: none;
+.rp-layout .imok-first-setup {
+  display: grid;
+  gap: var(--imok-space-2);
+}
+.rp-layout .imok-first-setup > :is(h3, p) {
+  margin: 0;
+}
+.rp-layout .imok-setup-steps {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--imok-space-8);
+  row-gap: var(--imok-space-1);
+  margin: 0;
+  padding-inline-start: var(--imok-space-6);
+  color: var(--imok-text-secondary);
+}
+.rp-layout .imok-setup-steps [aria-current='step'] {
+  color: var(--imok-accent-text);
 }
 .rp-layout[data-page='account'] .rp-account-setup[open] > summary {
   margin-bottom: 0.75rem;
@@ -2953,14 +3006,14 @@
 }
 .rp-layout[data-page='account'] :is(button.btn, a.btn, .cbi-button):not(:disabled):hover,
 .rp-layout .rp-center-summary button.btn:not(:disabled):hover {
-  color: var(--imok-accent-hover) !important;
+  color: var(--imok-accent-text) !important;
   background: var(--imok-surface-subtle) !important;
   border-color: var(--imok-accent) !important;
 }
 .rp-layout[data-page='account'] .rp-section-nav a.btn[aria-current='page'],
 .rp-layout[data-page='account'] .rp-section-nav a.btn[aria-current='page']:hover {
-  color: var(--imok-accent-hover) !important;
-  background: #eff6ff !important;
+  color: var(--imok-accent-text) !important;
+  background: var(--imok-accent-bg) !important;
   border-color: var(--imok-accent) !important;
 }
 .rp-layout[data-page='account'] :is(button.btn, .cbi-button):disabled,
@@ -2983,4 +3036,96 @@
     display: grid;
     gap: 0.125rem;
   }
+}
+
+/* Match foregrounds to native Argon controls and surfaces inside imOK. */
+:is(.rp-layout, .imok-dialog) :is(a:not(.btn), a:not(.btn):visited) {
+  color: var(--imok-accent-text);
+}
+:is(.rp-layout, .imok-dialog)
+  :is(input, textarea)::placeholder {
+  color: var(--imok-text-muted);
+  opacity: 1;
+}
+
+[data-imok-theme='dark'] .rp-layout .cbi-section {
+  background: var(--imok-surface) !important;
+  box-shadow: none;
+}
+[data-imok-theme='dark'] .imok-dialog :is(.cbi-map, .cbi-section, .cbi-section-node),
+[data-imok-theme='dark'] .rp-layout .cbi-section .cbi-section-node {
+  background: transparent !important;
+  box-shadow: none;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog)
+  :is(.cbi-value-title, .cbi-section-descr, .cbi-value-field, td, .td) {
+  color: var(--imok-text);
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog) .cbi-value-description {
+  color: var(--imok-text-secondary);
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog)
+  :is(input:not([type]), input[type='text'], input[type='password'], input[type='url'],
+      input[type='number'], input[type='search'], input[type='file'], select, textarea, .cbi-dropdown) {
+  background: var(--imok-surface-subtle);
+  color: var(--imok-text);
+  border-color: var(--imok-control-border) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog)
+  :is(input[type='checkbox'], input[type='radio'], progress) {
+  accent-color: var(--imok-accent-text);
+}
+[data-imok-theme='dark'] .rp-layout :is(th, .th) {
+  background: var(--imok-surface-subtle);
+  color: var(--imok-text-secondary);
+}
+[data-imok-theme='dark'] .rp-layout .cbi-section-table-row {
+  background: var(--imok-surface) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions)
+  .cbi-dropdown[open] > ul.dropdown {
+  background: var(--imok-surface-subtle) !important;
+  color: var(--imok-text) !important;
+  border-color: var(--imok-control-border) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions)
+  .cbi-dropdown[open] > ul.dropdown > li {
+  color: var(--imok-text);
+  border-color: var(--imok-border) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions)
+  .cbi-dropdown[open] > ul.dropdown > li[selected] {
+  background: var(--imok-accent-bg) !important;
+  color: var(--imok-accent-text);
+}
+
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions)
+  :is(.btn, .cbi-button):not(.cbi-button-up, .cbi-button-down, [class^='icon-'], [class*=' icon-']) {
+  border-color: var(--imok-control-border) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout[data-page='overview'], .imok-dialog, .imok-page-actions)
+  :is(.cbi-button-action, .cbi-button-apply, .cbi-button-positive),
+[data-imok-theme='dark'] .rp-layout .cbi-button-add {
+  color: var(--imok-on-accent) !important;
+  background: var(--imok-accent) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout[data-page='overview'], .imok-dialog, .imok-page-actions)
+  :is(.cbi-button-action, .cbi-button-apply, .cbi-button-positive):not(:disabled):hover,
+[data-imok-theme='dark'] .rp-layout .cbi-button-add:not(:disabled):hover {
+  background: var(--imok-accent-hover) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog)
+  :is(.cbi-button-negative, .cbi-button-remove):not(.imok-device-grid .cbi-button-remove) {
+  color: var(--imok-on-accent) !important;
+  background: var(--imok-danger-fill) !important;
+}
+[data-imok-theme='dark'] .rp-layout .imok-device-grid :is(.cbi-button-edit, .cbi-button-remove) {
+  background: var(--imok-surface-subtle) !important;
+}
+[data-imok-theme='dark'] :is(.rp-layout, .imok-dialog, .imok-page-actions)
+  :is(button, input, select, textarea):disabled {
+  opacity: 1;
+  color: var(--imok-text-muted) !important;
+  background: var(--imok-neutral-bg) !important;
+  border-color: var(--imok-border) !important;
 }

@@ -84,6 +84,20 @@ class MasqueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             config.compile_config(self.cfg, self.rules)
 
+    def test_unselected_domain_lists_do_not_block_lan_bypass(self):
+        self.cfg["main"].update(scope="lan", lan_network="10.77.50.0/24", lan_mode="bypass_cn")
+        (self.rules / "gfw.txt").write_text("<!doctype html>\n")
+        (self.rules / "whitelist.txt").write_text("# empty\n")
+        (self.rules / "china_domains.txt").write_text("baidu.com\n")
+        out = config.compile_config(self.cfg, self.rules)
+        self.assertIn("ip daddr @china4 return", out["nft"])
+        self.assertEqual(out["dns"]["policies"][0]["china_domains"], ["baidu.com"])
+        for mode in ("gfw", "whitelist"):
+            with self.subTest(mode=mode):
+                self.cfg["main"]["lan_mode"] = mode
+                with self.assertRaisesRegex(ValueError, "域名规则"):
+                    config.compile_config(self.cfg, self.rules)
+
     def test_dns_suffix_boundaries_and_ttl_aging(self):
         self.assertTrue(suffix_match({"www.example.com"}, {"example.com"}))
         self.assertFalse(suffix_match({"badexample.com"}, {"example.com"}))

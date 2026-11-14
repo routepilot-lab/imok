@@ -147,6 +147,9 @@ class ExitTests(unittest.TestCase):
         ]
         self.assertEqual(acl["read"]["file"]["/usr/libexec/routepilot-exits"], ["exec"])
         self.assertNotIn("/usr/libexec/routepilot", acl["read"]["file"])
+        self.assertNotIn("uci", acl["read"]["ubus"])
+        self.assertEqual(acl["write"]["ubus"]["uci"], ["commit"])
+        self.assertEqual(acl["write"]["uci"], ["routepilot"])
         menu = json.loads(
             (ROOT / "root/usr/share/luci/menu.d/luci-app-routepilot.json").read_text()
         )

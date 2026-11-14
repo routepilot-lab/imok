@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-routepilot
 PKG_VERSION:=0.2.38
-PKG_RELEASE:=17
+PKG_RELEASE:=36
 PKG_LICENSE:=MIT GPL-2.0
 PKG_MAINTAINER:=imok contributors
 
@@ -58,7 +58,7 @@ define Package/luci-app-routepilot/install
 	$(INSTALL_DIR) $(1)/www
 	$(CP) ./htdocs/* $(1)/www/
 	chmod 600 $(1)/etc/config/routepilot
-	chmod 755 $(1)/etc/init.d/routepilot $(1)/etc/init.d/routepilot-egress-guard $(1)/usr/libexec/routepilot $(1)/usr/libexec/routepilot-exits $(1)/usr/libexec/routepilot-observe $(1)/usr/libexec/routepilot-traffic $(1)/usr/libexec/routepilot-backup-list $(1)/usr/libexec/routepilot-clients $(1)/usr/libexec/routepilot-clients-list $(1)/usr/libexec/routepilot-device-usage $(1)/usr/libexec/routepilot-runtime $(1)/usr/libexec/routepilot-runtime-status
+	chmod 755 $(1)/etc/init.d/routepilot $(1)/etc/init.d/routepilot-egress-guard $(1)/usr/libexec/routepilot $(1)/usr/libexec/routepilot-exits $(1)/usr/libexec/routepilot-observe $(1)/usr/libexec/routepilot-traffic $(1)/usr/libexec/routepilot-backup-list $(1)/usr/libexec/routepilot-clients $(1)/usr/libexec/routepilot-clients-list $(1)/usr/libexec/routepilot-device-usage $(1)/usr/libexec/routepilot-runtime $(1)/usr/libexec/routepilot-runtime-status $(1)/usr/libexec/routepilot-runtime-first-install
 endef
 
 $(eval $(call BuildPackage,luci-app-routepilot))

@@ -1,0 +1,212 @@
+{
+  "checks": [
+    {
+      "check": "python-main",
+      "exit": 0,
+      "tests": 563
+    },
+    {
+      "check": "python-server",
+      "exit": 0,
+      "tests": 5
+    },
+    {
+      "check": "luci-contract",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "assets",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_center_scope",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_access",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_modal_native",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_client_subscription_worker",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_diagnostics_contract",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_exit_loading",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_feedback_render",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_feedback_ui",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_flat_settings",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_guard_save",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_null_render",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_overview_loading",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_overview_v2",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_pages_v2",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_request_binding",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_rules_sections",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_rules_ui",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_runtime_ui",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_wizard",
+      "exit": 0,
+      "tests": null
+    },
+    {
+      "check": "test_worker_template",
+      "exit": 0,
+      "tests": null
+    }
+  ],
+  "integrity": {
+    "version": "0.2.37-6",
+    "syntax_files": 63,
+    "worker_hash": true,
+    "reproducible": true,
+    "package_sha256": "660b4c67244d8867fa4087ce66f861f84d442d3c23b04e04f34bb00e58438410",
+    "package_files": 64,
+    "manifest": {
+      "./etc/config/routepilot": "2b253d2110a596383fb96031a677ef47b2a080eb03d04299243f98de18e2097c",
+      "./etc/init.d/routepilot": "faf8e80044bdc1d1217cc062299966750d83be9e3b4851c3cd7a2080439fd3ec",
+      "./etc/init.d/routepilot-egress-guard": "eaba1e95d99d759260fe6b45e2491a2cf89137956465797eca1f325444aa89a5",
+      "./lib/upgrade/keep.d/routepilot": "647d44cccbe6c19ffc411953be23b8a3df61265337094f28af1a4d37936024f8",
+      "./usr/lib/routepilot/auth_control.py": "2a2bbcdbebf53b86768b0bf148559d5c046a76dd203944a21edecd9211f33578",
+      "./usr/lib/routepilot/client_access.py": "ab581b740e3f025a28b2f37e4669d767c8c525f69822cc2f6fd46d746c0934ba",
+      "./usr/lib/routepilot/client_provider.py": "717fcd109ccd3351767320060f856499f4452e1b598ca41024b408b997a253f4",
+      "./usr/lib/routepilot/client_subscriptions.py": "471e480fa063ffcf7806db55a7addfd9107b9970a65adc4cd7408907b0226cdf",
+      "./usr/lib/routepilot/cloud_health.py": "fcc6587bfed704e360ac29c5e58b7cd8636ecf1caa60b306d3e71a31c6bad68a",
+      "./usr/lib/routepilot/cloud_worker.py": "9587a83f9e3b78228465ac041711b147d9f94d23837d97098ef0e2af6ba94715",
+      "./usr/lib/routepilot/compiler.py": "ab304ea13fb5481130fbf1d9c4d6b4e07c0dfaa88d69165e664c9c47c556df0e",
+      "./usr/lib/routepilot/config_backup.py": "2803909401d83ca4642644316e22d24fa10b1f6836406db7dd8e1d4ea784cd55",
+      "./usr/lib/routepilot/connection_events.py": "f5ef8b6560f2fa7e1c87d5a32292e394f74e542a335b76cd54ae469fd48bc4a1",
+      "./usr/lib/routepilot/diagnostics.py": "935b48978eb4dff065e9e33e6970809ca44d005e389d478323d2c7e9ab5ae90c",
+      "./usr/lib/routepilot/dns_diagnostics.py": "f85685862f759c9c893867b5cb69453fa9b6bee78df75ad71ebe496559af139a",
+      "./usr/lib/routepilot/dns_runtime.py": "e52970143e3836cc90ce7f3af764a230d5bce0f1113b15e9ccb849bd04dc08eb",
+      "./usr/lib/routepilot/egress_guard.py": "ba8e735d50da70a1496ae1c42216440d323755c2243d13f76e5a2da8a9c30f08",
+      "./usr/lib/routepilot/endpoint_control.py": "02e2c885e056a8e9dcc4c2838bd5f59d71db6f36159d3d7f18f0d9f6430cb28f",
+      "./usr/lib/routepilot/exits.py": "a0d341082d102b3de9e4db93866cb37638c6ec695a8ac60f11b260ed0226ea09",
+      "./usr/lib/routepilot/masque.py": "00167e82c6aa2166b1c3e9ffbe580911396b8def12abbc867aac80d8338e79c3",
+      "./usr/lib/routepilot/masque_config.py": "6f9a715b0cfdaa01cc106bc9ba0513a488cba94b2cea3e0eff83898b1b5f04b3",
+      "./usr/lib/routepilot/mplane.py": "9c1864eba6e183401bcbe24d10b1ab6c3195a26dfd483596bdabf030ae93bc6f",
+      "./usr/lib/routepilot/native.py": "e4116d76f91550577cb56b654cfc0aaef5123ebfc0477e5fa91d70a99c881ed7",
+      "./usr/lib/routepilot/public_errors.py": "33240dc5b5ae53a40a8bc4a924723e78d02538c0f6f3acb2b2e4f46c73db9884",
+      "./usr/lib/routepilot/receive_observer.py": "c8289c27a91eb6fb826f7ae7990c115ce3705f341fee09e6a0d7e5c938f6e703",
+      "./usr/lib/routepilot/relay_pool.py": "a15c07864dbe94c57cae325817fa3c117d677b849e3be2f25b3037a81182a85b",
+      "./usr/lib/routepilot/request_input.py": "2fa56c6b51f64857d737e6d590154d9992b914f2cf17e476bc6f179d32e7a6de",
+      "./usr/lib/routepilot/rules_catalog.py": "db4687b687702d80514ae35e56cd115f6f0aae1ea93885882a92fd61c7c48f12",
+      "./usr/lib/routepilot/rules_overrides.py": "a7d95651013c3fec6c451dc8c411c875a576b86583625097eaf70f637159d272",
+      "./usr/lib/routepilot/rules_schedule.py": "544ef1b5f7589515a629957bacc000d2c82c55ebe0610f56d062fa8bcda98c43",
+      "./usr/lib/routepilot/rules_sources.py": "41829673f054a3e3658d738576530b368e1cbba058c89e58885cbb463a423e5b",
+      "./usr/lib/routepilot/runtime.py": "2c84dea86fafad9c6e4695e28655af4e29ec80a807028fa54d7ff0ac34b175b6",
+      "./usr/lib/routepilot/runtime_bootstrap.py": "a075b49764cc14f2fad1559a05a13cc15260effa97c1c137c17ad07ce9617d50",
+      "./usr/lib/routepilot/runtime_guard.py": "419a2465505afae4229baac65a815b2c0bf075730162a7cfbecacc373b8cafe2",
+      "./usr/lib/routepilot/runtime_maintenance.py": "b559d1a6d5c7f8f04cd6a4ca7a7a5ebb17542bde8afd710ec069aeb61acb0a20",
+      "./usr/lib/routepilot/traffic_observer.py": "363559cddf5ec5436ab61f4c1e622cc7b0921a62ae1461d9666200f2ca19f2eb",
+      "./usr/lib/routepilot/udp_buffers.py": "ec89b6d3ac33e2817a5b852577e9effdfe76c116aada5ec3f3aac9780dfc66b6",
+      "./usr/lib/routepilot/warp_control.py": "0cd6b615fd8db7a382285cd79ab2c42549a4310fd7124fcdb789acbd34103cb9",
+      "./usr/lib/routepilot/worker_backend.py": "4dda05dbe36473d08a1855abe259396cb6b279105f379acda7d0113b406933af",
+      "./usr/lib/routepilot/worker_scan.py": "df1e9add895780c0c7df576381e4ac1a4e41711612f8425126f506a6b45f6267",
+      "./usr/libexec/routepilot": "f50546630cb76e7effa2da0e82ef71b16ade005ac48809d81dd1eeac9a7fa1bf",
+      "./usr/libexec/routepilot-backup-list": "ff467ddc6af7825084d3637ce713e338c1f211f6850dc582a633cf182dbdb471",
+      "./usr/libexec/routepilot-clients": "fc1df3577c93c4e2922dbe8ea53985039daa66b44150c81ecb01b13b2a25f18e",
+      "./usr/libexec/routepilot-clients-list": "e9132cf1b89d53d2880e9960596f7f41020a413f23175a7cdd3d0d3272767ca1",
+      "./usr/libexec/routepilot-device-usage": "c9ca3bb52fd728432bd2d4d8a17688d89b96daea534a595f91e7cb2721706172",
+      "./usr/libexec/routepilot-exits": "44dd40ca41dd81d216257d9d10c2f231caa309b081955538b0102dde4772646a",
+      "./usr/libexec/routepilot-observe": "14b782828a7ee7eb2daaf453162969844a4b2efd17759fa75c00bb68c9323674",
+      "./usr/libexec/routepilot-runtime": "55141292ec102d7b87da1f915ad10e6c715e19d84a0bfa6a578edddf4e4a6d87",
+      "./usr/libexec/routepilot-runtime-status": "16cb2f1ba68c580840a6d9991c40d6917cd35df9e9e574e5104a384249f7e686",
+      "./usr/libexec/routepilot-traffic": "0a463c0e5fce7acecfe1dd0dd934936fd78921ea1214ab05720ff7575bba4caf",
+      "./usr/share/luci/menu.d/luci-app-routepilot.json": "48d3b0f57fa11e8f479ac98acf22289c4abe203bfbb736debfbe5043b5312399",
+      "./usr/share/routepilot/client-subscription/worker.mjs": "44939f99f960da2d6828585911ec5d69dd70f5a486bd48c16337f5da15a3d833",
+      "./usr/share/routepilot/clients/QR-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+      "./usr/share/routepilot/clients/SOURCE.json": "b4c0774be03328e4e7a6257863b4e8206e93e5ef699a3ecbbe53ff2b517fb500",
+      "./usr/share/routepilot/version.json": "bd54d395915f681ec5b20eb27260e2c67f1bcf2d2e6e2ac75f1484361b952d15",
+      "./usr/share/routepilot/workers/LICENSE-GPL-2.0": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "./usr/share/routepilot/workers/SOURCE.json": "c9377ec4ed5fad33acefa9d9220fe61cbb75fe2a6c2036eb9ca7bd3413b1db7c",
+      "./usr/share/routepilot/workers/worker.mjs": "742dfb3243585a5045796e790a8b6ed77bd7d07dcf24029afca6991d634a994f",
+      "./usr/share/rpcd/acl.d/luci-app-routepilot.json": "c2353f75c704af313923bcfa05a6a0017c658f4adbb268941673ca441a2ef89f",
+      "./www/luci-static/resources/routepilot/clients_dc0db1c2b643.js": "dc0db1c2b643d5ee3da5b631aeb473e4403ff216ef347f25adb66cac9186eb3e",
+      "./www/luci-static/resources/routepilot/feedback_8f30a36f4eaa.js": "8f30a36f4eaa2b2a73312e923e294d1db4baccdc212c7f4c517a87c43598eead",
+      "./www/luci-static/resources/routepilot/runtime_9c815026873f.js": "9c815026873f61a5b88c89fd5f464cce6ac2b3946e0609be1627970da397804e",
+      "./www/luci-static/resources/routepilot/style_451cf35556c1.css": "451cf35556c19abcd3b9cd6a8aa06195e77d5b30345eb3e0f9088992a5f25aab",
+      "./www/luci-static/resources/view/routepilot_masque_cfbc6f11e9c0.js": "cfbc6f11e9c00d3def9a4c9f95d694b8f8490149d7313201ba0f2d6826efc08b"
+    }
+  },
+  "all_passed": true,
+  "no_router_or_cloud_operations": true,
+  "version": "0.2.37-6",
+  "date": "2026-11-12",
+  "release": {
+    "name": "imOK 2.0 · 断网保护修复测试版（v0.2.37-6）",
+    "prerelease": true
+  },
+  "validation_scope": {
+    "packaging": "reproducible local build",
+    "guard_conflict": "local LuCI save and backend tests; configured soft/hard offload, active flowtables, unreadable status and recovery paths",
+    "manual_disable": "local supervisor tests; removes capture and guard, scoped DNS redirects, retains saved preferences",
+    "router_acceptance": "test build not installed; user will test separately on old router"
+  }
+}

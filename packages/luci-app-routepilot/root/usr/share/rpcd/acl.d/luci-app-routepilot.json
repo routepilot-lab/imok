@@ -9,6 +9,9 @@
         "/var/run/routepilot/status.json": [
           "read"
         ],
+        "/var/run/routepilot/prepared-exit-test.json": [
+          "read"
+        ],
         "/var/run/routepilot/update.json": [
           "read"
         ],
@@ -165,6 +168,9 @@
         ]
       },
       "ubus": {
+        "uci": [
+          "commit"
+        ],
         "file": [
           "exec",
           "write"

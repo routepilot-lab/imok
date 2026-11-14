@@ -20,6 +20,7 @@ TARGETS = {
 }
 IDENTITY = ("exit", "exit_ip", "generation", "applied_nonce", "runtime_id", "backend")
 REFRESH_SECONDS = 240
+RETRYABLE_CURL_ERRORS = {6, 7, 18, 28}
 
 
 def snapshot(name, run=None):
@@ -118,11 +119,22 @@ def probe(key, backend):
             executor = net
             options += ["--interface", "if!CloudflareWARP"]
         args[1:1] = options
-    try:
-        result = executor(args, check=False)
-        result = classify(result.returncode, result.stdout)
-    except Exception:
-        result = dict(state="failed", message="检测未完成", http=0, ms=None)
+    def attempt(args):
+        try:
+            response = executor(args, check=False)
+            return response.returncode, classify(response.returncode, response.stdout)
+        except Exception:
+            return None, dict(state="failed", message="检测未完成", http=0, ms=None)
+
+    code, result = attempt(args)
+    if code in RETRYABLE_CURL_ERRORS:
+        first_failure = result
+        retry = args.copy()
+        retry[retry.index("--max-time") + 1] = "6"
+        _, result = attempt(retry)
+        if result["state"] == "ok":
+            result["message"] = "重试后可连接"
+        result["first_failure"] = first_failure
     return dict(id=key, name=name, route=route, **result)
 
 

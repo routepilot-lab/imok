@@ -163,34 +163,10 @@ def save_organization(request_id=None):
 
 def observe():
     """Use the active data plane without switching exit, transport, or routing."""
-    from mplane import net
-    from worker_backend import curl
-
     before = json.loads((RUN / "status.json").read_text())
     if before.get("state") != "running" or not 0 <= time.time() - before.get("time", 0) < 15:
         raise ControlError("请先确认所选线路正在运行，再检测实际出口地区")
-    runner = curl if before.get("backend") == "worker" else net
-    response = runner(
-        [
-            "curl",
-            "-4",
-            "-fsS",
-            "--connect-timeout",
-            "4",
-            "--max-time",
-            "8",
-            "--max-filesize",
-            "4096",
-            "https://www.cloudflare.com/cdn-cgi/trace",
-        ]
-    )
-    fields = dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
-    import ipaddress
-
-    ip = str(ipaddress.IPv4Address(fields.get("ip", "")))
-    country = fields.get("loc", "")
-    if not re.fullmatch("[A-Z]{2}", country):
-        raise ControlError("检测站点未返回可识别的国家 / 地区")
+    ip, country = probe_exit(before.get("backend", "masque"))
     after = json.loads((RUN / "status.json").read_text())
     context = (
         "runtime_id",
@@ -213,3 +189,32 @@ def observe():
     )
     atomic(OBSERVATION, json.dumps(value, ensure_ascii=False), 0o644)
     return value
+
+
+def probe_exit(backend="masque"):
+    from mplane import net
+    from worker_backend import curl
+    from ipaddress import IPv4Address
+
+    runner = curl if backend == "worker" else net
+    args = [
+        "curl",
+        "-4",
+        "-fsS",
+        "--connect-timeout",
+        "4",
+        "--max-time",
+        "8",
+        "--max-filesize",
+        "4096",
+        "https://www.cloudflare.com/cdn-cgi/trace",
+    ]
+    if runner is net:
+        args[1:1] = ["-q", "--noproxy", "*", "--interface", "if!CloudflareWARP"]
+    response = runner(args)
+    fields = dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
+    ip = IPv4Address(fields.get("ip", ""))
+    country = fields.get("loc", "")
+    if not ip.is_global or not re.fullmatch("[A-Z]{2}", country):
+        raise ControlError("检测站点未返回可识别的公网 IPv4 或地区")
+    return str(ip), country

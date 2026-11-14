@@ -49,9 +49,6 @@ msgstr ""
 msgid " · 当前环境不支持 IPv6"
 msgstr ""
 
-msgid " · 待完成"
-msgstr ""
-
 msgid " · 接管范围："
 msgstr ""
 
@@ -223,6 +220,9 @@ msgstr ""
 msgid "Cloudflare API 令牌"
 msgstr ""
 
+msgid "Cloudflare 临时授权凭据"
+msgstr ""
+
 msgid "Cloudflare 客户端连接直连"
 msgstr ""
 
@@ -260,6 +260,12 @@ msgid "DNS 返回错误"
 msgstr ""
 
 msgid "DNS 配置"
+msgstr ""
+
+msgid "GitHub（代理）"
+msgstr ""
+
+msgid "Google（代理）"
 msgstr ""
 
 msgid "HTTPS 建连中位数 "
@@ -313,13 +319,19 @@ msgstr ""
 msgid "WARP 主线路"
 msgstr ""
 
-msgid "WARP 启动解析"
+msgid "WARP 出口检测尚未返回确认结果，请检查状态后重试。"
+msgstr ""
+
+msgid "WARP 出口检测未完成："
 msgstr ""
 
 msgid "WARP 安装与更新"
 msgstr ""
 
 msgid "WARP 客户端 UDP 接收观测"
+msgstr ""
+
+msgid "WARP 已连接。先检测实际出口地区，再用已接管的设备打开网页。DNS 和测速可按需检查。"
 msgstr ""
 
 msgid "WARP 有新版本可供检查与手动升级。"
@@ -346,10 +358,19 @@ msgstr ""
 msgid "Workers 阶段选择"
 msgstr ""
 
+msgid "YouTube（代理）"
+msgstr ""
+
 msgid "imOK 分流助手"
 msgstr ""
 
 msgid "imOK 已关闭，断网保护已撤回"
+msgstr ""
+
+msgid "imOK 已开启，暂未取得最新运行状态。"
+msgstr ""
+
+msgid "imOK 已开启，正在等待本次配置应用和 WARP 隧道连接。"
 msgstr ""
 
 msgid "nft 分流与保护"
@@ -365,9 +386,6 @@ msgid "○ API 尚未读取"
 msgstr ""
 
 msgid "○ WARP 注册待确认"
-msgstr ""
-
-msgid "○ 上次已读取，待刷新"
 msgstr ""
 
 msgid "○ 出口地区尚未检测"
@@ -386,9 +404,6 @@ msgid "○ 备用未启用，现有主线路仍在使用"
 msgstr ""
 
 msgid "○ 尚无运行状态"
-msgstr ""
-
-msgid "○ 已保存，目录待确认"
 msgstr ""
 
 msgid "○ 已关闭"
@@ -425,6 +440,9 @@ msgid "● 代理"
 msgstr ""
 
 msgid "● 直连"
+msgstr ""
+
+msgid "◷ 正在启动隧道"
 msgstr ""
 
 msgid "◷ 登录准备中"
@@ -544,6 +562,9 @@ msgstr ""
 msgid "上次受控恢复："
 msgstr ""
 
+msgid "上次的出口目录已过期。请点击「检查账户」重新读取。"
+msgstr ""
+
 msgid "上次读取时间已失效，请刷新确认；"
 msgstr ""
 
@@ -575,9 +596,6 @@ msgid "下载"
 msgstr ""
 
 msgid "下载 "
-msgstr ""
-
-msgid "下载 ZIP 不会自动安装。完整安装包包含 IPK 插件、WARP 运行环境压缩包、安装脚本和校验文件。将 ZIP 解压后的整个文件夹复制到兼容路由器，在该文件夹内以管理员运行 sh install-router.sh；脚本会校验文件、解压运行环境并安装插件。仅在网页上传 IPK，只安装管理插件，不会自动安装配套环境。"
 msgstr ""
 
 msgid "下载 v3 配置备份。"
@@ -631,9 +649,6 @@ msgstr ""
 msgid "中国域名规则"
 msgstr ""
 
-msgid "为 WARP 启动选 DNS，下次启动生效。"
-msgstr ""
-
 msgid "为每台设备分别选择分流模式：国内 IP 直连、全部代理、代理名单、直连名单或保持原样。不接管未启用的设备；局域网模式不覆盖设备表。"
 msgstr ""
 
@@ -646,6 +661,9 @@ msgstr ""
 msgid "主线路入口"
 msgstr ""
 
+msgid "主线路就绪后，经 WARP 隧道测试。"
+msgstr ""
+
 msgid "主线路的其他普通 DNS 经 WARP 隧道发送。应用自带的 DoH/DoT 不能按普通 DNS 域名规则分类。"
 msgstr ""
 
@@ -653,6 +671,9 @@ msgid "主线路账户与连接协议"
 msgstr ""
 
 msgid "主线路连接协议"
+msgstr ""
+
+msgid "主线路连接失败，请查看运行反馈。"
 msgstr ""
 
 msgid "云端出口选择"
@@ -694,6 +715,9 @@ msgstr ""
 msgid "仅推荐 Google 和 GitHub 都通过的入口，按两站延迟排序。下载和限流结果单独显示。结果有效 5 分钟，应用后请重新检测备用线路。"
 msgstr ""
 
+msgid "仅检测路由器 WARP 出口"
+msgstr ""
+
 msgid "仅注册路由器；提示打开本机 Cloudflare 应用时取消。登录链接是临时凭据，请勿分享。"
 msgstr ""
 
@@ -715,6 +739,9 @@ msgstr ""
 msgid "从原有节点读取（不修改原配置）"
 msgstr ""
 
+msgid "从账户目录选择出口，再保存设置。目录列出的网络需另行检测连通性。"
+msgstr ""
+
 msgid "从路由器检测代理和直连网站。"
 msgstr ""
 
@@ -728,6 +755,12 @@ msgid "代理 "
 msgstr ""
 
 msgid "代理 DNS"
+msgstr ""
+
+msgid "代理 DNS · WARP 隧道"
+msgstr ""
+
+msgid "代理 DNS 候选结果"
 msgstr ""
 
 msgid "代理上传 "
@@ -811,6 +844,9 @@ msgstr ""
 msgid "保存与独立检测"
 msgstr ""
 
+msgid "保存代理出口后，到总览点「结束登录准备」，再点「开启 imOK」。隧道连接后即可测速。"
+msgstr ""
+
 msgid "保存令牌并读取账户 / 域名"
 msgstr ""
 
@@ -823,7 +859,13 @@ msgstr ""
 msgid "保存候选，全部通过检测后应用顺序。"
 msgstr ""
 
+msgid "保存出口与接管范围"
+msgstr ""
+
 msgid "保存到路由器，供本团队新增客户端时使用"
+msgstr ""
+
+msgid "保存后在下次 WARP 启动时生效。"
 msgstr ""
 
 msgid "保存备用节点"
@@ -901,9 +943,6 @@ msgstr ""
 msgid "候选版本："
 msgstr ""
 
-msgid "候选结果"
-msgstr ""
-
 msgid "候选表"
 msgstr ""
 
@@ -938,6 +977,9 @@ msgid "先到「导入、检测与启用」保存备用节点。"
 msgstr ""
 
 msgid "先取得当前节点的有效优选结果。"
+msgstr ""
+
+msgid "先在 iStore 安装 imOK 和系统依赖。到「WARP 安装与更新」检查本机环境，首次使用选择「自动下载并安装 WARP」。页面显示「WARP 已安装」后，回到这里登录。"
 msgstr ""
 
 msgid "先读取已授权账户，或手工填写账户 ID"
@@ -1045,10 +1087,19 @@ msgstr ""
 msgid "出口与分流"
 msgstr ""
 
-msgid "出口操作结果待核对，请同步凭据与出口；不要重复应用。"
+msgid "出口与按设备接管已保存。请先到「设备」启用至少一台需要代理的设备。"
 msgstr ""
 
-msgid "出口测速需要 WARP 主线路已应用并运行。"
+msgid "出口与接管范围已保存。到总览点「开启 imOK」，等待隧道连接。"
+msgstr ""
+
+msgid "出口与接管范围已保存。到总览点「结束登录准备」，然后点「开启 imOK」。"
+msgstr ""
+
+msgid "出口与接管范围已保存。可以先仅检测路由器 WARP 出口。准备好接管设备后，结束登录准备，再开启 imOK。"
+msgstr ""
+
+msgid "出口操作结果待核对，请同步凭据与出口；不要重复应用。"
 msgstr ""
 
 msgid "出口观测"
@@ -1061,9 +1112,6 @@ msgid "分流开关已关闭"
 msgstr ""
 
 msgid "分流接管已停止"
-msgstr ""
-
-msgid "分流未运行，独立 DNS 当前不可用"
 msgstr ""
 
 msgid "分流模式"
@@ -1123,6 +1171,15 @@ msgstr ""
 msgid "到“设备”页面，"
 msgstr ""
 
+msgid "到「WARP 安装与更新」检查路由器环境、安装状态和版本。显示「WARP 已安装」后，再登录 Cloudflare。"
+msgstr ""
+
+msgid "到「出口与分流」选择代理出口和接管范围，然后点「保存并应用」。"
+msgstr ""
+
+msgid "到「账户与协议」准备登录环境，用团队允许的邮箱注册。完成后会读取账户出口。"
+msgstr ""
+
 msgid "刷新出口目录"
 msgstr ""
 
@@ -1141,6 +1198,15 @@ msgstr ""
 msgid "刷新账户出口（只读）"
 msgstr ""
 
+msgid "前往 DNS 检测"
+msgstr ""
+
+msgid "前往 WARP 安装与更新"
+msgstr ""
+
+msgid "前往出口与分流"
+msgstr ""
+
 msgid "前往创建部署，检查或保存为备用节点"
 msgstr ""
 
@@ -1148,6 +1214,18 @@ msgid "前往启用"
 msgstr ""
 
 msgid "前往导入、检测与启用"
+msgstr ""
+
+msgid "前往总览"
+msgstr ""
+
+msgid "前往检测与测速"
+msgstr ""
+
+msgid "前往设备"
+msgstr ""
+
+msgid "前往账户与协议"
 msgstr ""
 
 msgid "勾选设备所在的主网络、访客网络或 VLAN，可同时选择。Wi-Fi 与网线共用网桥时只勾选该网桥。每个接口需要一个独立 IPv4 私网网段；不会创建网络，也不会开放主网络与访客网络之间的互访。标记未启用的网络需先在路由器网络设置中开启，再启用本插件。"
@@ -1199,9 +1277,6 @@ msgid "原主线路：路由器 → Cloudflare WARP → 账户所选出口 → �
 msgstr ""
 
 msgid "原预期出口验证通过。"
-msgstr ""
-
-msgid "去选出口"
 msgstr ""
 
 msgid "参数有变化，订阅待更新"
@@ -1259,6 +1334,9 @@ msgid "可信 HTTPS 名单；支持普通域名、domain:、full:。regexp 条�
 msgstr ""
 
 msgid "可先到“规则管理”核对候选及其增删内容；确认后才保存候选，个人覆盖继续保留。"
+msgstr ""
+
+msgid "可先检测已保存的 WARP 出口，局域网设备不会参与。"
 msgstr ""
 
 msgid "可沿用已可访问的账户，无需重填"
@@ -1351,13 +1429,16 @@ msgstr ""
 msgid "国内 DNS"
 msgstr ""
 
+msgid "国内 DNS · 宽带直连"
+msgstr ""
+
+msgid "国内 DNS 候选结果"
+msgstr ""
+
 msgid "国内 IP 直连，其余代理"
 msgstr ""
 
 msgid "国内上游："
-msgstr ""
-
-msgid "国内候选含宽带下发地址。"
 msgstr ""
 
 msgid "国内直连"
@@ -1369,7 +1450,13 @@ msgstr ""
 msgid "在「导入、检测与启用」检查备用线路能否联网。"
 msgstr ""
 
+msgid "在「账户与协议」登录并读取出口后，选择主线路与设备接管范围。"
+msgstr ""
+
 msgid "在候选池保存 PROXYIP 顺序后，新部署会按该顺序使用已启用的候选。"
+msgstr ""
+
+msgid "在线准备支持 ARM64 OpenWrt 24.10，约需 1.6 GB 可用存储。安装页会检查本机条件。首次安装默认关闭 imOK。"
 msgstr ""
 
 msgid "在线设备"
@@ -1385,6 +1472,12 @@ msgid "域名或公网 IPv4/CIDR"
 msgstr ""
 
 msgid "域名读取失败，请重试；不能据此认定账户没有域名。"
+msgstr ""
+
+msgid "填入代理 DNS"
+msgstr ""
+
+msgid "填入国内 DNS"
 msgstr ""
 
 msgid "填写公网 IPv4:端口，例如 162.159.197.2:8443。应用并检测后固定使用；自定义地址不保证可用，失败将尝试恢复并验证原入口。"
@@ -1453,9 +1546,6 @@ msgstr ""
 msgid "备用运行中"
 msgstr ""
 
-msgid "复制登录成功页面里的完整 com.cloudflare.warp://… 登录链接，粘贴回插件弹窗，点击“注册此路由器”。这是临时登录凭据，不要分享或发到 GitHub。"
-msgstr ""
-
 msgid "外部管理文件"
 msgstr ""
 
@@ -1498,7 +1588,7 @@ msgstr ""
 msgid "子域名绑定"
 msgstr ""
 
-msgid "安装运行环境"
+msgid "安装并检查 WARP"
 msgstr ""
 
 msgid "完成授权，申请独立身份和 IP。"
@@ -1654,6 +1744,9 @@ msgstr ""
 msgid "尚未更新"
 msgstr ""
 
+msgid "尚未核对到可接管的设备，请检查设备是否在线及其地址。"
+msgstr ""
+
 msgid "尚未核验"
 msgstr ""
 
@@ -1711,6 +1804,9 @@ msgstr ""
 msgid "已保存区域 · "
 msgstr ""
 
+msgid "已保存的出口不在本次账户目录中。请到「出口与分流」重新选择。"
+msgstr ""
+
 msgid "已保存的自动更新间隔："
 msgstr ""
 
@@ -1748,6 +1844,12 @@ msgid "已完成 "
 msgstr ""
 
 msgid "已导入并保持关闭。请刷新页面；入口偏好需核对后单独保存应用，登录和备用凭据需另行配置。"
+msgstr ""
+
+msgid "已将 %s 填入代理 DNS，请保存并应用。"
+msgstr ""
+
+msgid "已将 %s 填入国内 DNS，请保存并应用。"
 msgstr ""
 
 msgid "已应用成功："
@@ -1789,6 +1891,9 @@ msgstr ""
 msgid "已核验设备按策略联网"
 msgstr ""
 
+msgid "已注册路由器，暂时无法读取出口目录。请重新检查账户。"
+msgstr ""
+
 msgid "已注册，目录暂未就绪，请稍后刷新；当前出口与配置未改动。"
 msgstr ""
 
@@ -1814,6 +1919,12 @@ msgid "已识别隧道："
 msgstr ""
 
 msgid "已读取 "
+msgstr ""
+
+msgid "已读取 %s 个账户网络，连通性待验证。"
+msgstr ""
+
+msgid "已读取 %s 个账户网络，连通性待验证。选择出口和接管范围后，点击「保存并应用」。"
 msgstr ""
 
 msgid "已达测速上限"
@@ -1873,6 +1984,9 @@ msgstr ""
 msgid "开启失败："
 msgstr ""
 
+msgid "开启请求已保存，正在等待后台启动。"
+msgstr ""
+
 msgid "开始前：新路由器需要准备什么？"
 msgstr ""
 
@@ -1888,7 +2002,16 @@ msgstr ""
 msgid "当前 DNS 未运行，尚不能检测"
 msgstr ""
 
+msgid "当前 LuCI 会话没有提交 imOK 配置的权限。请退出并重新登录 LuCI 后重试。"
+msgstr ""
+
+msgid "当前 WARP 隧道已连接，可重新读取账户目录。"
+msgstr ""
+
 msgid "当前下载版本来源与校验摘要"
+msgstr ""
+
+msgid "当前为「按设备选择」。到「设备」启用至少一台需要代理的设备，再点「保存并应用」。"
 msgstr ""
 
 msgid "当前仍是默认网络；请先选择并应用指定出口，再导出。"
@@ -1996,7 +2119,7 @@ msgstr ""
 msgid "当前运行版本尚未确认"
 msgstr ""
 
-msgid "当前连接所测网站通过"
+msgid "当前运行的是 Workers 备用线路。WARP 主线路连接后可继续检测。"
 msgstr ""
 
 msgid "当前连接数未知"
@@ -2050,7 +2173,7 @@ msgstr ""
 msgid "成功标志：提示路由器已注册。若邮箱无权限，在 Cloudflare 的设备注册权限中允许该邮箱；链接失效则重新登录获取，不要反复粘贴旧链接。"
 msgstr ""
 
-msgid "成功标志：本页上方实际状态显示“登录环境已就绪”。首次启动可能稍慢；未就绪先不要点击邮箱登录。若提示缺少运行环境，请先按安装包说明安装配套运行环境。"
+msgid "成功页右键选择“查看网页源代码”，搜索 token=，复制含授权链接的整行即可。也可直接粘贴完整链接或 token= 后的令牌。引号和反斜杠会自动处理。"
 msgstr ""
 
 msgid "我的客户端"
@@ -2095,7 +2218,7 @@ msgstr ""
 msgid "打开 Cloudflare 官方授权页"
 msgstr ""
 
-msgid "打开下方地址，用组织允许的邮箱完成验证。浏览器提示打开本机 Cloudflare 应用时取消；复制成功页的 com.cloudflare.warp:// 登录链接，粘贴到此处。"
+msgid "打开下方地址完成邮箱验证。浏览器提示打开电脑上的 Cloudflare 应用时，选择取消。"
 msgstr ""
 
 msgid "打开团队授权页完成邮箱登录。若浏览器询问是否打开 WARP，请先取消，然后复制成功页上的授权链接并粘贴到下方。"
@@ -2122,13 +2245,13 @@ msgstr ""
 msgid "指定服务器"
 msgstr ""
 
-msgid "按当前范围显示适用设置；未启用的设备与网络不接管。"
-msgstr ""
-
 msgid "按设备的分流模式"
 msgstr ""
 
 msgid "按设备选择"
+msgstr ""
+
+msgid "按设备选择时，请到「设备」启用需要代理的设备；局域网模式按所选网络接管。"
 msgstr ""
 
 msgid "换路由器但继续用同一 Cloudflare 账户：组织名称、现有虚拟网络及 VPS 出口可以沿用，不用重新创建；新路由器必须独立登录。先保持总览里的总开关关闭。"
@@ -2210,9 +2333,6 @@ msgid "操作说明"
 msgstr ""
 
 msgid "支持 v2/v3 JSON，文件上限 256 KiB。导出前会检查可导入性，超过上限会明确报错，不截断设置。"
-msgstr ""
-
-msgid "支持条件：目前只验证 GL-MT6000 / ARM64 OpenWrt 24.10，至少 500 MB 可用存储。不是在 Mac 或 Windows 上运行脚本。运行环境已存在时，安装脚本会停止以保护注册信息；更新已有插件只需安装新版 IPK，不要删除运行环境。安装结束默认关闭，之后再完成本向导登录。"
 msgstr ""
 
 msgid "改为 %s 并选用"
@@ -2299,10 +2419,16 @@ msgstr ""
 msgid "暂无记录"
 msgstr ""
 
-msgid "暂时无法读取宽带下发 DNS，请重试。"
+msgid "暂时无法确认 WARP 安装状态。请到「WARP 安装与更新」刷新本机状态。"
 msgstr ""
 
-msgid "暂时无法读取账户，可重新检查。"
+msgid "暂时无法确认 WARP 安装状态。请到「WARP 安装与更新」刷新本机状态，再继续设置。"
+msgstr ""
+
+msgid "暂时无法确认 WARP 安装状态，请刷新本机状态后再登录。"
+msgstr ""
+
+msgid "暂时无法读取宽带下发 DNS，请重试。"
 msgstr ""
 
 msgid "暂未取得有效的 DNS 检测结果"
@@ -2386,6 +2512,9 @@ msgstr ""
 msgid "有未保存编辑"
 msgstr ""
 
+msgid "服务器来源"
+msgstr ""
+
 msgid "服务重启，测速已作废"
 msgstr ""
 
@@ -2405,6 +2534,12 @@ msgid "未完成："
 msgstr ""
 
 msgid "未完整通过"
+msgstr ""
+
+msgid "未收到有效的 WARP 出口检测结果。"
+msgstr ""
+
+msgid "未收到有效的 WARP 出口检测请求。"
 msgstr ""
 
 msgid "未收到本次入口请求确认"
@@ -2473,6 +2608,15 @@ msgstr ""
 msgid "本机受管 DNS 入口解析通过"
 msgstr ""
 
+msgid "本机已有注册资料。到「账户与协议」准备登录环境并检查账户，确认能读取出口。"
+msgstr ""
+
+msgid "本机已有注册资料。请先准备登录环境。"
+msgstr ""
+
+msgid "本机已有注册资料。请检查账户，确认能读取出口。"
+msgstr ""
+
 msgid "本机管理文件"
 msgstr ""
 
@@ -2513,6 +2657,9 @@ msgid "本次请求已被另一个设置请求替代，请核对当前结果。"
 msgstr ""
 
 msgid "本路由器创建的云端节点"
+msgstr ""
+
+msgid "本路由器尚未注册。请准备登录环境，再进行邮箱验证和注册。"
 msgstr ""
 
 msgid "本路由器配置"
@@ -2569,6 +2716,9 @@ msgstr ""
 msgid "查看详情"
 msgstr ""
 
+msgid "查看连接状态"
+msgstr ""
+
 msgid "查询 Worker 实例切换记录"
 msgstr ""
 
@@ -2576,6 +2726,9 @@ msgid "查询未完成，可重新搜索或刷新"
 msgstr ""
 
 msgid "查询："
+msgstr ""
+
+msgid "核对实际出口与联网"
 msgstr ""
 
 msgid "核对并应用异常候选"
@@ -2617,10 +2770,16 @@ msgstr ""
 msgid "检测出口地区"
 msgstr ""
 
+msgid "检测到 WARP 文件或未完成的维护。请到「WARP 安装与更新」核对状态。"
+msgstr ""
+
 msgid "检测到规则数量异常下降，本次候选尚未覆盖当前版本："
 msgstr ""
 
 msgid "检测到防火墙流量卸载"
+msgstr ""
+
+msgid "检测实际出口地区"
 msgstr ""
 
 msgid "检测已中断或超时，结果未知；可以重新检测。"
@@ -2650,6 +2809,9 @@ msgstr ""
 msgid "正在只读刷新；已保存绑定不变。 "
 msgstr ""
 
+msgid "正在启动隧道"
+msgstr ""
+
 msgid "正在应用分流配置"
 msgstr ""
 
@@ -2674,6 +2836,9 @@ msgstr ""
 msgid "正在提交，应用可能短暂重连…"
 msgstr ""
 
+msgid "正在检查 WARP 安装状态。"
+msgstr ""
+
 msgid "正在检查本插件配置…"
 msgstr ""
 
@@ -2686,7 +2851,13 @@ msgstr ""
 msgid "正在检测备用线路，通过后继续启用…"
 msgstr ""
 
+msgid "正在检测路由器 WARP 出口…"
+msgstr ""
+
 msgid "正在检测，最长约 10 秒…"
+msgstr ""
+
+msgid "正在检测，最长约 20 秒…"
 msgstr ""
 
 msgid "正在检测，最长约 40 秒…"
@@ -2704,7 +2875,7 @@ msgstr ""
 msgid "正在独立检测，最长约 90 秒；主线路未切换…"
 msgstr ""
 
-msgid "正在等待主线路状态。"
+msgid "正在等待开关状态确认。"
 msgstr ""
 
 msgid "正在观测，但存在漏采或计数重置，数据不完整。"
@@ -2716,7 +2887,13 @@ msgstr ""
 msgid "正在读取…"
 msgstr ""
 
+msgid "正在读取主线路状态。"
+msgstr ""
+
 msgid "正在读取入口设置…"
+msgstr ""
+
+msgid "正在读取分流状态。"
 msgstr ""
 
 msgid "正在读取协议…"
@@ -2875,6 +3052,9 @@ msgstr ""
 msgid "浏览规则，维护长期保留的个人新增和排除"
 msgstr ""
 
+msgid "淘宝（直连）"
+msgstr ""
+
 msgid "添加个人规则"
 msgstr ""
 
@@ -2929,6 +3109,9 @@ msgstr ""
 msgid "独立 DNS 状态与缓存"
 msgstr ""
 
+msgid "独立 DNS 随分流启动，当前尚未运行。"
+msgstr ""
+
 msgid "独立开关"
 msgstr ""
 
@@ -2959,10 +3142,7 @@ msgstr ""
 msgid "用当前 Worker 测试最多 8 个入口。"
 msgstr ""
 
-msgid "登录团队"
-msgstr ""
-
-msgid "登录成功页的完整登录链接"
+msgid "登录并读取 Cloudflare 出口"
 msgstr ""
 
 msgid "登录独立路由器客户端"
@@ -2974,6 +3154,9 @@ msgstr ""
 msgid "登录环境已就绪"
 msgstr ""
 
+msgid "登录环境已就绪。请完成邮箱验证和路由器注册，成功后会自动读取账户出口。"
+msgstr ""
+
 msgid "登录环境已就绪，分流尚未开启；已读到 "
 msgstr ""
 
@@ -2983,10 +3166,10 @@ msgstr ""
 msgid "登录身份与主线路连接协议"
 msgstr ""
 
-msgid "目录可能已变化，上次读取："
+msgid "百度（直连）"
 msgstr ""
 
-msgid "目录已读取（未验证联网）"
+msgid "目录可能已变化，上次读取："
 msgstr ""
 
 msgid "目录待确认"
@@ -3026,6 +3209,9 @@ msgid "直连域名名单"
 msgstr ""
 
 msgid "直连线路 · 已观测"
+msgstr ""
+
+msgid "看到「登录环境已就绪」后，再点击「邮箱登录」。如缺少运行环境，先去「WARP 安装与更新」完成安装。"
 msgstr ""
 
 msgid "短暂中断，等待原客户端恢复"
@@ -3166,6 +3352,12 @@ msgstr ""
 msgid "粘贴 VLESS＋WS＋TLS 链接"
 msgstr ""
 
+msgid "粘贴 token= 后的令牌、完整授权链接，或成功页源码里含 token= 的整行，再点击“注册此路由器”。imOK 会自动提取，请及时提交。"
+msgstr ""
+
+msgid "粘贴令牌、授权链接或源码整行"
+msgstr ""
+
 msgid "系统会检查占用；不用先到 Cloudflare 添加这条 DNS。"
 msgstr ""
 
@@ -3176,6 +3368,9 @@ msgid "累计为自此时间起的观测下限："
 msgstr ""
 
 msgid "约每 100 毫秒采样，每秒更新。队列表示内核接收内存，峰值取最近约 60 秒。新增丢弃从各连接建立观测基线后累计，包含已识别隧道和其他公网 UDP。"
+msgstr ""
+
+msgid "线路仍在启动，页面会继续更新连接结果。"
 msgstr ""
 
 msgid "线路对比测速中"
@@ -3211,7 +3406,13 @@ msgstr ""
 msgid "组织策略"
 msgstr ""
 
+msgid "经宽带测试，包含运营商下发的 DNS。"
+msgstr ""
+
 msgid "绑定的子域名"
+msgstr ""
+
+msgid "结束登录准备"
 msgstr ""
 
 msgid "结果"
@@ -3388,6 +3589,9 @@ msgstr ""
 msgid "设备"
 msgstr ""
 
+msgid "设备 IPv4 不属于所选 LAN 网段。请选择接在此路由器上的设备，或核对固定 IPv4。"
+msgstr ""
+
 msgid "设备分流"
 msgstr ""
 
@@ -3436,22 +3640,31 @@ msgstr ""
 msgid "说明"
 msgstr ""
 
+msgid "请先保存代理出口，在总览开启 imOK，等 WARP 主线路连接后再测速。"
+msgstr ""
+
 msgid "请先保存备用节点。"
 msgstr ""
 
 msgid "请先到“总览”关闭总开关；已有连接无需重新登录。"
 msgstr ""
 
-msgid "请先在总览启用 WARP 主线路。"
+msgid "请先到「WARP 安装与更新」核对安装状态。"
 msgstr ""
 
 msgid "请先在总览手动开启，并等待主线路已连接后再检测。"
+msgstr ""
+
+msgid "请先完成 WARP 安装或维护，再登录 Cloudflare。"
 msgstr ""
 
 msgid "请先开启 imOK 并确认当前线路状态。"
 msgstr ""
 
 msgid "请先点击“同步凭据与出口”，读取此身份可用的团队出口。"
+msgstr ""
+
+msgid "请先粘贴 Cloudflare 登录成功页的授权凭据"
 msgstr ""
 
 msgid "请先读取账户下可用域名"
@@ -3475,6 +3688,12 @@ msgstr ""
 msgid "请在 Cloudflare Zero Trust 创建服务令牌，并在团队的设备注册权限中添加匹配该令牌的 Service Auth 规则。"
 msgstr ""
 
+msgid "请在总览确认 imOK 已开启，并等待分流运行后再检测。"
+msgstr ""
+
+msgid "请在总览结束登录准备，再开启 imOK。分流启动后即可检测。"
+msgstr ""
+
 msgid "请明确选择一个账户出口"
 msgstr ""
 
@@ -3482,6 +3701,9 @@ msgid "请核对当前状态，再重试。"
 msgstr ""
 
 msgid "请核对提示后重试。"
+msgstr ""
+
+msgid "请检查 WARP 登录环境后重试。"
 msgstr ""
 
 msgid "请检查代理设备及其断网保护设置"
@@ -3533,6 +3755,9 @@ msgid "请重新测试候选，确认所选传输方式。"
 msgstr ""
 
 msgid "读取中"
+msgstr ""
+
+msgid "读取出口目录失败。请检查 WARP 登录环境，再点「检查账户」重试。"
 msgstr ""
 
 msgid "读取到的客户端协议："
@@ -3589,9 +3814,6 @@ msgstr ""
 msgid "账户已变更，请重新读取域名"
 msgstr ""
 
-msgid "账户已就绪"
-msgstr ""
-
 msgid "账户待确认"
 msgstr ""
 
@@ -3607,6 +3829,12 @@ msgstr ""
 msgid "账户目录已可访问，无需重复邮箱注册。"
 msgstr ""
 
+msgid "账户目录已读取，但没有返回可选网络。请核对 Cloudflare 团队及出口配置后重新读取。"
+msgstr ""
+
+msgid "账户目录已读取，但没有返回可选网络。请核对团队及 Cloudflare 出口配置。"
+msgstr ""
+
 msgid "账户目录时间与刷新"
 msgstr ""
 
@@ -3619,7 +3847,31 @@ msgstr ""
 msgid "路由器 CPU 平均 "
 msgstr ""
 
+msgid "路由器 WARP 检测通过：%s · %s · %s。局域网设备尚未接管，也未参与检测。"
+msgstr ""
+
 msgid "路由器将使用本团队已保存的服务授权，为此设备申请独立身份。"
+msgstr ""
+
+msgid "路由器已注册"
+msgstr ""
+
+msgid "路由器已注册。"
+msgstr ""
+
+msgid "路由器已注册。上次的出口列表已过期，请重新读取出口。"
+msgstr ""
+
+msgid "路由器已注册，暂时无法读取出口。请在「账户与协议」重新检查账户。"
+msgstr ""
+
+msgid "路由器已注册，正在读取账户出口。"
+msgstr ""
+
+msgid "路由器拒绝提交 imOK 配置。请确认 LuCI 有写权限，并等待其他配置应用完成后重试。"
+msgstr ""
+
+msgid "路由器本次观测：%s · %s。请用受管设备确认实际联网。"
 msgstr ""
 
 msgid "路由器的开机保护入口未启用"
@@ -3715,19 +3967,10 @@ msgstr ""
 msgid "连接详情"
 msgstr ""
 
-msgid "选好出口后，点击「保存并应用」。"
-msgstr ""
-
 msgid "选择"
 msgstr ""
 
 msgid "选择「账户与协议」中团队所属的账户。首次绑定需允许读取该账户的 Zero Trust 组织。"
-msgstr ""
-
-msgid "选择代理出口"
-msgstr ""
-
-msgid "选择代理出口和设备接管范围。"
 msgstr ""
 
 msgid "选择候选入口"
@@ -3737,12 +3980,6 @@ msgid "选择出口"
 msgstr ""
 
 msgid "选择官方客户端本地候选中的一个 IPv4 入口。应用并检测后固定使用；失败将尝试恢复并验证原入口。定期同步候选不会自动更换固定入口。"
-msgstr ""
-
-msgid "选择局域网"
-msgstr ""
-
-msgid "选择已保存（未验证运行）"
 msgstr ""
 
 msgid "选择已授权的 Cloudflare 账户"
@@ -3760,16 +3997,10 @@ msgstr ""
 msgid "选择根域名后自动组成"
 msgstr ""
 
-msgid "选择设备"
-msgstr ""
-
 msgid "选择设备后自动填入 MAC 地址和当前 IPv4。列表中找不到设备时，可按路由器的 DHCP 租约手动填写。"
 msgstr ""
 
 msgid "选择账户下可用的根域名"
-msgstr ""
-
-msgid "选择账户出口后保存并应用。"
 msgstr ""
 
 msgid "选择预设或编辑 HTTPS 地址后保存；自动更新按计划执行，立即下载请到"
@@ -3853,7 +4084,13 @@ msgstr ""
 msgid "采集开始后显示每日趋势。"
 msgstr ""
 
+msgid "重新读取出口"
+msgstr ""
+
 msgid "重新选择启动解析"
+msgstr ""
+
+msgid "重试读取 WARP 安装状态"
 msgstr ""
 
 msgid "链接只保存在路由器私有文件，不进入普通配置导出。"
@@ -3889,13 +4126,13 @@ msgstr ""
 msgid "预注册公钥指纹（用于结果未知时核对）"
 msgstr ""
 
-msgid "首次使用"
-msgstr ""
-
 msgid "首次使用请先安装路由器的 WARP 运行环境。"
 msgstr ""
 
 msgid "首次填写；已保存时留空即可保留。"
+msgstr ""
+
+msgid "首次安装可保留「自动优选」。WARP 启动时优先尝试宽带下发的 DNS，必要时自动尝试备用服务器。"
 msgstr ""
 
 msgid "首次登录与重新注册"
@@ -3904,10 +4141,16 @@ msgstr ""
 msgid "首次绑定或更换账户时，添加账户权限 Access: Organizations, Identity Providers, and Groups → 读取。"
 msgstr ""
 
+msgid "首次设置"
+msgstr ""
+
 msgid "验证域名："
 msgstr ""
 
 msgid "验证账户"
+msgstr ""
+
+msgid "高级 · WARP 启动解析"
 msgstr ""
 
 msgid "高级连接参数"
@@ -3941,6 +4184,9 @@ msgid "（可能随连接变化）"
 msgstr ""
 
 msgid "（失败后的重试计划）"
+msgstr ""
+
+msgid "（已保存）"
 msgstr ""
 
 msgid "（已达测速上限）"

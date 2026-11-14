@@ -1,14 +1,19 @@
 """Guard first-time registration; never overwrite an existing router identity."""
 
 from contextlib import contextmanager
+import base64
 import fcntl
 import hashlib
 import json
 import re
+import subprocess
 import time
 from public_errors import ControlError
 from runtime import RUN, atomic, read_config
 from mplane import ROOT, cli
+
+AUTH_LINK = re.compile(r"""(?<![\w.+-])com\.cloudflare\.warp\\?://[^\s"'<>\x60]+""")
+JWT = re.compile(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
 
 
 def organization(value):
@@ -77,11 +82,39 @@ def login():
         if pending(org):
             return "https://" + org + ".cloudflareaccess.com/warp"
         if identity():
+            marker = RUN / "auth-pending.json"
+            try:
+                row = json.loads(marker.read_text())
+            except (OSError, ValueError):
+                row = None
+            if isinstance(row, dict) and row.get("phase") == "starting":
+                raise ControlError(
+                    "上次注册初始化中断，无法确认本机注册资料是否完整。"
+                    "请先检查账户是否能读取出口，再核对 Cloudflare 设备记录；原资料已保留"
+                )
             raise ControlError("路由器已有注册身份，无需重复注册；请读取账户出口，原身份未改动")
         path = RUN / "auth-pending.json"
         # Unknown interrupted attempts cannot be mistaken for owned registration.
         atomic(path, json.dumps(dict(phase="starting", time=time.time(), organization=org)))
-        cli("registration", "new", org)
+        try:
+            cli("registration", "new", org)
+        except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+            created = identity()
+            if not created:
+                path.unlink(missing_ok=True)
+                raise ControlError("WARP 未完成注册初始化，请检查登录环境后重试") from None
+            if not isinstance(error, subprocess.TimeoutExpired):
+                raise ControlError(
+                    "WARP 初始化未完成，已保留本机注册资料。请检查账户出口和 Cloudflare 设备记录"
+                ) from None
+            # This request started from an empty identity and still owns the auth lock.
+            # Let the official token operation finish the same attempt if supported.
+            # No new request may replace these files after the attempt expires.
+            atomic(
+                path,
+                json.dumps(dict(phase="ready", time=time.time(), organization=org, identity=created)),
+            )
+            return "https://" + org + ".cloudflareaccess.com/warp"
         atomic(
             path,
             json.dumps(
@@ -89,6 +122,44 @@ def login():
             ),
         )
         return "https://" + org + ".cloudflareaccess.com/warp"
+
+
+def registration_link(value, org):
+    prefix = "com.cloudflare.warp://" + org + ".cloudflareaccess.com/auth?token="
+    links = {link.replace(r"\://", "://", 1) for link in AUTH_LINK.findall(value)}
+    if links:
+        if len(links) != 1:
+            raise ControlError("粘贴内容包含多条授权链接，请只复制本次登录成功页的一行")
+        link = links.pop()
+        if not link.startswith(prefix):
+            raise ControlError("授权链接与当前团队不一致，请从 imOK 重新打开登录页")
+        token = link[len(prefix) :]
+        # Keep complete links with opaque tokens compatible with the official client.
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", token):
+            raise ControlError("授权链接格式不正确，请复制成功页中含 token= 的整行")
+    else:
+        token = value.strip().removeprefix("token=").rstrip("'\x22;")
+        if not JWT.fullmatch(token):
+            raise ControlError("请粘贴 token= 后的完整令牌，或成功页中含 token= 的整行")
+
+    if JWT.fullmatch(token):
+        try:
+            claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "==="))
+            expiry = claims["exp"]
+            issuer = claims["iss"]
+            if type(expiry) not in (int, float):
+                raise ValueError()
+        except (ValueError, KeyError, TypeError):
+            raise ControlError("授权令牌内容无效，请重新登录后复制") from None
+        if issuer not in (
+            "https://" + org + ".cloudflareaccess.com",
+            "https://" + org + ".cloudflareaccess.com/",
+        ):
+            raise ControlError("授权令牌与当前团队不一致，请从 imOK 重新打开登录页")
+        if not time.time() < expiry < float("inf"):
+            raise ControlError("授权令牌已过期，请重新登录并立即提交")
+    # Cloudflare verifies the signature when the official client submits the token.
+    return prefix + token
 
 
 def register(request_id=None):
@@ -105,14 +176,10 @@ def register(request_id=None):
             not isinstance(payload, dict)
             or set(payload) != {"token"}
             or not isinstance(payload["token"], str)
+            or len(payload["token"]) > 15000
         ):
             raise ControlError("登录输入无效")
-        token = payload["token"].strip()
-        if not token.startswith(
-            "com.cloudflare.warp://" + org + ".cloudflareaccess.com/auth?token="
-        ):
-            raise ControlError("登录链接格式不正确")
-        cli("registration", "token", token)
+        cli("registration", "token", registration_link(payload["token"], org))
         (RUN / "auth-pending.json").unlink(missing_ok=True)
         return dict(
             registered=True,

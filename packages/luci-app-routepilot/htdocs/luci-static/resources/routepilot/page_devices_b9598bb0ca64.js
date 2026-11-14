@@ -146,6 +146,7 @@ return baseclass.extend({
     form,
     uci,
     hints,
+    interfaces,
     ui,
     checkMapBeforeSave,
     checkGuardBeforeSave,
@@ -167,6 +168,26 @@ return baseclass.extend({
         _('还没有设备策略。点击「添加设备」开始设置。')
       );
     };
+    var main = uci.get('routepilot', 'main') || {};
+    var selected = main.lan_interfaces || [main.lan_interface || 'br-lan'];
+    if (typeof selected === 'string') selected = selected.trim().split(/\s+/);
+    var networks = (interfaces || []).filter(function (item) {
+      return item.up && selected.includes(item.name) && typeof item.network === 'string';
+    });
+    function ipv4Number(value) {
+      return value.split('.').reduce(function (number, octet) {
+        return (number << 8) | Number(octet);
+      }, 0);
+    }
+    function matchesSelectedLan(ip) {
+      return (
+        networks.filter(function (item) {
+          var cidr = item.network.split('/'),
+            shift = 32 - Number(cidr[1]);
+          return ipv4Number(ip) >>> shift === ipv4Number(cidr[0]) >>> shift;
+        }).length === 1
+      );
+    }
     var addDeviceModalOptions = s.addModalOptions;
     s.addModalOptions = function (section, id) {
       var result = addDeviceModalOptions.apply(this, arguments),
@@ -178,11 +199,24 @@ return baseclass.extend({
             notice.remove();
             notice = null;
           }
-          return checkGuardBeforeSave(
-            null,
-            id,
-            guardDraft(section.children, id, ['enabled', 'mode', 'mac', 'egress_guard'])
-          );
+          var draft = guardDraft(section.children, id, [
+            'enabled',
+            'mode',
+            'mac',
+            'ip',
+            'egress_guard'
+          ]);
+          if (
+            (main.scope || 'devices') === 'devices' &&
+            draft.enabled === '1' &&
+            networks.length &&
+            /^\d{1,3}(\.\d{1,3}){3}$/.test(draft.ip || '') &&
+            !matchesSelectedLan(draft.ip)
+          )
+            throw Error(
+              _('设备 IPv4 不属于所选 LAN 网段。请选择接在此路由器上的设备，或核对固定 IPv4。')
+            );
+          return checkGuardBeforeSave(null, id, draft);
         },
         function (message) {
           notice = E('p', { class: 'imok-notice', 'data-tone': 'error', role: 'alert' }, message);
@@ -235,7 +269,7 @@ return baseclass.extend({
             return;
           var values = row.ipaddrs || row.ipv4,
             ips = Array.isArray(values) ? values : typeof values === 'string' ? [values] : [],
-            ip = ips.filter(function (value) {
+            validIps = ips.filter(function (value) {
               return (
                 typeof value === 'string' &&
                 /^\d{1,3}(?:\.\d{1,3}){3}$/.test(value) &&
@@ -243,7 +277,8 @@ return baseclass.extend({
                   return Number(part) <= 255;
                 })
               );
-            })[0];
+            });
+          var ip = networks.length ? validIps.find(matchesSelectedLan) : validIps[0];
           if (ip) {
             devices[mac] = ip;
             o.value(mac, (typeof row.name === 'string' && row.name ? row.name : mac) + ' · ' + ip);

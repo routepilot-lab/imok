@@ -1,6 +1,7 @@
 """Local CLI validation and command dispatch."""
 
 import fcntl
+from ipaddress import IPv4Network
 import json
 import os
 import signal
@@ -13,6 +14,8 @@ from egress_guard import boot_config, scope as guard_scope, validate_activation
 from functools import partial
 from importlib import import_module
 from lan_discovery import lan_interfaces
+from masque_config import device_lan, live_lan_networks, selected_lans
+from public_errors import ControlError
 from service import Service
 from supervisor import run
 from rules_update import update_rules
@@ -28,8 +31,22 @@ def guard_preflight():
 
 
 def set_enabled(action):
-    if action == "enable" and guard_scope(boot_config()):
-        validate_activation()
+    if action == "enable":
+        if guard_scope(boot_config()):
+            validate_activation()
+        cfg = read_config()
+        main = cfg["main"]
+        try:
+            rows = live_lan_networks(selected_lans(main), lan_interfaces())
+            if main.get("scope", "devices") == "devices":
+                policies = [row for row in cfg["policies"] if row.get("enabled") == "1"]
+                if not any(row.get("mode") != "direct" for row in policies):
+                    raise ValueError("请在「设备」启用至少一条代理策略")
+                networks = [(row["interface"], IPv4Network(row["network"])) for row in rows]
+                for row in policies:
+                    device_lan(row.get("ip", ""), networks)
+        except ValueError as error:
+            raise ControlError("未开启 imOK。" + str(error)) from None
     nonce = str(time.time_ns())
     command(["uci", "set", "routepilot.main.enabled=" + ("1" if action == "enable" else "0")])
     command(["uci", "set", "routepilot.main.preparing=0"])
@@ -89,11 +106,19 @@ def set_backup(action):
 
 def cleanup():
     with open(RUN / "masque.lock", "a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise SystemExit("主进程仍在运行；未并发清理网络")
-        Service().stop()
+        # procd requests a stop before the supervisor completes its final cleanup.
+        deadline = time.monotonic() + 8
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise SystemExit("主进程仍在运行；未并发清理网络") from None
+                time.sleep(min(0.2, remaining))
+        if not Service().stop()["direct"]:
+            raise SystemExit("无法确认已撤回 imOK 网络接管；请检查路由器状态")
 
 
 def update_worker():
@@ -140,6 +165,7 @@ COMMANDS = {
     "endpoint-recover": json_handler("endpoint_control", "save_recovery", request_id=True),
     "warp-info": json_handler("warp_control", "refresh"),
     "exit-observe": json_handler("warp_control", "observe"),
+    "prepared-exit-test": json_handler("prepared_exit", "submit"),
     "warp-org-save": json_handler("warp_control", "save_organization", request_id=True),
     "backup-import": json_handler("worker_backend", "import_node", request_id=True),
     "backup-test": json_handler("worker_backend", "start_test", ensure_ascii=True),

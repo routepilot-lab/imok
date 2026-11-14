@@ -17,7 +17,9 @@ import service as routing_service
 import egress_guard as guard
 import endpoint_control as e
 import rules_schedule as rs
+import rules_update as ru
 import worker_backend as w
+from public_errors import ControlError
 from warp_cli import UnknownTunnelStatus
 
 
@@ -67,6 +69,135 @@ class SupervisorRulesTests(unittest.TestCase):
         self.svc.stop = Mock(return_value={"direct": True, "legacy": ""})
         self.svc.apply = Mock(side_effect=lambda cfg, c: setattr(self.svc, "compiled", c))
         self.events = []
+
+    @contextlib.contextmanager
+    def fresh_rules(self, fetch, waiting=None):
+        (self.rules / "china.txt").unlink()
+        self.cfg["main"].update(
+            scope="lan",
+            lan_mode="bypass_cn",
+            lan_interface="br-lan",
+            lan_networks=[dict(interface="br-lan", network="192.168.50.0/24")],
+            exit="11111111-1111-4111-8111-111111111111",
+            china_url="https://example.invalid/china",
+            gfw_url="https://example.invalid/gfw",
+            china_domains_url="https://example.invalid/china-domains",
+        )
+        self.svc.plane.connect = Mock()
+        with (
+            patch.object(m, "RULES", self.rules),
+            patch.object(ru, "RULES", self.rules),
+            patch.object(ru, "RUN", self.run),
+            patch.object(ru, "read_config", return_value=self.cfg),
+            patch.object(ru, "net", side_effect=fetch),
+            patch.object(m, "preflight", return_value=waiting or {}),
+        ):
+            yield
+
+    def test_fresh_lan_starts_with_required_list_and_recovers_optional_source_later(self):
+        urls = []
+        available = False
+
+        def fetch(args):
+            url = args[-1]
+            urls.append(url)
+            if url.endswith("/china"):
+                return SimpleNamespace(stdout="1.0.1.0/24\n")
+            if url.endswith("/gfw") and not available:
+                raise RuntimeError("fixture optional source unavailable")
+            return SimpleNamespace(stdout="fixture.example\n")
+
+        with self.fresh_rules(fetch):
+            m.apply_running_configuration(self.cfg, self.svc, None)
+            self.assertEqual(urls, [self.cfg["main"]["china_url"]])
+            self.svc.apply.assert_called_once()
+            self.assertIn("1.0.1.0/24", self.svc.compiled["nft"])
+            with ru.rule_snapshot() as snapshot:
+                first = snapshot
+                self.assertEqual((snapshot / "china.txt").read_text(), "1.0.1.0/24\n")
+                self.assertFalse((snapshot / "gfw.txt").exists())
+            update = json.loads((self.run / "update.json").read_text())
+            self.assertEqual(update["state"], "partial")
+            self.assertEqual(update["last_success_at"], 0)
+            self.assertTrue(rs.Schedule(self.rules, self.run).due(self.cfg["main"]))
+
+            with self.assertRaisesRegex(RuntimeError, "fixture optional source unavailable"):
+                ru.update_rules()
+            with ru.rule_snapshot() as snapshot:
+                self.assertEqual(snapshot, first)
+            failure = json.loads((self.run / "update.json").read_text())
+            self.assertIn("保留已保存的规则", failure["phase"])
+            self.assertEqual(failure["last_success_at"], 0)
+
+            available = True
+            ru.update_rules()
+            with ru.rule_snapshot() as snapshot:
+                self.assertNotEqual(snapshot, first)
+                self.assertTrue((snapshot / "china_domains.txt").exists())
+                self.assertTrue((snapshot / "gfw.txt").exists())
+            self.assertEqual(json.loads((self.run / "update.json").read_text())["state"], "success")
+
+    def test_fresh_required_source_failure_reports_no_saved_rules_and_never_applies(self):
+        with self.fresh_rules(Mock(side_effect=OSError("fixture offline"))):
+            self.run_loop(
+                iterations=1,
+                lans=[dict(name="br-lan", network="192.168.50.0/24", up=True)],
+            )
+        self.svc.apply.assert_not_called()
+        errors = [event["message"] for event in self.events if event["state"] == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertRegex(errors[0], "当前分流所需规则未就绪.*中国 IP")
+        self.assertFalse((self.rules / "current").exists())
+        report = json.loads((self.run / "update.json").read_text())
+        self.assertEqual(report["state"], "failed")
+        self.assertEqual(report["last_success_at"], 0)
+        self.assertIn("当前没有已保存的规则", report["phase"])
+
+    def test_comment_only_china_list_bootstraps_once_and_skips_download_when_unchanged(self):
+        fetch = Mock(return_value=SimpleNamespace(stdout="1.0.1.0/24\n"))
+        with self.fresh_rules(fetch):
+            (self.rules / "china.txt").write_text("# no entries\n")
+            previous, _, _, _ = m.apply_running_configuration(self.cfg, self.svc, None)
+            m.apply_running_configuration(self.cfg, self.svc, previous)
+            fetch.assert_called_once()
+            self.svc.apply.assert_called_once()
+            self.assertIn("1.0.1.0/24", self.svc.compiled["nft"])
+
+    def test_invalid_china_cidr_is_rejected_without_starting_download(self):
+        fetch = Mock()
+        with self.fresh_rules(fetch):
+            (self.rules / "china.txt").write_text("not a cidr\n")
+            with self.assertRaisesRegex(ValueError, "Invalid IPv4 CIDR"):
+                m.apply_running_configuration(self.cfg, self.svc, None)
+        fetch.assert_not_called()
+        self.svc.apply.assert_not_called()
+
+    def test_startup_fetch_stops_if_user_changes_settings_during_exit_connection(self):
+        fetch = Mock()
+        with self.fresh_rules(fetch):
+            updated = {**self.cfg, "main": {**self.cfg["main"], "apply_nonce": "changed"}}
+            with patch.object(ru, "read_config", return_value=updated):
+                with self.assertRaisesRegex(ControlError, "分流设置已变化"):
+                    m.apply_running_configuration(self.cfg, self.svc, None)
+        fetch.assert_not_called()
+        self.svc.apply.assert_not_called()
+        self.assertFalse((self.rules / "current").exists())
+
+    def test_startup_fetch_ignores_unconfirmed_device_rule_modes(self):
+        def fetch(args):
+            self.assertTrue(args[-1].endswith("/china"))
+            return SimpleNamespace(stdout="1.0.1.0/24\n")
+
+        waiting = {"offline": {"name": "Offline", "reason": "lease_missing"}}
+        with self.fresh_rules(fetch, waiting):
+            self.cfg["main"]["scope"] = "devices"
+            self.cfg["policies"] = [
+                dict(id="online", enabled="1", mac="02:00:00:00:00:01", ip="192.168.50.8"),
+                dict(id="offline", enabled="1", mac="02:00:00:00:00:02", ip="192.168.50.9", mode="gfw"),
+            ]
+            _, outstanding, _, _ = m.apply_running_configuration(self.cfg, self.svc, None)
+        self.assertEqual(outstanding, waiting)
+        self.assertEqual([dev["id"] for dev in self.svc.compiled["devices"]], ["online"])
 
     def run_loop(
         self,

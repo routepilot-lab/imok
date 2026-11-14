@@ -387,6 +387,30 @@ config policy 'ordinary'
                 [call.args[0] for call in cmd.call_args_list],
             )
 
+    def test_power_on_checks_device_subnet_before_writing(self):
+        cfg = configuration()
+        cfg["policies"][0]["ip"] = "192.168.44.10"
+        interfaces = [{"name": "br-lan", "up": True, "network": "10.1.0.0/24"}]
+        with (
+            patch.object(control, "boot_config", return_value=cfg),
+            patch.object(control, "validate_activation"),
+            patch.object(control, "read_config", return_value=cfg),
+            patch.object(control, "lan_interfaces", return_value=interfaces),
+            patch.object(control, "command") as cmd,
+            patch("builtins.print"),
+        ):
+            with self.assertRaisesRegex(guard.ControlError, "IPv4 不属于所选 LAN 网段"):
+                control.control("enable")
+            cmd.assert_not_called()
+            cfg["policies"][0]["ip"] = "10.1.0.20"
+            control.control("enable")
+            cmd.assert_any_call(["uci", "set", "routepilot.main.enabled=1"])
+            cfg["policies"][0]["ip"] = "192.168.44.10"
+            cfg["main"]["scope"] = "lan"
+            control.control("enable")
+            control.control("disable")
+            cmd.assert_any_call(["uci", "set", "routepilot.main.enabled=0"])
+
     def test_manual_shutdown_expires_only_imok_dns_redirects(self):
         spec = self.run / "dns.json"
         spec.write_text(json.dumps({"policies": [{"ip": "10.1.0.2", "port": 12101}]}))

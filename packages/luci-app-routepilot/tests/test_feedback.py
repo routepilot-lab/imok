@@ -73,6 +73,14 @@ class FeedbackTests(unittest.TestCase):
             with (
                 patch.object(control, "command") as call,
                 patch.object(control, "boot_config", return_value={"main": {}, "policies": []}),
+                patch.object(
+                    control, "read_config", return_value={"main": {"scope": "lan"}, "policies": []}
+                ),
+                patch.object(
+                    control,
+                    "lan_interfaces",
+                    return_value=[{"name": "br-lan", "up": True, "network": "10.1.0.0/24"}],
+                ),
                 patch("builtins.print"),
             ):
                 control.control(action)
@@ -243,6 +251,60 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(
             args[:6], ["curl", "-q", "--noproxy", "*", "--interface", "if!CloudflareWARP"]
         )
+
+    def test_website_probe_recovers_transient_failure_on_same_route(self):
+        for key, backend, target in (
+            ("baidu", "masque", "command"),
+            ("google", "masque", "net"),
+            ("google", "worker", "worker_backend.curl"),
+        ):
+            for code in (6, 7, 18, 28):
+                with self.subTest(key=key, backend=backend, code=code):
+                    responses = [
+                        SimpleNamespace(returncode=code, stdout="000 0.1", stderr="private"),
+                        SimpleNamespace(returncode=0, stdout="200 0.2"),
+                    ]
+                    path = target if "." in target else f"diagnostics.{target}"
+                    with patch(path, side_effect=responses) as curl:
+                        result = diagnostics.probe(key, backend)
+                    self.assertEqual(result["state"], "ok")
+                    self.assertEqual(result["message"], "重试后可连接")
+                    self.assertEqual(result["first_failure"], classify(code, "000 0.1"))
+                    self.assertNotIn("private", json.dumps(result))
+                    self.assertEqual(curl.call_count, 2)
+                    initial, retry = (call.args[0] for call in curl.call_args_list)
+                    self.assertEqual(initial[initial.index("--max-time") + 1], "10")
+                    expected = initial.copy()
+                    expected[expected.index("--max-time") + 1] = "6"
+                    self.assertEqual(retry, expected)
+
+    def test_website_probe_retains_second_failure_and_never_tries_again(self):
+        responses = [
+            SimpleNamespace(returncode=6, stdout="000 0.1"),
+            SimpleNamespace(returncode=28, stdout="000 6.0"),
+        ]
+        with patch.object(diagnostics, "command", side_effect=responses) as curl:
+            result = diagnostics.probe("baidu", "masque")
+        self.assertEqual(curl.call_count, 2)
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(result["message"], "超时")
+        self.assertEqual(result["first_failure"]["message"], "DNS 解析失败")
+
+    def test_website_probe_does_not_retry_tls_certificate_or_http_errors(self):
+        for code, output, state in (
+            (35, "000 0.1", "failed"),
+            (60, "000 0.1", "failed"),
+            (0, "403 0.1", "restricted"),
+            (0, "503 0.1", "restricted"),
+        ):
+            with self.subTest(code=code, output=output):
+                with patch.object(
+                    diagnostics, "command", return_value=SimpleNamespace(returncode=code, stdout=output)
+                ) as curl:
+                    result = diagnostics.probe("baidu", "masque")
+                curl.assert_called_once()
+                self.assertEqual(result["state"], state)
+                self.assertNotIn("first_failure", result)
 
     def test_action_nonces_do_not_restart_the_routing_generation(self):
         with (

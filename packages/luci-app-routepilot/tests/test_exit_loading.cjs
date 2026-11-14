@@ -19,7 +19,7 @@ const view=new Function('window','view','uci','fs','ui','network','rpc','L','set
  for(const leaf of ['routepilot','overview','account','routing','devices','dns','workers','rules','backup']){
   calls=[];replaced='';featuresReady=false;location.pathname='/admin/services/routepilot'+(leaf==='routepilot'?'':['account','routing','devices','dns','workers'].includes(leaf)?'/cloudflare/'+leaf:'/'+leaf);
   const data=await view.load();assert.equal(data[3].networks.length,0);assert.ok(!calls.includes('routepilot-exits'));assert.ok(!calls.includes('warp-info'));
-  assert.deepEqual(calls.slice().sort(),(['routepilot','overview'].includes(leaf)?['routepilot-runtime-status']:leaf==='devices'?['interfaces','hints']:leaf==='routing'?['interfaces']:leaf==='workers'?['routepilot-backup-list']:[]).sort());
+  assert.deepEqual(calls.slice().sort(),(['routepilot','overview','account'].includes(leaf)?['routepilot-runtime-status']:leaf==='devices'?['interfaces','hints']:leaf==='routing'?['interfaces','routepilot-runtime-status']:leaf==='workers'?['routepilot-backup-list']:[]).sort());
   assert.equal(replaced,'');
  }
  for(const [alias,section] of Object.entries({basic:'routing',advanced:'account',devices:'devices',dns:'dns',diagnostics:'dns',workers:'workers'})){

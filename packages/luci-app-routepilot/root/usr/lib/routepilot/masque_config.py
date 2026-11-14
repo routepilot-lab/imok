@@ -5,10 +5,15 @@ import re
 import uuid
 from compiler import read_rules, PRIVATE4, DOMAIN, MAC, ID
 from egress_guard import DIRECT_MARK, PROXY_MARK, policy_protected
+from rules_overrides import merge, normalize
 
 MARK = PROXY_MARK
 TABLE = 51990
 PRIORITY = 11790
+
+
+class EmptyChinaRules(ValueError):
+    """The selected mode has no effective China IPv4 rules."""
 
 
 def normalize_domains(text):
@@ -77,6 +82,24 @@ def selected_lans(main):
     return raw
 
 
+def live_lan_networks(selected, interfaces):
+    choices = {item["name"]: item for item in interfaces if item["up"]}
+    if any(name not in choices for name in selected):
+        raise ValueError("所选 LAN 接口缺失、未启用或无唯一有效私网网段，请重新选择")
+    return [{"interface": name, "network": choices[name]["network"]} for name in selected]
+
+
+def device_lan(ip, networks):
+    try:
+        address = ipaddress.IPv4Address(ip)
+    except ValueError:
+        raise ValueError("设备 IPv4 无效，请在「设备」重新选择在线设备或填写正确地址") from None
+    matches = [iface for iface, subnet in networks if address in subnet]
+    if len(matches) != 1:
+        raise ValueError("设备 IPv4 不属于所选 LAN 网段，请在「设备」重新选择在线设备")
+    return matches[0]
+
+
 def resolve_exit(main):
     """Preserve all legacy mappings; new selections store the actual UUID."""
     selected = main.get("exit", "seoul")
@@ -133,24 +156,6 @@ def compile_config(cfg, directory, waiting=()):
             "custom_proxy_ips",
         )
     }
-    china = read_rules(directory, "china.txt", "cidr")
-    domain_rules = {
-        name: domain_file(directory, filename)
-        for name, filename in (
-            ("gfw", "gfw.txt"),
-            ("whitelist", "whitelist.txt"),
-            ("china", "china_domains.txt"),
-        )
-    }
-    if "rule_overrides" in cfg:
-        from rules_overrides import normalize, merge
-
-        personal = normalize(cfg["rule_overrides"])
-        china = merge(china, "china", personal)
-        domain_rules = {
-            name: merge(values, {"china": "china_domains"}.get(name, name), personal)
-            for name, values in domain_rules.items()
-        }
     scope = main.get("scope", "devices")
     if scope not in ("devices", "lan"):
         raise ValueError("接管范围无效")
@@ -198,6 +203,14 @@ def compile_config(cfg, directory, waiting=()):
         ]
     if not policies or len(policies) > 8:
         raise ValueError("请启用 1–8 台设备的策略")
+    china = read_rules(directory, "china.txt", "cidr")
+    china_domains = domain_file(directory, "china_domains.txt")
+    personal = None
+    if "rule_overrides" in cfg:
+        personal = normalize(cfg["rule_overrides"])
+        china = merge(china, "china", personal)
+        china_domains = merge(china_domains, "china_domains", personal)
+    domain_rules = {}
     devices, dns_policies, sets, capture, ipv6, redirect = [], [], [], [], [], []
     ips, macs = set(), set()
     private = "{ " + ", ".join(PRIVATE4) + " }"
@@ -242,10 +255,7 @@ def compile_config(cfg, directory, waiting=()):
         if whole_lan:
             lan = policy["lan_interface"]
         elif resolved:
-            matches = [iface for iface, subnet in resolved if ipaddress.ip_address(ip) in subnet]
-            if len(matches) != 1:
-                raise ValueError("所选设备不在已选择的 LAN 网段中")
-            lan = matches[0]
+            lan = device_lan(ip, resolved)
         ipv6_choice = policy.get("ipv6_mode", "inherit")
         if ipv6_choice not in ("inherit", "block", "direct"):
             raise ValueError("设备 IPv6 处理方式无效")
@@ -270,9 +280,14 @@ def compile_config(cfg, directory, waiting=()):
         if mode == "direct":
             continue
         if mode == "bypass_cn" and not china:
-            raise ValueError("国内直连模式需要有效的中国 IP 规则")
-        if mode in ("gfw", "whitelist") and not domain_rules[mode]:
-            raise ValueError("所选域名分流模式需要先更新相应规则")
+            raise EmptyChinaRules("国内直连模式需要有效的中国 IP 规则")
+        if mode in ("gfw", "whitelist") and mode not in domain_rules:
+            entries = domain_file(directory, mode + ".txt")
+            if personal is not None:
+                entries = merge(entries, mode, personal)
+            if not entries:
+                raise ValueError("所选域名分流模式需要先更新相应规则")
+            domain_rules[mode] = entries
         direct_set, proxy_set, mode_set = ("rpd_" + ident, "rpp_" + ident, "rpg_" + ident)
         for name in (direct_set, proxy_set, mode_set):
             sets.append("  set %s { type ipv4_addr; flags timeout; timeout 1h; }" % name)
@@ -340,7 +355,7 @@ def compile_config(cfg, directory, waiting=()):
                 direct_set=direct_set,
                 mode_set=mode_set,
                 mode_domains=domain_rules.get(mode, []),
-                china_domains=domain_rules["china"],
+                china_domains=china_domains,
                 custom_direct_domains=custom["custom_direct_domains"],
                 custom_proxy_domains=custom["custom_proxy_domains"],
             )

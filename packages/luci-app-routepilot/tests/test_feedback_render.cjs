@@ -22,6 +22,7 @@ class Element {
  addEventListener(name,fn){this.listeners=this.listeners||{};this.listeners[name]=fn;}
  contains(el){return this===el||!!this.find(e=>e===el);}
  remove(){}
+ focus(){activeElement=this;}
 
 }
 // Target LuCI dom.append stringifies null/undefined inside arrays; direct null adds nothing.
@@ -46,8 +47,20 @@ const config={enabled:'1',scope:'lan',exit:'usa',vnet_usa:'11111111-1111-4111-81
 const uci={load(){return Promise.resolve();},unload(){return Promise.resolve();},sections(){return [];},set(c,s,k,v){config[k]=v;},get(c,s,k){return config[k];}};
 const ui={menu:{load(){return Promise.resolve({});},flushCache(){}},addNotification(a,b){notices.push(b.textContent);},hideModal(){},showModal(title,children){lastModal=E('modal',{},children);}};
 const pageModules = require('./fixtures/page_modules.cjs')(root, source, Base, E, x=>x);
+let commitError;
+const rpc = {
+ declare(options) {
+  if(options.object!=='uci') return ()=>Promise.resolve({});
+  assert.equal(options.method,'commit');assert.equal(options.reject,true);
+  assert.deepEqual(options.params,['config']);
+  return (name)=>{
+   assert.equal(name,'routepilot');
+   return commitError ? Promise.reject(Error(commitError)) : Promise.resolve(0);
+  };
+ }
+};
 const View = new Function('window','document','view','form','uci','fs','ui','poll','network','rpc','dom','L','E','_','feedback',...Object.keys(pageModules),source)(
- {location,crypto:require('node:crypto').webcrypto}, {get activeElement(){return activeElement;},getElementById(id){return lastMapNode&&lastMapNode.find(e=>e.attrs.id===id);},createElementNS(ns,tag){return E(tag);}}, Base, {Map},uci,mockedFS,ui, {add(fn){tick=fn;}}, {}, {declare(){return ()=>Promise.resolve({});}}, {}, {url(p){return '/'+p;},resource(){return '';}},E,s=>s,feedback,...Object.values(pageModules));
+ {location,crypto:require('node:crypto').webcrypto}, {get activeElement(){return activeElement;},getElementById(id){return lastMapNode&&lastMapNode.find(e=>e.attrs.id===id);},createElementNS(ns,tag){return E(tag);}}, Base, {Map},uci,mockedFS,ui, {add(fn){tick=fn;}}, {}, rpc, {}, {url(p){return '/'+p;},resource(){return '';}},E,s=>s,feedback,...Object.values(pageModules));
 assert.ok(View.prototype instanceof Base);
 const exitView = new View(), netA='11111111-1111-4111-8111-111111111111', netB='abcdefab-abcd-4abc-8abc-abcdefabcdef';
 const directory={available:true,read_at:Date.now(),last_success_at:Date.now(),networks:[{id:netA,name:'任意名称'},{id:netB,name:'任意名称',is_default:true}]};
@@ -71,13 +84,18 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  assert.ok(!lastMap.children[0].children.some(o=>removed.includes(o.option)));
  assert.ok(!lastMap.children[0].children.some(o=>o.option==='_discover'),'account excludes routing fields');
  assert.ok(!advanced.find(e=>e.attrs['data-step']==='dir'));assert.ok(!advanced.find(e=>e.attrs['data-step']==='select'));
- assert.equal(advanced.find(e=>e.attrs.class==='rp-layout-status rp-account-next').hidden,true);
+ assert.equal(advanced.find(e=>e.attrs['data-setup-stage']).attrs['data-setup-stage'],'connecting');
  assert.equal(advanced.find(e=>e.attrs.class==='imok-panel rp-account-setup').open,false);
  assert.ok(advanced.textContent.includes('正在检查账户'));assert.ok(!advanced.textContent.includes(netA));
  const account=lastMap.children[0].children.find(o=>o.option==='_account_check');
  const refresh=account.onclick();await new Promise(setImmediate);directoryReply({code:0,stdout:JSON.stringify(directory)});await refresh;
  assert.equal(advanced.find(e=>e.attrs['data-step']==='auth').attrs['data-state'],'success');
- assert.ok(advanced.textContent.includes('账户已就绪'));
+ assert.ok(advanced.textContent.includes('已读取 2 个账户网络，连通性待验证。'));
+ const emptyRefresh=account.onclick();await new Promise(setImmediate);
+ directoryReply({code:0,stdout:JSON.stringify({...directory,networks:[]})});await emptyRefresh;
+ assert.ok(advanced.textContent.includes('没有返回可选网络'));
+ const restoreDirectory=account.onclick();await new Promise(setImmediate);
+ directoryReply({code:0,stdout:JSON.stringify(directory)});await restoreDirectory;
  if(process.argv[2]) {
   const formSource=fs.readFileSync(process.argv[2],'utf8');
   function method(start,end){const a=formSource.indexOf(start),b=formSource.indexOf(end,a);assert.ok(a>=0&&b>a);const text=formSource.slice(a,b+1);return new Function('isEqual','return function'+text.slice(text.indexOf('(')))( (a,b)=>JSON.stringify(a)===JSON.stringify(b));}
@@ -241,13 +259,63 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  dnsData={...dnsData,process_instance:'p2'};await tick();assert.ok(dnsPage.textContent.includes('历史 DNS 结果已过期'));
  // Registration single-flight and post-registration directory invalidation are retained.
  location.pathname='/admin/services/routepilot/cloudflare/account';config.enabled='0';current={...current,state:'preparing'};
+ let runtimeResolve;const freshAccount=[null,null,[],{available:false,networks:[]}];
+ freshAccount.runtimeRead=new Promise(resolve=>{runtimeResolve=resolve;});
+ const initialReads=directoryCalls,initialProtocolCalls=commandCalls.filter(c=>c==='warp-info').length;
+ const uninstalled=await new View().render(freshAccount);await tick();
+ const guideStage=page=>page.find(e=>e.attrs['data-setup-stage']).attrs['data-setup-stage'];
+ const guideButton=(page,label)=>page.find(e=>e.tag==='button'&&e.textContent===label);
+ assert.equal(guideStage(uninstalled),'install');
+ assert.ok(guideButton(uninstalled,'准备登录环境').disabled);
+ assert.ok(guideButton(uninstalled,'检查账户').disabled);
+ runtimeResolve({installed:false,registration_files_present:false});await Promise.resolve();
+ assert.equal(guideStage(uninstalled),'install');
+ assert.ok(guideButton(uninstalled,'邮箱登录').disabled);
+ assert.equal(directoryCalls,initialReads,'the installation check must precede automatic account access');
+ assert.equal(commandCalls.filter(c=>c==='warp-info').length,initialProtocolCalls);
+ const installedAccount=[null,null,[],{available:false,networks:[]}];
+ installedAccount.runtimeRead=Promise.resolve({installed:true,registration_files_present:false});
+ const unregistered=await new View().render(installedAccount);await tick();
+ assert.equal(guideStage(unregistered),'account');
+ assert.equal(guideButton(unregistered,'准备登录环境').disabled,false);
+ assert.equal(guideButton(unregistered,'邮箱登录').disabled,false);
+ assert.ok(guideButton(unregistered,'检查账户').disabled);
+ assert.equal(directoryCalls,initialReads,'an unregistered installation must wait for account login');
  const registrationView=new View(),registrationPage=await registrationView.render([null,null,[],{available:false,networks:[]}]);const options=lastMap.children[0].children;
  registrationView.applySettings=()=>{throw Error('merged center must not save unrelated form edits');};const beforeCommands=commandCalls.length;await options.find(o=>o.option==='_prepare').onclick();assert.deepEqual(commandCalls.slice(beforeCommands),['warp-org-save','prepare']);
  registrationView.applySettings=()=>Promise.resolve(true);failStatusRead=true;await options.find(o=>o.option==='_login').onclick();failStatusRead=false;assert.notEqual(registrationPage.find(e=>e.attrs['data-step']==='auth').attrs['data-state'],'error');
  const first=options.find(o=>o.option==='_account_check').onclick();await new Promise(setImmediate);const beforeCalls=directoryCalls;
- await options.find(o=>o.option==='_login').onclick();lastModal.find(e=>e.tag==='input').value='synthetic value';const reg=lastModal.find(e=>e.tag==='button'&&e.textContent==='注册此路由器');const registering=reg.attrs.click();reg.attrs.click();assert.equal(registerWrites,1);
+ await options.find(o=>o.option==='_login').onclick();
+ const authorization=lastModal.find(e=>e.tag==='input');
+ assert.equal(authorization.attrs.type,'password');
+ assert.ok(lastModal.textContent.includes('复制含授权链接的整行即可'));
+ const reg=lastModal.find(e=>e.tag==='button'&&e.textContent==='注册此路由器');
+ reg.attrs.click();assert.equal(registerWrites,0);assert.equal(activeElement,authorization);
+ authorization.value="onclick=\"location.href='com.cloudflare.warp\\://example.cloudflareaccess.com/auth?token=test-only';\"";
+ const registering=reg.attrs.click();reg.attrs.click();assert.equal(registerWrites,1);
+ assert.equal(authorization.value,'');
  await new Promise(setImmediate);directoryReply({code:0,stdout:JSON.stringify({available:true,networks:[{name:'Old account response',id:netA}]})});await first;await new Promise(setImmediate);assert.equal(directoryCalls,beforeCalls+1);
- directoryReply({code:0,stdout:JSON.stringify(directory)});await registering;assert.ok(!registrationPage.textContent.includes('Old account response'));
+ assert.equal(guideStage(registrationPage),'account','saved routing cannot skip the post-registration catalog');
+ assert.ok(registrationPage.textContent.includes('路由器已注册，正在读取账户出口'));
+ directoryReply({code:0,stdout:JSON.stringify({...directory,networks:[]})});await registering;
+ assert.equal(guideStage(registrationPage),'account','an empty account catalog cannot guide a fresh setup to device configuration');
+ assert.ok(registrationPage.textContent.includes('没有返回可选网络'));
+ const retryCatalog=options.find(o=>o.option==='_account_check').onclick();await new Promise(setImmediate);
+ directoryReply({code:0,stdout:JSON.stringify(directory)});await retryCatalog;
+ assert.equal(guideStage(registrationPage),'power','a usable directory enables the next step for saved configuration');
+ assert.ok(registrationPage.textContent.includes('已读取 2 个账户网络，连通性待验证'));
+ assert.ok(!registrationPage.textContent.includes('Old account response'));
+ // The top status must follow an existing account even when the supervisor still emits first-use text.
+ current={...current,state:'preparing',time:Date.now()/1000,message:'登录环境已就绪；请完成邮箱登录，再自动读取出口'};
+ const existingAccount=[null,null,[],{available:false,networks:[]}];
+ existingAccount.runtimeRead=Promise.resolve({installed:true,registration_files_present:true});
+ const registeredPage=await new View().render(existingAccount);await tick();await new Promise(setImmediate);
+ const summary=registeredPage.querySelector('.rp-summary-connection');
+ assert.match(summary.textContent,/正在检查账户/);
+ assert.doesNotMatch(summary.textContent,/请完成邮箱登录/);
+ directoryReply({code:0,stdout:JSON.stringify(directory)});await new Promise(setImmediate);
+ assert.match(summary.textContent,/分流尚未开启；已读到 2 个账户网络（未验证连通性）/);
+ assert.match(summary.textContent,/WARP 已注册/);
  // Real load -> render migration: legacy URLs retain behavior through the canonical center.
  for(const [alias,group] of Object.entries({basic:'basic',devices:'devices',dns:'dns',diagnostics:'dns',advanced:'advanced',workers:'workers'})){
   location.pathname='/admin/services/routepilot/'+alias;legacyReplacement='';const instance=new View();const loaded=await instance.load();const node=await instance.render(loaded);
@@ -270,7 +338,7 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  current={...current,state:'running',backend:'masque',time:Date.now()/1000};
  const oldExec=mockedFS.exec.bind(mockedFS),savedExit=config.exit;
  const refreshProtocol={},inspectExit={};
- const exitResult={...current,state:'done',country:'US'};
+ const exitResult={...current,state:'done',country:'US',ip:'192.0.2.1'};
  let protocolCalls=0,exitCalls=0;
  mockedFS.exec=(path,args)=>{
   if(path==='/usr/libexec/routepilot'&&args[0]==='warp-info'){
@@ -283,9 +351,9 @@ assert.equal(exitView.exitOptions(netB.toUpperCase(),{},directory)[1].value,netB
  };
  config.exit='';
  const accountPage=await new View().render([null,null,[],directory,null,{nodes:[]}]);await tick();
- const selectExit=accountPage.find(e=>e.tag==='a'&&e.textContent==='去选出口');
+ const selectExit=accountPage.find(e=>e.tag==='a'&&e.textContent==='前往出口与分流');
  assert.equal(selectExit.attrs.href,'/admin/services/routepilot/cloudflare/routing');
- assert.equal(accountPage.find(e=>e.attrs.class==='rp-layout-status rp-account-next').hidden,false);
+ assert.equal(accountPage.find(e=>e.attrs['data-setup-stage']).attrs['data-setup-stage'],'routing');
  const protocolButton=accountPage.find(e=>e.tag==='button'&&e.textContent==='正在读取协议…');
  const regionButton=accountPage.find(e=>e.tag==='button'&&e.textContent==='检测出口地区');
  assert.equal(protocolButton.disabled,true);

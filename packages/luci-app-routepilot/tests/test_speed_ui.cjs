@@ -16,12 +16,20 @@ const cases = String.raw`
     }
     return originalExec(target,args);
   };
-  current={...current,time:Date.now()/1000,backend:'masque',protocol:'MASQUE',protocol_managed:true,state:'running'};
+  current={...current,time:Date.now()/1000,backend:'masque',protocol:'MASQUE',protocol_managed:true,state:'preparing'};
   const view=await new View().render([null,null,[],directory,null,{nodes:[]},null,{}]);
   await tick();
   const start=view.find(e=>e.tag==='button'&&e.textContent==='对比 MASQUE 与 WireGuard');
+  const overview=view.find(e=>e.tag==='a'&&e.textContent==='前往总览');
+  assert.ok(start.disabled);
+  assert.ok(view.textContent.includes('结束登录准备'));
+  assert.ok(!overview.hidden);
+  assert.equal(overview.attrs.href,'/admin/services/routepilot/overview');
+  current={...current,time:Date.now()/1000,state:'running'};
+  await tick();
   assert.ok(start.disabled);
   assert.ok(view.textContent.includes('协议由 Cloudflare 组织管理，无法切换测速'));
+  assert.ok(overview.hidden);
   current={...current,time:Date.now()/1000,protocol_managed:false};
   await tick();
   assert.ok(!start.disabled);
@@ -46,6 +54,21 @@ const cases = String.raw`
   await tick();
   assert.ok(view.textContent.includes('路由器 CPU 平均 25.5%'));
   assert.ok(view.textContent.includes('最忙核心 98%'));
+
+  location.pathname='/admin/services/routepilot/cloudflare/routing';
+  current={...current,time:Date.now()/1000,state:'preparing'};
+  mockedFS.read=read;
+  const routing=await new View().render([null,null,[],directory,null,{nodes:[]},null,{}]);
+  await tick();
+  const allExits=routing.find(e=>e.tag==='button'&&e.textContent==='全部出口测速');
+  const routingOverview=routing.find(e=>e.tag==='a'&&e.textContent==='前往总览');
+  assert.ok(allExits.disabled);
+  assert.ok(!routingOverview.hidden);
+  assert.ok(routing.textContent.includes('结束登录准备'));
+  current={...current,time:Date.now()/1000,state:'running'};
+  await tick();
+  assert.ok(!allExits.disabled);
+  assert.ok(routingOverview.hidden);
   console.log('Protocol comparison: managed gate, explicit confirmation, traffic estimate and bound request passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 `;

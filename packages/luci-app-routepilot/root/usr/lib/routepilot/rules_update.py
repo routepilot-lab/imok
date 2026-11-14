@@ -16,6 +16,15 @@ from masque_config import (
     normalize_domains,
 )
 from mplane import net
+from public_errors import ControlError
+
+
+LABELS = {
+    "china": "中国 IP",
+    "gfw": "代理域名",
+    "whitelist": "直连域名",
+    "china_domains": "中国域名",
+}
 
 
 @contextmanager
@@ -96,37 +105,51 @@ def commit_rules(pending, meta, *, allow_decline=False, replace_all=False):
                 shutil.rmtree(stage, ignore_errors=True)
 
 
-def update_rules():
+def update_rules(*, required=None, expected_nonce=None):
+    """Update the whole catalog or bootstrap missing rules for the active policies."""
     from rules_catalog import operation_lock
 
     with operation_lock(RULES):
-        return _update_rules()
+        return _update_rules(required, expected_nonce)
 
 
-def _update_rules():
+def _update_rules(required, expected_nonce):
+    from rules_catalog import RulesDecline, content, lines, read_json, sources_fingerprint
+    from rules_overrides import load as load_personal, merge, validate_required
+
     cfg = read_config()
-    job = (
-        os.environ.get("ROUTEPILOT_UPDATE_ID")
-        or cfg["main"].get("update_nonce")
-        or str(int(time.time()))
-    )
-    labels = {
-        "china": "中国 IP",
-        "gfw": "代理域名",
-        "whitelist": "直连域名",
-        "china_domains": "中国域名",
-    }
-    try:
-        with rule_snapshot() as snapshot:
-            old_meta = json.loads((snapshot / "updated.json").read_text())
-    except (OSError, ValueError):
-        old_meta = {}
+    bootstrapping = required is not None
+    if bootstrapping and (
+        cfg["main"].get("enabled") != "1"
+        or cfg["main"].get("apply_nonce", "") != expected_nonce
+    ):
+        raise ControlError("分流设置已变化，请等待新设置生效")
+    with rule_snapshot() as snapshot:
+        old_meta = read_json(snapshot / "updated.json")
+        if bootstrapping:
+            personal = load_personal(RULES)
+            # Another rule operation may have filled the missing files before we acquired the lock.
+            required = {
+                kind
+                for kind in required
+                if not merge(lines(snapshot / (kind + ".txt")), kind, personal)
+            }
+            if not required:
+                return
+    if bootstrapping:
+        job = "bootstrap-" + uuid.uuid4().hex
+    else:
+        job = (
+            os.environ.get("ROUTEPILOT_UPDATE_ID")
+            or cfg["main"].get("update_nonce")
+            or str(int(time.time()))
+        )
     progress = dict(
         state="running",
         request_id=job,
         started_at=int(time.time()),
         finished_at=0,
-        phase="准备下载",
+        phase="准备当前分流所需的规则" if bootstrapping else "准备下载",
         percent=0,
         last_success_at=old_meta.get("downloaded_at", old_meta.get("time", 0)),
         counts=old_meta.get("counts", {}),
@@ -140,17 +163,19 @@ def _update_rules():
     pending, ignored = [], {}
     sources = [
         (kind, cfg["main"].get(kind + "_url", ""))
-        for kind in labels
-        if cfg["main"].get(kind + "_url")
+        for kind in LABELS
+        if (kind in required if bootstrapping else cfg["main"].get(kind + "_url"))
     ]
     label = "规则"
     try:
         for index, (kind, url) in enumerate(sources):
-            label = labels[kind]
+            label = LABELS[kind]
             progress.update(
                 phase="正在下载并校验：" + label, percent=round(index / max(1, len(sources)) * 90)
             )
             publish()
+            if not url:
+                raise ValueError("尚未设置该规则来源地址，请先在规则与更新中配置")
             if not re.fullmatch(r"https://[^\s]{1,2000}", url):
                 raise ValueError("更新地址必须使用 HTTPS")
             downloader = net
@@ -184,50 +209,74 @@ def _update_rules():
         progress.update(phase="校验完成，正在替换本插件规则", percent=95)
         publish()
         now = int(time.time())
-        from rules_catalog import sources_fingerprint, content
-
         latest_cfg = read_config()
         if sources_fingerprint(cfg["main"]) != sources_fingerprint(latest_cfg["main"]):
             raise ValueError("规则来源设置已变化，请重新更新")
-        from rules_overrides import load as load_personal, validate_required
-
+        if bootstrapping and (
+            latest_cfg["main"].get("enabled") != "1"
+            or latest_cfg["main"].get("apply_nonce", "") != expected_nonce
+        ):
+            raise ValueError("分流设置已变化，请等待新设置生效")
         with rule_snapshot() as snapshot:
             combined = content(snapshot)
             for path, text in pending:
                 combined[path.stem] = text.splitlines()
-            validate_required(latest_cfg, combined, load_personal(RULES))
+            personal = load_personal(RULES)
+            if bootstrapping:
+                if any(not merge(combined[kind], kind, personal) for kind in required):
+                    raise ValueError("个人覆盖后，当前分流所需规则为空，请核对排除项")
+            else:
+                validate_required(latest_cfg, combined, personal)
+        last_success = progress["last_success_at"] if bootstrapping else now
         meta = commit_rules(
             pending,
             dict(
                 time=now,
-                downloaded_at=now,
-                ignored_regexp=ignored,
+                downloaded_at=last_success,
+                ignored_regexp={**progress["ignored_regexp"], **ignored}
+                if bootstrapping
+                else ignored,
                 sources=dict(sources),
                 sources_fingerprint=sources_fingerprint(cfg["main"]),
                 request_id=job,
             ),
         )
-        counts = meta["counts"]
         progress.update(
-            state="success",
-            phase="更新成功，规则已保存",
+            state="partial" if bootstrapping else "success",
+            phase="已保存当前分流所需规则；完整规则更新仍按计划执行"
+            if bootstrapping
+            else "更新成功，规则已保存",
             percent=100,
             finished_at=now,
-            last_success_at=now,
-            counts=counts,
-            ignored_regexp=ignored,
+            last_success_at=last_success,
+            counts=meta["counts"],
+            ignored_regexp=meta["ignored_regexp"],
         )
         publish()
     except Exception as error:
         reason = str(error) if isinstance(error, ValueError) else "下载或连接失败"
-        from rules_catalog import RulesDecline
+        try:
+            with rule_snapshot() as snapshot:
+                saved = any(content(snapshot).values())
+        except (OSError, ValueError):
+            saved = None
+        fallback = (
+            "保留已保存的规则"
+            if saved
+            else "当前没有已保存的规则"
+            if saved is False
+            else "尚未确认已保存的规则"
+        )
+        message = label + "更新失败：" + reason + "；" + fallback + "，可重新更新"
 
         progress.update(
             state="blocked" if isinstance(error, RulesDecline) else "failed",
-            phase=label + "更新失败：" + reason + "；使用最后已提交版本，可重新更新",
+            phase=message,
             finished_at=int(time.time()),
         )
         publish()
+        if bootstrapping:
+            raise ControlError("当前分流所需规则未就绪。" + message) from None
         raise
 
 
@@ -239,7 +288,7 @@ def finish_interrupted_update():
         if state.get("state") == "running":
             state.update(
                 state="unknown",
-                phase="更新任务已中断，发布结果未知；保留最后已提交版本，可重新更新",
+                phase="更新任务已中断，发布结果未知；请核对已保存的规则后重试",
                 finished_at=int(time.time()),
             )
             atomic(path, json.dumps(state, ensure_ascii=False), 0o644)

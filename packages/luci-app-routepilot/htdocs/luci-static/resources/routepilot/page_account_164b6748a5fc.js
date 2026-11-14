@@ -13,7 +13,8 @@ return baseclass.extend({
     ]);
   },
   protocolComparison: function ({
-    feedback,
+    base,
+    comparisonLineHint,
     startComparison,
     stopComparison,
     comparisonBusy,
@@ -21,6 +22,7 @@ return baseclass.extend({
   }) {
     var protocolComparisonStatus = E('p', { role: 'status', 'aria-live': 'polite' });
     var protocolComparisonHelp = E('p', { class: 'rp-help', id: 'imok-protocol-test-help' });
+    var protocolOverview = E('a', { href: base + '/overview', hidden: true }, _('前往总览'));
     var protocolComparisonRows = E('div', { class: 'rp-help' });
     var compareProtocols = E(
       'button',
@@ -39,23 +41,23 @@ return baseclass.extend({
         return panel(_('协议对比测速'), _('依次测量两种协议，再恢复已保存的协议。'), [
           E('div', { class: 'rp-actions' }, [compareProtocols, cancelProtocols]),
           protocolComparisonHelp,
+          protocolOverview,
           protocolComparisonStatus,
           protocolComparisonRows
         ]);
       },
       update: function (wizardStatus, comparisonResult, statusText) {
-        var ready = feedback.fresh(wizardStatus, Date.now());
-        var reason = !ready
-          ? _('正在等待主线路状态。')
-          : wizardStatus.state !== 'running' || wizardStatus.backend !== 'masque'
-            ? _('请先在总览启用 WARP 主线路。')
-            : wizardStatus.protocol_managed === true
-              ? _('协议由 Cloudflare 组织管理，无法切换测速。')
-              : wizardStatus.protocol_managed !== false
-                ? _('还未确认协议是否由组织管理。')
-                : comparisonBusy()
-                  ? _('已有测速正在进行。')
-                  : '';
+        var lineHint = comparisonLineHint();
+        var reason =
+          lineHint ||
+          (wizardStatus.protocol_managed === true
+            ? _('协议由 Cloudflare 组织管理，无法切换测速。')
+            : wizardStatus.protocol_managed !== false
+              ? _('还未确认协议是否由组织管理。')
+              : comparisonBusy()
+                ? _('已有测速正在进行。')
+                : '');
+        protocolOverview.hidden = !lineHint;
         compareProtocols.disabled = !!reason;
         protocolComparisonHelp.textContent = reason;
         var protocolResult = comparisonResult && comparisonResult.kind === 'protocol';
@@ -155,12 +157,12 @@ return baseclass.extend({
     step('intro', _('开始前：新路由器需要准备什么？'), [
       para(
         _(
-          '下载 ZIP 不会自动安装。完整安装包包含 IPK 插件、WARP 运行环境压缩包、安装脚本和校验文件。将 ZIP 解压后的整个文件夹复制到兼容路由器，在该文件夹内以管理员运行 sh install-router.sh；脚本会校验文件、解压运行环境并安装插件。仅在网页上传 IPK，只安装管理插件，不会自动安装配套环境。'
+          '先在 iStore 安装 imOK 和系统依赖。到「WARP 安装与更新」检查本机环境，首次使用选择「自动下载并安装 WARP」。页面显示「WARP 已安装」后，回到这里登录。'
         )
       ),
       para(
         _(
-          '支持条件：目前只验证 GL-MT6000 / ARM64 OpenWrt 24.10，至少 500 MB 可用存储。不是在 Mac 或 Windows 上运行脚本。运行环境已存在时，安装脚本会停止以保护注册信息；更新已有插件只需安装新版 IPK，不要删除运行环境。安装结束默认关闭，之后再完成本向导登录。'
+          '在线准备支持 ARM64 OpenWrt 24.10，约需 1.6 GB 可用存储。安装页会检查本机条件。首次安装默认关闭 imOK。'
         )
       ),
       para(
@@ -173,6 +175,7 @@ return baseclass.extend({
           '快捷迁移：在旧路由器“备份迁移”导出配置，到新路由器导入。导入后保持关闭；已导入组织名称时无需重复填写，仍需准备登录环境并注册新路由器。备份不包含登录凭据。'
         )
       ),
+      E('a', { href: base + '/runtime' }, _('前往 WARP 安装与更新')),
       E('a', { href: base + '/backup' }, _('打开备份迁移 →'))
     ]);
     step(
@@ -224,7 +227,7 @@ return baseclass.extend({
         para(_('点击下方按钮。它只启动独立登录环境，不接管局域网，不需要先打开总开关。')),
         para(
           _(
-            '成功标志：本页上方实际状态显示“登录环境已就绪”。首次启动可能稍慢；未就绪先不要点击邮箱登录。若提示缺少运行环境，请先按安装包说明安装配套运行环境。'
+            '看到「登录环境已就绪」后，再点击「邮箱登录」。如缺少运行环境，先去「WARP 安装与更新」完成安装。'
           )
         )
       ],
@@ -246,7 +249,7 @@ return baseclass.extend({
         ),
         para(
           _(
-            '复制登录成功页面里的完整 com.cloudflare.warp://… 登录链接，粘贴回插件弹窗，点击“注册此路由器”。这是临时登录凭据，不要分享或发到 GitHub。'
+            '粘贴 token= 后的令牌、完整授权链接，或成功页源码里含 token= 的整行，再点击“注册此路由器”。imOK 会自动提取，请及时提交。'
           )
         ),
         para(
@@ -262,15 +265,6 @@ return baseclass.extend({
     var loginButton = wizardCards.auth.querySelector('button');
     var prepareBlocked, loginBlocked;
     wizardCards.auth.querySelector('.rp-guide-body').appendChild(loginAvailability);
-    var wizardNext = E(
-      'div',
-      { class: 'rp-layout-status rp-account-next', 'data-tone': 'success' },
-      [
-        E('div', {}, [E('h3', {}, _('选择代理出口')), para(_('选好出口后，点击「保存并应用」。'))]),
-        E('a', { href: base + '/cloudflare/routing', class: 'btn' }, _('去选出口'))
-      ]
-    );
-    wizardNext.hidden = true;
     var setup = E('details', { class: 'imok-panel rp-account-setup', open: true }, [
       E('summary', {}, _('首次登录与重新注册')),
       E('div', { class: 'rp-guide' }, steps)
@@ -280,10 +274,16 @@ return baseclass.extend({
       { class: 'rp-account-check rp-actions' },
       [node.querySelector('[id="cbi-routepilot-main-_account_check"]')].filter(Boolean)
     );
+    var checkButton = accountCheck.querySelector('button');
+    var accountNext = E(
+      'a',
+      { class: 'btn', hidden: true, href: base + '/cloudflare/routing' },
+      _('前往出口与分流')
+    );
+    accountCheck.appendChild(accountNext);
     var setupInitialized = false;
     var guide = E('div', { class: 'rp-account-guide' }, [
       pageShared.statusBar('info', [wizardSummary, accountCheck], 'rp-account-status'),
-      wizardNext,
       setup
     ]);
     function updateWizard() {
@@ -291,6 +291,9 @@ return baseclass.extend({
         catalog,
         directoryPending,
         registeredHere,
+        setupRuntime,
+        setupRuntimePending,
+        setupRuntimeUnavailable,
         committedOrganization,
         wizardStatus,
         wizardTest
@@ -331,7 +334,8 @@ return baseclass.extend({
         wizardStatus,
         wizardTest,
         wizardActions,
-        now
+        now,
+        registeredHere
       );
       if (
         prep &&
@@ -346,10 +350,7 @@ return baseclass.extend({
       var descriptions = {
         org: committedOrganization ? _('组织名称已保存') : _('可沿用已可访问的账户，无需重填'),
         prepare: _('登录环境已就绪'),
-        auth: _('账户目录可访问；无需重复注册'),
-        dir: _('目录已读取（未验证联网）'),
-        select: _('选择已保存（未验证运行）'),
-        verify: _('当前连接所测网站通过')
+        auth: registeredHere ? _('路由器已注册') : _('账户目录可访问；无需重复注册')
       };
       var names = {
         pending: '○ ' + _('待确认'),
@@ -363,13 +364,7 @@ return baseclass.extend({
         var a = wizardActions[st.id];
         if (st.state === 'success' && a && a.state === 'busy') delete wizardActions[st.id];
         var pendingText =
-          st.reason === 'access_previous'
-            ? _('○ 账户检查结果较旧，可重新检查')
-            : st.reason === 'directory_old'
-              ? _('○ 上次已读取，待刷新')
-              : st.id === 'select' && st.reason === 'saved'
-                ? _('○ 已保存，目录待确认')
-                : names[st.state];
+          st.reason === 'access_previous' ? _('○ 账户检查结果较旧，可重新检查') : names[st.state];
         wizardBadges[st.id].textContent =
           st.state === 'success'
             ? '✓ ' + descriptions[st.id]
@@ -392,8 +387,7 @@ return baseclass.extend({
         !wizard.pinned &&
         current &&
         wizard.advance === current.id &&
-        current.state === 'success' &&
-        current.id !== 'verify'
+        current.state === 'success'
       ) {
         var index = states.indexOf(current),
           next = states.slice(index + 1).filter(function (st) {
@@ -406,37 +400,82 @@ return baseclass.extend({
         wizard.advance = null;
       }
       var statusFresh = feedback.fresh(wizardStatus, now);
-      var accountReady =
-        catalog.available ||
-        (statusFresh && wizardStatus.state === 'running' && wizardStatus.backend === 'masque');
+      var accountActive =
+        statusFresh && wizardStatus.state === 'running' && wizardStatus.backend === 'masque';
+      var readAge = now - Number(catalog.read_at);
+      var catalogReady = catalog.available && readAge >= -5000 && readAge <= 60000;
       var enabled = uci.get('routepilot', 'main', 'enabled') === '1';
       var loginReady = statusFresh && wizardStatus.state === 'preparing';
-      if (prepareButton && prepareBlocked !== enabled) {
-        prepareBlocked = enabled;
+      var runtimeBlocked =
+        setupRuntimeUnavailable ||
+        (setupRuntime && (setupRuntime.installed === false || setupRuntime.recovery_required));
+      var blockPrepare = enabled || !!setupRuntimePending || !!runtimeBlocked;
+      if (prepareButton && prepareBlocked !== blockPrepare) {
+        prepareBlocked = blockPrepare;
         prepareButton.disabled = prepareBlocked;
       }
-      var blockLogin = enabled || !loginReady;
+      var blockLogin = blockPrepare || !loginReady;
       if (loginButton && loginBlocked !== blockLogin) {
         loginBlocked = blockLogin;
         loginButton.disabled = loginBlocked;
       }
+      var registrationPending =
+        !registeredHere && setupRuntime?.registration_files_present === false;
+      if (checkButton)
+        checkButton.disabled = !!(
+          directoryPending ||
+          (!enabled &&
+            (setupRuntimePending ||
+              runtimeBlocked ||
+              registrationPending ||
+              (setupRuntime?.registration_files_present === true && !loginReady && !catalogReady)))
+        );
+      accountNext.hidden = !!directoryPending || !catalogReady || !catalog.networks.length;
       loginAvailability.textContent = enabled
         ? _('如需重新登录，请先在总览关闭 imOK。')
-        : !loginReady
-          ? _('先准备登录环境，再进行邮箱登录。')
-          : '';
-      if (!setupInitialized && accountReady) {
+        : setupRuntimePending
+          ? _('正在检查 WARP 安装状态。')
+          : setupRuntimeUnavailable
+            ? _('暂时无法确认 WARP 安装状态。请到「WARP 安装与更新」刷新本机状态。')
+            : runtimeBlocked
+              ? _('请先到「WARP 安装与更新」核对安装状态。')
+              : !loginReady
+                ? _('先准备登录环境，再进行邮箱登录。')
+                : '';
+      if (!setupInitialized && (accountActive || (catalogReady && catalog.networks.length))) {
         if (!document.activeElement || !setup.contains(document.activeElement)) setup.open = false;
         setupInitialized = true;
       }
-      wizardNext.hidden = !accountReady || !!config.exit_id;
-      wizardSummary.textContent = directoryPending
-        ? _('正在检查账户。')
-        : accountReady
-          ? _('账户已就绪')
-          : registeredHere || catalog.last_success_at
-            ? _('暂时无法读取账户，可重新检查。')
-            : _('账户待确认。已有账户可直接检查，首次使用请按下方步骤登录。');
+      var summary = _('账户待确认。已有账户可直接检查，首次使用请按下方步骤登录。');
+      if (!enabled && setupRuntimePending) summary = _('正在检查 WARP 安装状态。');
+      else if (!enabled && setupRuntimeUnavailable)
+        summary = _('暂时无法确认 WARP 安装状态，请刷新本机状态后再登录。');
+      else if (!enabled && runtimeBlocked)
+        summary = _('请先完成 WARP 安装或维护，再登录 Cloudflare。');
+      else if (directoryPending)
+        summary = registeredHere ? _('路由器已注册，正在读取账户出口。') : _('正在检查账户。');
+      else if (catalogReady) {
+        var catalogResult = catalog.networks.length
+          ? _('已读取 %s 个账户网络，连通性待验证。').replace('%s', String(catalog.networks.length))
+          : _('账户目录已读取，但没有返回可选网络。请核对 Cloudflare 团队及出口配置后重新读取。');
+        summary = (registeredHere ? _('路由器已注册。') : '') + catalogResult;
+      } else if (registeredHere || catalog.last_success_at || catalog.read_at) {
+        if (catalog.available) summary = _('上次的出口目录已过期。请点击「检查账户」重新读取。');
+        else
+          summary =
+            registeredHere || catalog.last_success_at
+              ? _('已注册路由器，暂时无法读取出口目录。请重新检查账户。')
+              : _('读取出口目录失败。请检查 WARP 登录环境，再点「检查账户」重试。');
+      } else if (accountActive) summary = _('当前 WARP 隧道已连接，可重新读取账户目录。');
+      else if (registrationPending)
+        summary = loginReady
+          ? _('登录环境已就绪。请完成邮箱验证和路由器注册，成功后会自动读取账户出口。')
+          : _('本路由器尚未注册。请准备登录环境，再进行邮箱验证和注册。');
+      else if (setupRuntime?.registration_files_present)
+        summary = loginReady
+          ? _('本机已有注册资料。请检查账户，确认能读取出口。')
+          : _('本机已有注册资料。请先准备登录环境。');
+      wizardSummary.textContent = summary;
     }
     return { element: guide, update: updateWizard };
   },
@@ -562,8 +601,10 @@ return baseclass.extend({
                   type: 'password',
                   class: 'cbi-input-text',
                   autocomplete: 'off',
-                  placeholder: 'com.cloudflare.warp://…',
-                  'aria-label': _('登录成功页的完整登录链接')
+                  spellcheck: false,
+                  placeholder: _('粘贴令牌、授权链接或源码整行'),
+                  'aria-label': _('Cloudflare 临时授权凭据'),
+                  'aria-describedby': 'imok-router-login-help'
                 }),
                 registrationPending = false;
               var closeButton = E(
@@ -585,6 +626,11 @@ return baseclass.extend({
                   class: 'btn',
                   click: function () {
                     if (registrationPending) return;
+                    if (!token.value.trim()) {
+                      token.focus();
+                      notify(_('请先粘贴 Cloudflare 登录成功页的授权凭据'), true);
+                      return;
+                    }
                     beginWizardStep('auth');
                     registrationPending = true;
                     registerButton.disabled = true;
@@ -617,10 +663,17 @@ return baseclass.extend({
                   'p',
                   {},
                   _(
-                    '打开下方地址，用组织允许的邮箱完成验证。浏览器提示打开本机 Cloudflare 应用时取消；复制成功页的 com.cloudflare.warp:// 登录链接，粘贴到此处。'
+                    '打开下方地址完成邮箱验证。浏览器提示打开电脑上的 Cloudflare 应用时，选择取消。'
                   )
                 ),
                 E('a', { href: url.trim(), target: '_blank', rel: 'noopener' }, url.trim()),
+                E(
+                  'p',
+                  { class: 'rp-help', id: 'imok-router-login-help' },
+                  _(
+                    '成功页右键选择“查看网页源代码”，搜索 token=，复制含授权链接的整行即可。也可直接粘贴完整链接或 token= 后的令牌。引号和反斜杠会自动处理。'
+                  )
+                ),
                 token,
                 registerButton,
                 closeButton

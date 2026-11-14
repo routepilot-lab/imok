@@ -1,0 +1,21 @@
+#!/usr/bin/python3
+"""Root-only entry point for the fresh iStore installer."""
+
+import json
+import os
+import sys
+
+sys.path.insert(0, "/usr/lib/routepilot")
+import runtime_maintenance as maintenance
+from public_errors import ControlError
+
+try:
+    if os.geteuid() != 0 or len(sys.argv) != 1:
+        raise ControlError("首次安装入口仅供路由器本机安装程序使用")
+    print(json.dumps(maintenance.first_install(), ensure_ascii=False))
+except ControlError as e:
+    print(json.dumps({"error": str(e)}, ensure_ascii=False))
+    raise SystemExit(1) from None
+except Exception:
+    print(json.dumps({"error": "未能提交首次安装任务，请在 WARP 页面查看状态"}, ensure_ascii=False))
+    raise SystemExit(1) from None

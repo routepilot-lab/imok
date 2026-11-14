@@ -6,6 +6,46 @@
 'require request';
 'require rpc';
 
+var progressLabels = {
+  queued: '等待维护任务开始',
+  check_version: '检查官方版本',
+  download_base: '下载 Debian 基础环境',
+  verify_base: '校验并解包 Debian 基础环境',
+  verify_sources: '校验官方软件源签名',
+  download_warp: '下载 Cloudflare WARP 程序',
+  download_packages: '下载 WARP 和依赖',
+  verify_packages: '校验 WARP 和依赖',
+  ready: '已下载并校验，等待确认安装',
+  prepare_install: '准备独立安装副本',
+  install_packages: '安装 WARP 和依赖',
+  verify_install: '验证 WARP 运行环境',
+  commit: '提交 WARP 运行环境',
+  installed: 'WARP 已安装'
+};
+
+var downloadComponents = [
+  { id: 'debian', label: 'Debian 基础环境', phase: 'download_base' },
+  { id: 'warp', label: 'Cloudflare WARP 程序', phase: 'download_warp' },
+  { id: 'dependencies', label: 'Debian 依赖', phase: 'download_packages' }
+];
+
+function mebibytes(bytes) {
+  return (bytes / 1048576).toFixed(1);
+}
+
+function elapsedText(seconds) {
+  var minutes = Math.floor(seconds / 60);
+  return '本阶段已用时 ' + (minutes ? minutes + ' 分 ' : '') + (seconds % 60) + ' 秒';
+}
+
+function updateCheckError(message, installed) {
+  var retry = installed
+    ? '现有 WARP 安装不受影响，可稍后点「检查更新」重试。'
+    : '可稍后点「检查更新」重试。';
+  var legacy = /^(安装或校验命令失败|维护命令超时|维护命令无法在隔离环境中启动)/;
+  return message && !legacy.test(message) ? [message, retry].join(' ') : retry;
+}
+
 function validStatus(value) {
   if (
     !value ||
@@ -32,6 +72,7 @@ function validStatus(value) {
     Array.isArray(value.job) ||
     Array.isArray(value.check) ||
     (value.job.message != null && typeof value.job.message !== 'string') ||
+    (value.job.phase != null && typeof value.job.phase !== 'string') ||
     (value.check.message != null && typeof value.check.message !== 'string') ||
     value.backups.some(function (b) {
       return (
@@ -103,9 +144,12 @@ return baseclass.extend({
       selectedHours = null,
       selectedBackup = '',
       uploaded = false,
-      modalActive = false;
+      modalActive = false,
+      awaitingJob = false,
+      lastJobView = '';
     var root = E('div', { class: 'rp-layout', 'data-page': 'runtime' }),
       body = E('div', { class: 'rp-page-content' }),
+      jobNotice = E('div', {}),
       notice = E('p', { class: 'imok-runtime-notice', role: 'status', 'aria-live': 'polite' });
     root.appendChild(E('link', { rel: 'stylesheet', href: stylesheet }));
     root.appendChild(
@@ -120,6 +164,7 @@ return baseclass.extend({
       ])
     );
     root.appendChild(notice);
+    root.appendChild(jobNotice);
     root.appendChild(body);
     function timeLabel(t) {
       return Number.isFinite(t) && t > 0 ? when(t) : '尚未检查';
@@ -164,6 +209,190 @@ return baseclass.extend({
     }
     function help(text) {
       return E('p', { class: 'rp-help' }, text);
+    }
+    function drawJob() {
+      var job = data.job || {},
+        online = data.online || {},
+        running = job.state === 'running' || awaitingJob,
+        failed = ['failed', 'interrupted'].includes(job.state) && !awaitingJob,
+        phase = awaitingJob ? 'queued' : job.phase,
+        label = Object.prototype.hasOwnProperty.call(progressLabels, phase)
+          ? progressLabels[phase]
+          : '',
+        detail = awaitingJob ? '' : job.message,
+        checkFailure = failed && phase === 'check_version';
+      if (checkFailure && data.installed && data.check.state === 'failed') {
+        lastJobView = '';
+        jobNotice.replaceChildren();
+        return;
+      }
+      if (checkFailure) detail = updateCheckError(detail, data.installed);
+      if (!data.installed && phase === 'download_packages') label = '下载 Debian 依赖';
+      if (running && phase === 'install_packages') {
+        if (job.install_step === 'unpack') label = '解包 WARP 和依赖';
+        if (job.install_step === 'configure') label = '配置 WARP 和依赖';
+      }
+      if (!running && !failed) {
+        if (online.state === 'ready') label = progressLabels.ready;
+        else if (phase === 'ready') {
+          failed = true;
+          label = '安装文件需要重新准备';
+          detail = online.message;
+        } else if (phase === 'installed' && !data.installed) {
+          label = '安装结果尚待核对';
+          detail = '';
+        }
+      }
+      var installing = running && (phase === 'prepare_install' || phase === 'install_packages'),
+        hasInstallPercent =
+          running &&
+          phase === 'install_packages' &&
+          Number.isSafeInteger(job.install_percent) &&
+          job.install_percent >= 0 &&
+          job.install_percent <= 100,
+        elapsed =
+          installing && Number.isSafeInteger(job.elapsed_seconds) && job.elapsed_seconds >= 0
+            ? elapsedText(job.elapsed_seconds)
+            : '',
+        hasBytes =
+          running &&
+          !awaitingJob &&
+          !installing &&
+          Number.isSafeInteger(job.bytes_done) &&
+          job.bytes_done >= 0,
+        hasTotal =
+          hasBytes &&
+          Number.isSafeInteger(job.bytes_total) &&
+          job.bytes_total > 0 &&
+          job.bytes_done <= job.bytes_total,
+        state = failed ? 'error' : running ? 'busy' : job.state || 'unknown',
+        jobView = JSON.stringify([
+          state,
+          label,
+          detail,
+          hasBytes && job.bytes_done,
+          hasTotal && job.bytes_total,
+          hasInstallPercent && job.install_percent,
+          elapsed
+        ]);
+      if (jobView === lastJobView) return;
+      lastJobView = jobView;
+      if (!label && !detail && !running && !failed) {
+        jobNotice.replaceChildren();
+        return;
+      }
+      var children = [];
+      if (failed) {
+        var failureTitle = phase === 'queued' ? '维护准备未通过' : '维护任务未完成';
+        if (checkFailure) failureTitle = '更新检查失败';
+        else if (label && phase !== 'queued') failureTitle = '未完成 · ' + label;
+        children.push(E('strong', {}, failureTitle));
+      } else if (label || running) {
+        children.push(E('strong', {}, label || '维护进行中'));
+      }
+      if (running) {
+        var attrs = { 'aria-label': 'WARP 安装与下载进度' };
+        if (hasTotal) {
+          attrs.max = job.bytes_total;
+          attrs.value = job.bytes_done;
+        } else if (hasInstallPercent) {
+          attrs.max = 100;
+          attrs.value = job.install_percent;
+        }
+        children.push(E('progress', attrs));
+        if (hasInstallPercent || elapsed)
+          children.push(
+            E(
+              'small',
+              {},
+              [hasInstallPercent ? '安装进度 ' + job.install_percent + '%' : '', elapsed]
+                .filter(Boolean)
+                .join(' · ')
+            )
+          );
+        if (hasBytes)
+          children.push(
+            E(
+              'small',
+              {},
+              hasTotal
+                ? mebibytes(job.bytes_done) +
+                    ' / ' +
+                    mebibytes(job.bytes_total) +
+                    ' MiB · ' +
+                    Math.floor((100 * job.bytes_done) / job.bytes_total) +
+                    '%'
+                : '已下载 ' + mebibytes(job.bytes_done) + ' MiB'
+            )
+          );
+      }
+      if (detail && detail !== label) children.push(E('small', {}, detail));
+      jobNotice.replaceChildren(
+        E(
+          'section',
+          {
+            class: 'rp-operation-feedback',
+            'data-state': state,
+            role: failed ? 'alert' : 'status'
+          },
+          children
+        )
+      );
+    }
+    function waitForJob() {
+      awaitingJob = true;
+      draw();
+      return refresh();
+    }
+    function prepareOnline(refreshComponent) {
+      if (working || awaitingJob || data.job.state === 'running') return;
+      message('正在准备安装文件。文件校验通过后，由你确认安装。');
+      return maintenanceRequest(
+        'prepare-online',
+        refreshComponent ? { refresh: refreshComponent } : {}
+      ).then(function () {
+        message('');
+        return waitForJob();
+      });
+    }
+    function componentDownloads(online, disabled) {
+      return E(
+        'ul',
+        { class: 'imok-runtime-steps', 'aria-label': '安装文件下载状态' },
+        downloadComponents.map(function (item) {
+          var saved = (online.components || {})[item.id],
+            cached = saved === 'cached',
+            ready = saved === 'ready' || online.state === 'ready',
+            active = data.job.phase === item.phase && data.job.state === 'running',
+            failed = data.job.phase === item.phase && data.job.state === 'failed',
+            tone = active ? 'neutral' : failed ? 'bad' : ready ? 'good' : 'neutral',
+            status = active
+              ? '下载中'
+              : failed
+                ? '下载失败'
+                : ready
+                  ? '已校验'
+                  : cached
+                    ? '已缓存，使用前校验'
+                    : saved === 'missing'
+                      ? '待下载'
+                      : '待检查',
+            row = [E('span', {}, item.label), E('span', { class: 'rp-status-badge' }, status)];
+          if ((cached || ready) && !active) {
+            var retry = button(
+              '重新下载',
+              function () {
+                return prepareOnline(item.id);
+              },
+              false,
+              disabled
+            );
+            retry.setAttribute('aria-label', '重新下载 ' + item.label);
+            row.push(retry);
+          }
+          return E('li', { class: 'rp-summary-actions', 'data-tone': tone }, row);
+        })
+      );
     }
     function ensurePrepared() {
       if (prepared) return Promise.resolve();
@@ -212,6 +441,12 @@ return baseclass.extend({
         .load()
         .then(function (d) {
           if (id !== readSerial || !root.isConnected) return;
+          if (d.load_error && (awaitingJob || (data.job && data.job.state === 'running'))) {
+            message('暂时无法读取最新进度，正在重试。下方显示上次状态。', true);
+            return;
+          }
+          if (awaitingJob || (data.job && data.job.state === 'running')) message('');
+          awaitingJob = false;
           data = d;
           draw();
         })
@@ -222,6 +457,53 @@ return baseclass.extend({
     function modalActions(buttons) {
       return E('div', { class: 'right imok-runtime-modal-actions' }, buttons);
     }
+    function showFirstInstall() {
+      if (working || awaitingJob || modalActive || data.job.state === 'running') return;
+      var error = E('p', { role: 'alert' });
+      var cancel = button('取消', function () {
+        modalActive = false;
+        ui.hideModal();
+      });
+      var confirm = button(
+        '开始下载并安装',
+        function () {
+          if (!modalActive || working || awaitingJob) return;
+          error.textContent = '';
+          confirm.disabled = true;
+          cancel.disabled = true;
+          return maintenanceRequest('first-install', { confirmation: 'CONFIRM' })
+            .then(function (result) {
+              if (result.submitted !== true) throw Error('未取得安装请求确认，请刷新维护状态。');
+              modalActive = false;
+              ui.hideModal();
+              message('');
+              return waitForJob();
+            })
+            .catch(function (e) {
+              error.textContent = e.message;
+              confirm.disabled = false;
+              cancel.disabled = false;
+            });
+        },
+        true
+      );
+      modalActive = true;
+      ui.showModal(
+        '确认首次安装 WARP',
+        [
+          help(
+            '将自动下载、校验并安装路由器所需的 WARP 运行环境。已有可用的缓存文件会先校验再复用。'
+          ),
+          help(
+            '请使用本地或独立管理连接，并先关闭 imOK 总开关、结束登录准备。安装完成后请登录账户。'
+          ),
+          error,
+          modalActions([cancel, confirm])
+        ],
+        'imok-dialog',
+        'imok-runtime-dialog'
+      );
+    }
     function showPlan(operation, backupID) {
       if (operation === 'install' && !/^[a-f0-9]{64}$/i.test(shaValue.trim()))
         throw Error('请先上传可信的未注册运行环境包，并填写对应的 64 位 SHA-256 校验码');
@@ -229,89 +511,96 @@ return baseclass.extend({
         operation: operation,
         sha256: shaValue.trim().toLowerCase(),
         backup_id: backupID || ''
-      }).then(function (r) {
-        if (!r.plan || typeof r.plan.id !== 'string') throw Error('未获得有效的维护确认计划');
-        var plan = r.plan,
-          error = E('p', { role: 'alert' }),
-          ack = E('input', { type: 'checkbox' }),
-          submitting = false;
-        var title = ['install', 'online-install'].includes(operation)
-          ? '确认安装到路由器'
-          : operation === 'upgrade'
-            ? '确认备份并升级 WARP'
-            : operation === 'recover'
-              ? '确认核对维护阻断'
-              : '确认回滚 WARP';
-        var cancel = button('取消', function () {
-          if (submitting) return;
-          modalActive = false;
-          ui.hideModal();
-        });
-        var confirm = button(
-          ['install', 'online-install'].includes(operation)
-            ? '确认安装'
+      })
+        .catch(function (e) {
+          if (operation !== 'online-install') throw e;
+          return refresh().then(function () {
+            throw e;
+          });
+        })
+        .then(function (r) {
+          if (!r.plan || typeof r.plan.id !== 'string') throw Error('未获得有效的维护确认计划');
+          var plan = r.plan,
+            error = E('p', { role: 'alert' }),
+            ack = E('input', { type: 'checkbox' }),
+            submitting = false;
+          var title = ['install', 'online-install'].includes(operation)
+            ? '确认安装到路由器'
             : operation === 'upgrade'
-              ? '备份并升级'
+              ? '确认备份并升级 WARP'
               : operation === 'recover'
-                ? '核对并恢复'
-                : '确认回滚',
-          function () {
-            if (submitting || !ack.checked) return;
-            submitting = true;
-            confirm.disabled = true;
-            cancel.disabled = true;
-            ack.disabled = true;
-            return maintenanceRequest('execute', { plan_id: plan.id, confirmation: 'CONFIRM' })
-              .then(function () {
-                modalActive = false;
-                ui.hideModal();
-                message('');
-                return refresh();
-              })
-              .catch(function (e) {
-                submitting = false;
-                confirm.disabled = !ack.checked;
-                cancel.disabled = false;
-                ack.disabled = false;
-                error.textContent = e.message;
-              });
-          },
-          true,
-          true
-        );
-        ack.addEventListener('change', function () {
-          confirm.disabled = !ack.checked || submitting;
+                ? '确认核对维护阻断'
+                : '确认回滚 WARP';
+          var cancel = button('取消', function () {
+            if (submitting) return;
+            modalActive = false;
+            ui.hideModal();
+          });
+          var confirm = button(
+            ['install', 'online-install'].includes(operation)
+              ? '确认安装'
+              : operation === 'upgrade'
+                ? '备份并升级'
+                : operation === 'recover'
+                  ? '核对并恢复'
+                  : '确认回滚',
+            function () {
+              if (submitting || !ack.checked) return;
+              submitting = true;
+              confirm.disabled = true;
+              cancel.disabled = true;
+              ack.disabled = true;
+              return maintenanceRequest('execute', { plan_id: plan.id, confirmation: 'CONFIRM' })
+                .then(function () {
+                  modalActive = false;
+                  ui.hideModal();
+                  message('');
+                  return waitForJob();
+                })
+                .catch(function (e) {
+                  submitting = false;
+                  confirm.disabled = !ack.checked;
+                  cancel.disabled = false;
+                  ack.disabled = false;
+                  error.textContent = e.message;
+                });
+            },
+            true,
+            true
+          );
+          ack.addEventListener('change', function () {
+            confirm.disabled = !ack.checked || submitting;
+          });
+          modalActive = true;
+          ui.showModal(
+            title,
+            [
+              help(
+                '操作对象：这台路由器内的 WARP 运行环境。' +
+                  (plan.version ? '目标版本：' + plan.version + '。' : '')
+              ),
+              help(
+                '请使用本地或独立的管理连接，并先关闭 imOK 总开关、结束登录准备。' +
+                  (['install', 'online-install'].includes(operation)
+                    ? '首次安装不会覆盖已有 WARP 环境。'
+                    : operation === 'upgrade'
+                      ? '升级会保留原环境，方便回滚。'
+                      : operation === 'rollback'
+                        ? '将使用所选恢复副本，并保留当前账户配置。'
+                        : '将核对上次维护记录，不会自动开启隧道。') +
+                  '成功后仍需由你手动开启并检查联网。'
+              ),
+              E('label', { class: 'imok-runtime-ack' }, [
+                ack,
+                '我已确认管理连接可用，并同意执行本次操作。'
+              ]),
+              error,
+              modalActions([cancel, confirm])
+            ],
+            'imok-dialog',
+            'imok-runtime-dialog'
+          );
         });
-        modalActive = true;
-        ui.showModal(
-          title,
-          [
-            help(
-              '操作对象：这台路由器内的 WARP 运行环境。' +
-                (plan.version ? '目标版本：' + plan.version + '。' : '')
-            ),
-            help(
-              '请使用本地或独立的管理连接，并先关闭 imOK 总开关、结束登录准备。' +
-                (['install', 'online-install'].includes(operation)
-                  ? '首次安装不会覆盖已有 WARP 环境。'
-                  : operation === 'upgrade'
-                    ? '升级会保留原环境，方便回滚。'
-                    : operation === 'rollback'
-                      ? '将使用所选恢复副本，并保留当前账户配置。'
-                      : '将核对上次维护记录，不会自动开启隧道。') +
-                '成功后仍需由你手动开启并检查联网。'
-            ),
-            E('label', { class: 'imok-runtime-ack' }, [
-              ack,
-              '我已确认管理连接可用，并同意执行本次操作。'
-            ]),
-            error,
-            modalActions([cancel, confirm])
-          ],
-          'imok-dialog',
-          'imok-runtime-dialog'
-        );
-      });
     }
     function upload() {
       working = true;
@@ -431,6 +720,7 @@ return baseclass.extend({
 
     function draw() {
       body.replaceChildren();
+      drawJob();
       if (data.load_error) {
         body.appendChild(
           panel('状态暂时无法读取', [
@@ -440,7 +730,7 @@ return baseclass.extend({
         );
         return;
       }
-      var busy = working || data.job.state === 'running',
+      var busy = working || awaitingJob || data.job.state === 'running',
         disabled = busy || !data.supported || data.recovery_required;
       var env = data.environment || {
           can_prepare: false,
@@ -451,7 +741,7 @@ return baseclass.extend({
         check = data.check,
         checkFailed = check.state === 'failed',
         checking = check.state === 'checking',
-        latest = data.latest_version;
+        latest = checkFailed ? null : data.latest_version;
       var rows = E('dl', { class: 'imok-runtime-facts' }, [
         E('div', {}, [
           E('dt', {}, '路由器内 WARP'),
@@ -487,10 +777,10 @@ return baseclass.extend({
             E('dd', { role: 'status' }, '此版本的 warp-cli 输出尚未验证。')
           ])
         );
-      var badgeText = !known
-        ? '先安装 WARP'
-        : checkFailed
-          ? '检查失败，版本待核对'
+      var badgeText = checkFailed
+        ? '更新检查失败'
+        : !known
+          ? '先安装 WARP'
           : checking
             ? '正在检查'
             : data.update_available
@@ -575,7 +865,7 @@ return baseclass.extend({
               return showPlan('upgrade');
             },
             true,
-            disabled || !data.update_available
+            disabled || checkFailed || !data.update_available
           )
         ]),
         help(
@@ -609,30 +899,12 @@ return baseclass.extend({
             )
           ])
         );
-      if (data.job.message)
-        updates.appendChild(
-          E(
-            'p',
-            {
-              class: 'imok-runtime-notice',
-              'data-tone':
-                data.job.state === 'failed'
-                  ? 'danger'
-                  : data.job.state === 'success'
-                    ? 'success'
-                    : 'neutral',
-              role: data.job.state === 'failed' ? 'alert' : 'status',
-              'aria-live': 'polite'
-            },
-            data.job.message
-          )
-        );
       if (checkFailed)
         version.appendChild(
           E(
             'div',
             { class: 'imok-runtime-notice', 'data-tone': 'danger', role: 'alert' },
-            check.message || '版本检查失败，请稍后重试。'
+            updateCheckError(check.message, known)
           )
         );
       var statusGrid = E('div', { class: 'imok-runtime-grid' }, [version, updates]);
@@ -687,25 +959,20 @@ return baseclass.extend({
             },
             true,
             disabled || data.runtime_exists
-          ),
-          link('安装后：登录 Cloudflare 账户', 'cloudflare/account')
+          )
         ]),
         help(
           '运行环境包需要自行从可信来源取得，本插件不附带第三方 WARP 程序、账户或密钥。遇到不兼容、空间不足或校验不符，会停止并保留原文件。'
         )
       ];
-      var ready = online.state === 'ready';
-      var setup = panel('首次使用：安装路由器 WARP', [
-        help('系统会自动识别路由器并下载所需文件。你不需要寻找安装包，也不需要自己填写校验码。'),
-        E('ol', { class: 'imok-runtime-steps' }, [
-          E('li', {}, '自动检测系统、处理器、存储与必要组件。'),
-          E(
-            'li',
-            {},
-            '自动下载 Debian 官方基础环境和 Cloudflare 官方 WARP，核对来源、签名与文件。'
-          ),
-          E('li', {}, '文件准备完成后，由你确认安装；安装后登录自己的账户，再选择出口并手动开启。')
-        ]),
+      var ready = online.state === 'ready',
+        selfTestFailed = data.job.state === 'failed' && data.job.phase === 'verify_install',
+        cachedFiles = downloadComponents.every(function (item) {
+          return (online.components || {})[item.id] === 'cached';
+        }),
+        legacyFailure = !data.job.state && online.state === 'failed';
+      var prepareDisabled = disabled || data.runtime_exists || !env.can_prepare;
+      var setupBody = [
         E('dl', { class: 'imok-runtime-facts' }, [
           E('div', {}, [
             E('dt', {}, '系统与处理器'),
@@ -721,46 +988,79 @@ return baseclass.extend({
                 : '待检测'
             )
           ])
-        ]),
-        E(
-          'p',
-          {
-            class: 'imok-runtime-notice',
-            'data-tone': online.state === 'failed' ? 'danger' : ready ? 'success' : 'neutral',
-            role: 'status'
-          },
-          ready
-            ? '文件已自动下载并校验，尚未安装。待安装版本：' + online.version
-            : busy
-              ? '系统正在自动准备，请等待完成后确认安装。'
-              : online.state === 'failed'
-                ? online.message || '自动准备失败，请检查网络与空间后重试；未自动启用。'
-                : online.state === 'expired'
-                  ? '准备文件已过期，请重新自动下载；尚未安装。'
-                  : env.can_prepare
-                    ? '环境检查通过，可以自动下载并准备安装。'
-                    : (env.issues || ['当前环境尚不能自动安装']).join('；')
-        ),
+        ])
+      ];
+      var setupMessage = '',
+        setupTone = 'neutral';
+      if (!busy) {
+        if (ready) {
+          setupMessage = selfTestFailed
+            ? '安装文件已保留，可直接重试安装。待安装版本：' + online.version
+            : '文件已自动下载并校验，尚未安装。待安装版本：' + online.version;
+          setupTone = 'success';
+        } else if (selfTestFailed && cachedFiles) {
+          setupMessage = '三项文件已缓存，重试时会先校验并复用。';
+        } else if (legacyFailure) {
+          setupMessage = online.message || '自动准备失败，请检查网络与空间后重试。';
+          setupTone = 'danger';
+        } else if (online.state === 'expired') {
+          setupMessage = online.message || '准备文件已过期，请重新自动下载。';
+        } else if (!env.can_prepare) {
+          setupMessage = env.issues.join('；') || '当前环境尚不能自动安装。';
+        } else if (!data.job.state) {
+          setupMessage = '环境检查通过，可以自动下载并安装 WARP。';
+        }
+      }
+      if (setupMessage)
+        setupBody.push(
+          E(
+            'p',
+            { class: 'imok-runtime-notice', 'data-tone': setupTone, role: 'status' },
+            setupMessage
+          )
+        );
+      setupBody.push(
         E('div', { class: 'rp-summary-actions' }, [
           button(
-            ready ? '确认安装到路由器' : '自动下载并准备安装',
-            function () {
-              if (ready) return showPlan('online-install');
-              message('正在自动准备官方安装文件；下载完成后仍需你确认安装。');
-              return maintenanceRequest('prepare-online', {}).then(function () {
-                message('');
-                return refresh();
-              });
-            },
+            ready
+              ? selfTestFailed
+                ? '重试安装到路由器'
+                : '确认安装到路由器'
+              : selfTestFailed && cachedFiles
+                ? '用缓存重试安装'
+                : '自动下载并安装 WARP',
+            ready
+              ? function () {
+                  return showPlan('online-install');
+                }
+              : showFirstInstall,
             true,
             disabled || data.runtime_exists || (!ready && !env.can_prepare)
-          ),
-          link('安装后：登录 Cloudflare 账户', 'cloudflare/account')
+          )
         ]),
-        help('打开本页只检查环境；点击准备才会下载。安装前会再次确认，完成后不会自动开启主线路。')
-      ]);
+        help(
+          '确认一次后会自动下载、校验并安装。下载失败时可直接重试，已校验的文件会优先复用。安装自检通过后，再到「账户与协议」登录。'
+        ),
+        E('details', { class: 'imok-panel' }, [
+          E('summary', {}, '高级：查看下载文件与分步安装'),
+          help('可先只下载和校验文件，再另行确认安装。'),
+          componentDownloads(online, prepareDisabled),
+          !ready
+            ? E('div', { class: 'rp-summary-actions' }, [
+                button(
+                  selfTestFailed && cachedFiles ? '用缓存重新准备' : '自动下载并准备安装',
+                  function () {
+                    return prepareOnline();
+                  },
+                  false,
+                  prepareDisabled
+                )
+              ])
+            : null
+        ])
+      );
       if (!known) {
-        body.appendChild(setup);
+        body.appendChild(panel('首次使用：安装路由器 WARP', setupBody));
         body.appendChild(
           E(
             'details',
@@ -775,6 +1075,12 @@ return baseclass.extend({
           ])
         );
       } else {
+        if (!data.recovery_required)
+          body.appendChild(
+            E('div', { class: 'rp-summary-actions' }, [
+              link('下一步：登录 Cloudflare 账户', 'cloudflare/account')
+            ])
+          );
         body.appendChild(statusGrid);
         body.appendChild(
           E(
@@ -858,7 +1164,7 @@ return baseclass.extend({
         reading ||
         modalActive ||
         data.load_error ||
-        (data.job.state !== 'running' && data.check.state !== 'checking')
+        (!awaitingJob && data.job.state !== 'running' && data.check.state !== 'checking')
       )
         return;
       return refresh().catch(function (e) {

@@ -95,6 +95,7 @@ return baseclass.extend({
       centerFields = { basic: [], dns: [] },
       warpState = data[6] || null,
       exitObservation = null,
+      centerReads = {},
       saveInFlight = null,
       organizationOption = null,
       centerComposed = null,
@@ -261,18 +262,18 @@ return baseclass.extend({
       updateWizard = function () {};
     var committedOrganization = uci.get('routepilot', 'main', 'organization') || '';
     function wizardConfig() {
+      var lans =
+        uci.get('routepilot', 'main', 'lan_interfaces') ||
+        uci.get('routepilot', 'main', 'lan_interface') ||
+        '';
       return {
         organization: committedOrganization,
         exit: configuredExit(),
         exit_id: savedExitID(configuredExit()),
         nonce: switchNonce || uci.get('routepilot', 'main', 'apply_nonce'),
         backend: uci.get('routepilot', 'main', 'backend') || 'masque',
-        scope: uci.get('routepilot', 'main', 'scope'),
-        lans: (
-          uci.get('routepilot', 'main', 'lan_interfaces') ||
-          uci.get('routepilot', 'main', 'lan_interface') ||
-          ''
-        ).length,
+        scope: uci.get('routepilot', 'main', 'scope') || 'devices',
+        lans: (Array.isArray(lans) ? lans : String(lans).split(/\s+/)).filter(Boolean).length,
         devices: uci.sections('routepilot', 'policy').filter(function (p) {
           return p.enabled === '1' && p.mode !== 'direct';
         }).length
@@ -320,13 +321,18 @@ return baseclass.extend({
         (comparisonResult && ['queued', 'testing', 'restoring'].includes(comparisonResult.state))
       );
     }
+    function comparisonLineHint() {
+      if (!feedback.fresh(wizardStatus, Date.now())) return _('正在读取主线路状态。');
+      if (wizardStatus.state === 'preparing')
+        return _(
+          '保存代理出口后，到总览点「结束登录准备」，再点「开启 imOK」。隧道连接后即可测速。'
+        );
+      if (wizardStatus.state !== 'running' || wizardStatus.backend !== 'masque')
+        return _('请先保存代理出口，在总览开启 imOK，等 WARP 主线路连接后再测速。');
+      return '';
+    }
     function comparisonReady() {
-      return (
-        feedback.fresh(wizardStatus, Date.now()) &&
-        wizardStatus.state === 'running' &&
-        wizardStatus.backend === 'masque' &&
-        !comparisonBusy()
-      );
+      return !comparisonLineHint() && !comparisonBusy();
     }
     function startComparison(kind, targets) {
       if (!comparisonReady() || !targets.length || targets.length > 16) return;
@@ -415,6 +421,7 @@ return baseclass.extend({
         .join(' · ');
     }
     var comparisonStatus = E('p', { role: 'status', 'aria-live': 'polite' });
+    var comparisonOverview = E('a', { href: base + '/overview', hidden: true }, _('前往总览'));
     function stopComparison() {
       return command('speed-compare-cancel').catch(function (error) {
         notify(error.message, true);
@@ -423,7 +430,8 @@ return baseclass.extend({
     var protocolComparison =
       page === 'account'
         ? pageAccount.protocolComparison({
-            feedback,
+            base,
+            comparisonLineHint,
             startComparison,
             stopComparison,
             comparisonBusy,
@@ -445,6 +453,7 @@ return baseclass.extend({
     function renderDirectory() {
       var age = Date.now() - Number(catalog.read_at),
         recent = catalog.available && age >= -5000 && age <= 60000;
+      updateFirstSetup();
       directoryStatus.textContent = directoryPending
         ? _('正在读取账户出口，请稍候（客户端查询最长约 8 秒）…')
         : catalog.available
@@ -460,6 +469,8 @@ return baseclass.extend({
       var targets = catalog.networks.filter(function (n) {
         return !n.is_default;
       });
+      var lineHint = comparisonLineHint();
+      comparisonOverview.hidden = !lineHint;
       allExits.disabled = !comparisonReady() || !targets.length || targets.length > 16;
       cancelExits.hidden =
         !comparisonResult || !['queued', 'testing'].includes(comparisonResult.state);
@@ -486,10 +497,10 @@ return baseclass.extend({
             ]
               .filter(Boolean)
               .join(' · ')
-          : targets.length > 16
-            ? _('目录超过 16 个出口，请选择单个测试。')
-            : !comparisonReady()
-              ? _('出口测速需要 WARP 主线路已应用并运行。')
+          : lineHint
+            ? lineHint
+            : targets.length > 16
+              ? _('目录超过 16 个出口，请选择单个测试。')
               : '';
       var renderKey = [
         catalog.read_at,
@@ -548,6 +559,7 @@ return baseclass.extend({
         .finally(function () {
           directoryPending = null;
           renderDirectory();
+          if (center && isCurrentView()) updateCenter();
         });
       updateWizard();
       return directoryPending;
@@ -722,6 +734,7 @@ return baseclass.extend({
       },
       markRegistered: function () {
         registeredHere = true;
+        updateFirstSetup();
       }
     });
     exitOption = pageRouting.configure({
@@ -737,11 +750,13 @@ return baseclass.extend({
       allExits,
       cancelExits,
       comparisonStatus,
+      comparisonOverview,
       directoryRows
     });
     var dnsFields = pageDns.configure({ pageOption, form, center });
     var dns = pageDns.create({
       ...dnsFields,
+      base,
       command,
       feedback,
       notify,
@@ -792,6 +807,7 @@ return baseclass.extend({
       form,
       uci,
       hints,
+      interfaces: data[2],
       ui,
       checkMapBeforeSave,
       checkGuardBeforeSave,
@@ -822,6 +838,9 @@ return baseclass.extend({
                 catalog,
                 directoryPending,
                 registeredHere,
+                setupRuntime,
+                setupRuntimePending,
+                setupRuntimeUnavailable,
                 committedOrganization,
                 wizardStatus,
                 wizardTest
@@ -900,8 +919,414 @@ return baseclass.extend({
       _('一键检测全部')
     );
     var switchEnabled = uci.get('routepilot', 'main', 'enabled') === '1',
+      switchPreparing = uci.get('routepilot', 'main', 'preparing') === '1',
       switchNonce = null,
       switchPending = null;
+    var savedSetup = wizardConfig();
+    var setupGuide = E('section', {
+      class: 'imok-panel imok-first-setup',
+      'aria-label': _('首次设置')
+    });
+    var setupObserve = E(
+      'button',
+      {
+        class: 'btn',
+        type: 'button',
+        click: function () {
+          return centerRead('exit-observe');
+        }
+      },
+      _('检测实际出口地区')
+    );
+    var preparedExit = null,
+      preparedSnapshotRead = false;
+    function finishPreparedExit(message, error) {
+      preparedExit.pending = false;
+      preparedExit.message = message;
+      preparedExit.error = error;
+      preparedExit.finished = Date.now();
+      if (isCurrentView()) updateFirstSetup();
+    }
+    function updatePreparedExit(result) {
+      var now = Date.now();
+      var age = now - Number(result?.time) * 1000;
+      var matches =
+        result &&
+        typeof result.request_id === 'string' &&
+        result.nonce === savedSetup.nonce &&
+        result.exit_id === savedSetup.exit_id &&
+        age >= -5000 &&
+        age <= 300000;
+      if (!preparedExit && matches) {
+        var pending = result.state === 'queued' || result.state === 'running';
+        if ((pending && age <= 60000) || ['done', 'failed'].includes(result.state)) {
+          preparedExit = {
+            id: result.request_id,
+            pending: true,
+            nonce: result.nonce,
+            started: pending ? Number(result.time) * 1000 : now
+          };
+        }
+      }
+      if (!preparedExit || !preparedExit.pending || !preparedExit.id) return;
+      if (matches && result.request_id === preparedExit.id && result.state === 'failed') {
+        finishPreparedExit(
+          _('WARP 出口检测未完成：') + (result.message || _('请检查 WARP 登录环境后重试。')),
+          true
+        );
+      } else if (matches && result.request_id === preparedExit.id && result.state === 'done') {
+        if (
+          typeof result.ip !== 'string' ||
+          !/^\d{1,3}(\.\d{1,3}){3}$/.test(result.ip) ||
+          !/^[A-Z]{2}$/.test(result.country) ||
+          !['MASQUE', 'WireGuard'].includes(result.protocol)
+        ) {
+          finishPreparedExit(_('未收到有效的 WARP 出口检测结果。'), true);
+          return;
+        }
+        finishPreparedExit(
+          _('路由器 WARP 检测通过：%s · %s · %s。局域网设备尚未接管，也未参与检测。')
+            .replace('%s', countryName(result.country))
+            .replace('%s', result.ip)
+            .replace('%s', result.protocol),
+          false
+        );
+      } else if (now - preparedExit.started > 60000) {
+        finishPreparedExit(_('WARP 出口检测尚未返回确认结果，请检查状态后重试。'), true);
+      }
+    }
+    var setupPreparedTest = E(
+      'button',
+      {
+        class: 'btn',
+        type: 'button',
+        click: function () {
+          if (setupPreparedTest.disabled || (preparedExit && preparedExit.pending)) return;
+          preparedExit = {
+            id: null,
+            pending: true,
+            message: '',
+            error: false,
+            nonce: savedSetup.nonce,
+            started: Date.now()
+          };
+          updateFirstSetup();
+          return command('prepared-exit-test')
+            .then(function (raw) {
+              var result = JSON.parse(raw);
+              if (
+                !result ||
+                result.state !== 'submitted' ||
+                typeof result.request_id !== 'string' ||
+                !result.request_id
+              )
+                throw Error(_('未收到有效的 WARP 出口检测请求。'));
+              preparedExit.id = result.request_id;
+            })
+            .catch(function (e) {
+              finishPreparedExit(_('WARP 出口检测未完成：') + e.message, true);
+            });
+        }
+      },
+      _('仅检测路由器 WARP 出口')
+    );
+    var lastSetupView = '';
+    var setupStage,
+      setupReason,
+      setupHint,
+      setupRuntime = null,
+      setupRuntimePending = !!data.runtimeRead,
+      setupRuntimeUnavailable = false,
+      setupRendered = false,
+      initialAccountRead = false;
+    function acceptSetupRuntime(runtime) {
+      if (!isCurrentView()) return;
+      setupRuntimePending = false;
+      setupRuntime = runtime;
+      setupRuntimeUnavailable = !runtime;
+      if (page === 'overview') overview.updateRuntime(runtime);
+      if (center) updateCenter();
+      updateFirstSetup();
+      updateWizard();
+      startInitialAccountRead();
+    }
+    function retrySetupRuntime() {
+      if (!data.refreshRuntime || setupRuntimePending) return;
+      setupRuntimePending = true;
+      updateFirstSetup();
+      updateWizard();
+      return data.refreshRuntime().then(acceptSetupRuntime);
+    }
+    function startInitialAccountRead() {
+      if (!setupRendered || initialAccountRead || !isCurrentView()) return;
+      if (!['overview', 'account', 'routing'].includes(page)) return;
+      if (!switchEnabled) {
+        if (
+          setupRuntimePending ||
+          setupRuntimeUnavailable ||
+          (setupRuntime &&
+            (setupRuntime.installed === false ||
+              setupRuntime.recovery_required ||
+              setupRuntime.registration_files_present === false)) ||
+          !feedback.fresh(wizardStatus, Date.now()) ||
+          !['preparing', 'running'].includes(wizardStatus.state)
+        )
+          return;
+      }
+      initialAccountRead = true;
+      if (!directoryPending && (switchEnabled || !catalog.read_at)) refreshDirectory();
+      if (page === 'account') centerRead('warp-info');
+    }
+    function updateFirstSetup() {
+      if (!setupGuide || !['overview', 'account', 'routing', 'devices', 'endpoint'].includes(page))
+        return;
+      var now = Date.now();
+      var age = now - Number(catalog.read_at);
+      var catalogFresh = catalog.available && age >= -5000 && age <= 60000;
+      var registered = registeredHere || catalog.available || !!catalog.last_success_at;
+      var config = {
+        ...savedSetup,
+        nonce: switchNonce || savedSetup.nonce,
+        enabled: switchEnabled,
+        preparing: preparingToLogin()
+      };
+      var next = feedback.firstSetup({
+        config,
+        status: wizardStatus,
+        registered,
+        runtime: setupRuntime,
+        runtimePending: setupRuntimePending,
+        runtimeUnavailable: setupRuntimeUnavailable,
+        networks: catalogFresh ? catalog.networks : null,
+        registrationCompleted: registeredHere,
+        directoryChecked: !!catalog.read_at,
+        directoryPending: !!directoryPending,
+        directoryExpired: catalog.available && !catalogFresh,
+        now
+      });
+      var currentStep = ['install', 'account', 'routing', 'power', 'checks'].indexOf(
+        next.stage === 'connecting' ? 'power' : next.stage
+      );
+      var matchedStatus =
+        config.nonce &&
+        feedback.fresh(wizardStatus, now) &&
+        (wizardStatus.applied_nonce === config.nonce ||
+          wizardStatus.attempted_nonce === config.nonce);
+      var statusMessage =
+        matchedStatus && ['error', 'waiting_devices'].includes(wizardStatus.state)
+          ? wizardStatus.message || ''
+          : '';
+      var observed = next.stage === 'checks' && observationCurrent(exitObservation, wizardStatus);
+      var canShowPreparedTest =
+        page === 'overview' &&
+        config.preparing &&
+        (next.stage === 'power' || next.reason === 'devices') &&
+        /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(config.exit_id || '');
+      var preparedPending = !!(preparedExit && preparedExit.pending);
+      var canRunPreparedTest =
+        canShowPreparedTest &&
+        feedback.fresh(wizardStatus, now) &&
+        wizardStatus.state === 'preparing' &&
+        !switchPending &&
+        !preparedPending;
+      var preparedMessage =
+        canShowPreparedTest &&
+        preparedExit &&
+        preparedExit.nonce === savedSetup.nonce &&
+        now - preparedExit.finished <= 300000
+          ? preparedExit.message
+          : '';
+      var viewKey = [
+        next.stage,
+        next.reason,
+        registered,
+        statusMessage,
+        !!switchPending,
+        setupRuntime && setupRuntime.installed,
+        setupRuntimePending,
+        catalogFresh ? catalog.networks.length : null,
+        observed ? exitObservation.time : null,
+        next.stage === 'checks' && !!centerReads['exit-observe'],
+        canRunPreparedTest,
+        canShowPreparedTest && preparedPending,
+        preparedMessage
+      ].join('|');
+      if (viewKey === lastSetupView) return;
+      lastSetupView = viewKey;
+      setupStage = next.stage;
+      setupReason = next.reason;
+      setupGuide.setAttribute('data-setup-stage', next.stage);
+
+      var hint = {
+        install: _(
+          '到「WARP 安装与更新」检查路由器环境、安装状态和版本。显示「WARP 已安装」后，再登录 Cloudflare。'
+        ),
+        runtime_check: _('正在检查 WARP 安装状态。'),
+        runtime_unavailable: _(
+          '暂时无法确认 WARP 安装状态。请到「WARP 安装与更新」刷新本机状态，再继续设置。'
+        ),
+        runtime_review: _('检测到 WARP 文件或未完成的维护。请到「WARP 安装与更新」核对状态。'),
+        registration: _(
+          '到「账户与协议」准备登录环境，用团队允许的邮箱注册。完成后会读取账户出口。'
+        ),
+        account_check: _(
+          '本机已有注册资料。到「账户与协议」准备登录环境并检查账户，确认能读取出口。'
+        ),
+        catalog_pending: _('路由器已注册，正在读取账户出口。'),
+        catalog_failed: _('路由器已注册，暂时无法读取出口。请在「账户与协议」重新检查账户。'),
+        catalog_expired: _('路由器已注册。上次的出口列表已过期，请重新读取出口。'),
+        catalog_empty: _('账户目录已读取，但没有返回可选网络。请核对团队及 Cloudflare 出口配置。'),
+        settings: _('到「出口与分流」选择代理出口和接管范围，然后点「保存并应用」。'),
+        exit_unavailable: _('已保存的出口不在本次账户目录中。请到「出口与分流」重新选择。'),
+        devices: _(
+          '当前为「按设备选择」。到「设备」启用至少一台需要代理的设备，再点「保存并应用」。'
+        ),
+        preparing: _('出口与接管范围已保存。到总览点「结束登录准备」，然后点「开启 imOK」。'),
+        off: _('出口与接管范围已保存。到总览点「开启 imOK」，等待隧道连接。'),
+        failed: _('主线路连接失败，请查看运行反馈。'),
+        waiting_devices: _('尚未核对到可接管的设备，请检查设备是否在线及其地址。'),
+        backup: _('当前运行的是 Workers 备用线路。WARP 主线路连接后可继续检测。'),
+        waiting: _('imOK 已开启，正在等待本次配置应用和 WARP 隧道连接。'),
+        unavailable: _('imOK 已开启，暂未取得最新运行状态。'),
+        connected: _(
+          'WARP 已连接。先检测实际出口地区，再用已接管的设备打开网页。DNS 和测速可按需检查。'
+        )
+      }[next.reason];
+      if (next.stage === 'power' && switchPending) hint = _('正在等待开关状态确认。');
+      else if (canShowPreparedTest && next.reason === 'preparing')
+        hint = _(
+          '出口与接管范围已保存。可以先仅检测路由器 WARP 出口。准备好接管设备后，结束登录准备，再开启 imOK。'
+        );
+      if (
+        next.stage === 'routing' &&
+        next.reason === 'settings' &&
+        catalogFresh &&
+        catalog.networks.length
+      )
+        hint = _(
+          '已读取 %s 个账户网络，连通性待验证。选择出口和接管范围后，点击「保存并应用」。'
+        ).replace('%s', String(catalog.networks.length));
+      setupHint = hint;
+      var actions = {
+        install: [['runtime', _('前往 WARP 安装与更新')]],
+        account: [['cloudflare/account', _('前往账户与协议')]],
+        routing: [['cloudflare/routing', _('前往出口与分流')]],
+        power: [['overview#imok-power', _('前往总览')]],
+        connecting: [['overview#imok-power', _('查看连接状态')]],
+        checks: [
+          ['overview#imok-network-diagnostics', _('前往检测与测速')],
+          ['cloudflare/dns', _('前往 DNS 检测')]
+        ]
+      }[next.stage];
+      if (page === 'account' && next.reason === 'catalog_expired') actions = [];
+      if (next.reason === 'devices' || next.reason === 'waiting_devices')
+        actions = [['cloudflare/devices', _('前往设备')]].concat(actions);
+      var steps = [
+        _('安装并检查 WARP'),
+        _('登录并读取 Cloudflare 出口'),
+        _('保存出口与接管范围'),
+        _('开启 imOK'),
+        _('核对实际出口与联网')
+      ];
+      var children = [
+        E('h3', {}, _('首次设置')),
+        E(
+          'ol',
+          { class: 'imok-setup-steps' },
+          steps.map(function (label, index) {
+            var current = index === currentStep;
+            var complete =
+              index < currentStep &&
+              (index !== 0 ||
+                (setupRuntime && setupRuntime.installed) ||
+                next.stage === 'checks') &&
+              (index !== 1 || registered || next.stage === 'checks');
+            return E('li', { 'aria-current': current ? 'step' : null }, [
+              current ? E('strong', {}, label) : label,
+              complete ? _(' · 已完成') : ''
+            ]);
+          })
+        ),
+        E('p', { class: 'rp-help', role: 'status' }, hint)
+      ];
+      if (statusMessage) children.push(E('p', { class: 'rp-help' }, statusMessage));
+      if (observed)
+        children.push(
+          E(
+            'p',
+            { class: 'rp-help', role: 'status' },
+            _('路由器本次观测：%s · %s。请用受管设备确认实际联网。')
+              .replace('%s', countryName(exitObservation.country))
+              .replace('%s', exitObservation.ip)
+          )
+        );
+      if (preparedMessage)
+        children.push(
+          E(
+            'p',
+            { class: 'rp-help', role: preparedExit.error ? 'alert' : 'status' },
+            preparedMessage
+          )
+        );
+      if (canShowPreparedTest && next.reason === 'devices')
+        children.push(
+          E('p', { class: 'rp-help' }, _('可先检测已保存的 WARP 出口，局域网设备不会参与。'))
+        );
+      var links = actions.map(function (item) {
+        return E('a', { class: 'btn', href: base + '/' + item[0] }, item[1]);
+      });
+      if (page === 'account' && next.reason === 'catalog_expired')
+        links.push(
+          E(
+            'button',
+            {
+              class: 'btn',
+              type: 'button',
+              click: function () {
+                return refreshDirectory();
+              }
+            },
+            _('重新读取出口')
+          )
+        );
+      if (next.reason === 'runtime_unavailable' && data.refreshRuntime)
+        links.unshift(
+          E(
+            'button',
+            { class: 'btn', type: 'button', click: retrySetupRuntime },
+            _('重试读取 WARP 安装状态')
+          )
+        );
+      if (next.stage === 'checks' && page === 'overview') {
+        setupObserve.disabled = !!centerReads['exit-observe'];
+        setupObserve.textContent = setupObserve.disabled
+          ? _('正在检测地区…')
+          : _('检测实际出口地区');
+        links.unshift(setupObserve);
+      }
+      if (canShowPreparedTest) {
+        setupPreparedTest.disabled = !canRunPreparedTest;
+        setupPreparedTest.textContent = preparedPending
+          ? _('正在检测路由器 WARP 出口…')
+          : _('仅检测路由器 WARP 出口');
+        links.unshift(setupPreparedTest);
+      }
+      children.push(E('div', { class: 'rp-actions' }, links));
+      setupGuide.replaceChildren.apply(setupGuide, children);
+    }
+    function preparingToLogin() {
+      return (
+        !switchEnabled &&
+        (switchPreparing ||
+          (!switchPending &&
+            feedback.fresh(wizardStatus, Date.now()) &&
+            wizardStatus.state === 'preparing'))
+      );
+    }
+    function powerLabel() {
+      if (switchEnabled) return _('关闭 imOK');
+      return preparingToLogin() ? _('结束登录准备') : _('开启 imOK');
+    }
     var switchText = E(
       'p',
       {},
@@ -918,8 +1343,21 @@ return baseclass.extend({
         id: 'imok-power',
         class: 'btn cbi-button-action',
         click: function () {
+          if (powerButton.disabled) return;
           switchFeedback.hidden = false;
-          var action = switchEnabled ? 'disable' : 'enable';
+          var action = switchEnabled || preparingToLogin() ? 'disable' : 'enable';
+          if (action === 'enable' && setupRuntimePending && savedSetup.backend !== 'worker') {
+            switchText.textContent = _('正在检查 WARP 安装状态。');
+            return;
+          }
+          if (
+            action === 'enable' &&
+            savedSetup.backend !== 'worker' &&
+            ['install', 'account', 'routing'].includes(setupStage)
+          ) {
+            switchText.textContent = setupHint;
+            return;
+          }
           powerButton.disabled = true;
           switchText.textContent = _('正在切换，等待后台确认…');
           command(action)
@@ -928,11 +1366,13 @@ return baseclass.extend({
               if (!result || result.enabled !== (action === 'enable') || !result.nonce)
                 throw Error(_('尚未收到切换确认，请查看实际运行状态。'));
               switchEnabled = result.enabled;
+              switchPreparing = false;
               uci.set('routepilot', 'main', 'enabled', switchEnabled ? '1' : '0');
               uci.set('routepilot', 'main', 'preparing', '0');
               switchNonce = result.nonce;
               switchPending = { nonce: switchNonce, started: Date.now() };
-              powerButton.textContent = switchEnabled ? _('关闭 imOK') : _('开启 imOK');
+              powerButton.textContent = powerLabel();
+              updateFirstSetup();
             })
             .catch(function (e) {
               switchText.textContent = e.message;
@@ -940,8 +1380,10 @@ return baseclass.extend({
             });
         }
       },
-      switchEnabled ? _('关闭 imOK') : _('开启 imOK')
+      powerLabel()
     );
+    updateFirstSetup();
+    if (data.runtimeRead) data.runtimeRead.then(acceptSetupRuntime);
     var workers = pageWorkers.create({
       command,
       data,
@@ -1075,14 +1517,13 @@ return baseclass.extend({
       buildInfo,
       bytes,
       connectionDirectory,
-      data,
       directoryLabel,
       feedback,
-      isCurrentView,
       page,
       powerButton,
       refreshDirectory,
       switchFeedback,
+      setupGuide,
       when,
       wizardConfig,
       getCatalog: function () {
@@ -1091,9 +1532,7 @@ return baseclass.extend({
       enabled: function () {
         return switchEnabled;
       },
-      getStatus: function () {
-        return wizardStatus;
-      }
+      preparingToLogin
     });
     var rules = pageRules.create({
       base,
@@ -1230,7 +1669,11 @@ return baseclass.extend({
         String(v.phase || _('尚未更新')) +
         (v.state === 'blocked' ? ' · ' + _('候选尚未应用，等待确认') : '');
       rulesProgress.style.color =
-        v.state === 'failed' ? '#b42318' : v.state === 'success' ? '#087443' : '#2254d1';
+        v.state === 'failed'
+          ? 'var(--imok-danger)'
+          : v.state === 'success'
+            ? 'var(--imok-success)'
+            : 'var(--imok-accent)';
       rulesTime.textContent = _('最后成功更新：') + when(v.last_success_at);
       showCounts(rulesCounts, v.counts);
       if (pendingUpdate && v.request_id === pendingUpdate.nonce) {
@@ -1295,6 +1738,8 @@ return baseclass.extend({
         })
         .then(function () {
           committedOrganization = uci.get('routepilot', 'main', 'organization') || '';
+          savedSetup = wizardConfig();
+          updateFirstSetup();
           delete wizardActions.org;
           updateWizard();
           if (!update && ruleSection === 'sources') {
@@ -1312,9 +1757,16 @@ return baseclass.extend({
           return { nonce: nonce };
         })
         .catch(function (e) {
+          var reason = String(e.message || '');
+          if (/uci\/commit failed with error -32002\b/.test(reason))
+            reason = _('当前 LuCI 会话没有提交 imOK 配置的权限。请退出并重新登录 LuCI 后重试。');
+          else if (/uci\/commit failed with ubus code 6\b/.test(reason))
+            reason = _(
+              '路由器拒绝提交 imOK 配置。请确认 LuCI 有写权限，并等待其他配置应用完成后重试。'
+            );
           box.textContent = [
             update ? _('规则更新请求未确认。') : _('配置提交未确认。'),
-            e.message,
+            reason,
             _('请核对当前状态，再重试。')
           ].join(' ');
           pendingApply = null;
@@ -1356,7 +1808,8 @@ return baseclass.extend({
       'lan-dns-domestic.json',
       'lan-dns-foreign.json',
       'speed-compare.json',
-      'endpoint-quality.json'
+      'endpoint-quality.json',
+      'prepared-exit-test.json'
     ];
     var runtimeSlots =
       {
@@ -1382,6 +1835,8 @@ return baseclass.extend({
       if (hasDirectory) workers.updateDirectory(files[16]);
       wizardStatus = files[0];
       wizardTest = files[2];
+      startInitialAccountRead();
+      if (page === 'overview') updatePreparedExit(files[23]);
       if (
         (page === 'account' || page === 'routing') &&
         files[21] &&
@@ -1396,13 +1851,14 @@ return baseclass.extend({
       if (page === 'dns') {
         dns.update(files[0], files[4], files[5], files[17], files[19], files[20]);
       }
-      if (center) {
+      if (center || page === 'overview') {
         warpState = files[12] || warpState;
         exitObservation = files[13] || exitObservation;
-        updateCenter();
+        if (center) updateCenter();
       }
       if (page === 'overview') {
-        overview.update(files[0], files[2]);
+        powerButton.textContent = powerLabel();
+        overview.update(files[0], files[2], preparedRuntimeMessage(files[0]));
         overview.updateTraffic(files[14]);
         updateReceive(files[3], files[0]);
         speed.update(files[0], files[18]);
@@ -1440,7 +1896,12 @@ return baseclass.extend({
         } else if (fresh && v.state === 'error' && v.attempted_nonce === switchPending.nonce) {
           confirmation = (switchEnabled ? _('开启失败：') : _('关闭失败：')) + v.message;
         } else if (Date.now() - switchPending.started > 45000) {
-          confirmation = _('尚未收到切换确认，请查看实际运行状态。');
+          if (!switchEnabled || Date.now() - switchPending.started > 120000)
+            confirmation = _('尚未收到切换确认，请查看实际运行状态。');
+          else {
+            switchText.textContent = _('线路仍在启动，页面会继续更新连接结果。');
+            powerButton.disabled = false;
+          }
         }
         if (confirmation) {
           switchText.textContent = confirmation;
@@ -1448,22 +1909,13 @@ return baseclass.extend({
           switchPending = null;
         }
       }
+      updateFirstSetup();
       if (v) {
         var exitName =
             v.backend === 'worker'
               ? v.backup_name || _('Workers 备用')
               : directoryLabel(v.exit, catalog),
-          message = v.message || v.state;
-        if (
-          !catalog.skipped &&
-          v.state === 'preparing' &&
-          message === '登录环境已就绪；请完成邮箱登录，再自动读取出口'
-        )
-          message = catalog.available
-            ? _('登录环境已就绪，分流尚未开启；已读到 ') +
-              catalog.networks.length +
-              _(' 个账户网络（未验证连通性）')
-            : _('登录环境已就绪；出口目录暂未取得，可重新检查账户，或到分流设置刷新目录');
+          message = preparedRuntimeMessage(v) || v.message || v.state;
         status.textContent =
           String(message) +
           ' · ' +
@@ -1471,15 +1923,20 @@ return baseclass.extend({
           exitName +
           ' · IP ' +
           String(v.exit_ip || '—') +
-          ' · ' +
-          (v.scope === 'lan'
-            ? _('所选局域网')
-            : _('接管设备：') + (Array.isArray(v.devices) ? v.devices.length : 0));
+          (v.state === 'running' && v.scope === 'lan'
+            ? ' · ' + _('所选局域网')
+            : v.state === 'running' && v.scope === 'devices' && Array.isArray(v.devices)
+              ? ' · ' + _('接管设备：') + v.devices.length
+              : '');
         status.style.color =
-          fresh && v.state === 'running' ? '#087443' : v.state === 'error' ? '#b42318' : '#555';
+          fresh && v.state === 'running'
+            ? 'var(--imok-success)'
+            : v.state === 'error'
+              ? 'var(--imok-danger)'
+              : 'var(--imok-text-secondary)';
         if (!fresh) {
           status.textContent = _('运行状态已过期，无法确认 WARP 或直连是否生效；请检查服务。');
-          status.style.color = '#a15c00';
+          status.style.color = 'var(--imok-warning)';
         }
         if (pendingApply) {
           var p = pendingApply;
@@ -1494,6 +1951,16 @@ return baseclass.extend({
                 : p.update
                   ? _('配置已应用，等待规则更新反馈…')
                   : _('已应用成功：') + status.textContent;
+            if (['routing', 'devices'].includes(page) && setupStage === 'power')
+              p.box.replaceChildren(
+                E('p', {}, setupHint),
+                E('a', { class: 'btn', href: base + '/overview#imok-power' }, _('前往总览'))
+              );
+            else if (page === 'routing' && setupReason === 'devices')
+              p.box.replaceChildren(
+                E('p', {}, _('出口与按设备接管已保存。请先到「设备」启用至少一台需要代理的设备。')),
+                E('a', { class: 'btn', href: base + '/cloudflare/devices' }, _('前往设备'))
+              );
             pendingApply = null;
           } else if (fresh && v.state === 'error' && v.attempted_nonce === p.nonce) {
             p.box.textContent = _('应用失败：') + v.message;
@@ -1522,7 +1989,7 @@ return baseclass.extend({
         testButton.disabled =
           detecting || (center && (!feedback.fresh(v, Date.now()) || v.state !== 'running'));
         testsInfo.textContent = detecting
-          ? _('正在检测，最长约 10 秒…')
+          ? _('正在检测，最长约 20 秒…')
           : (t.state === 'running'
               ? _('检测已中断或超时，结果未知；可以重新检测。')
               : (t.automatic ? _('后台检测时间：') : _('检测时间：')) + when(t.finished_at)) +
@@ -1535,14 +2002,14 @@ return baseclass.extend({
           if (!c) return;
           c.result.textContent = (staleTest ? _('历史：') : '') + (r.message || _('等待检测'));
           c.result.style.color = staleTest
-            ? '#777'
+            ? 'var(--imok-text-muted)'
             : r.state === 'ok'
-              ? '#087443'
+              ? 'var(--imok-success)'
               : r.state === 'pending'
-                ? '#2254d1'
+                ? 'var(--imok-accent)'
                 : r.state === 'restricted'
-                  ? '#a15c00'
-                  : '#b42318';
+                  ? 'var(--imok-warning)'
+                  : 'var(--imok-danger)';
           c.delay.textContent = r.ms != null ? r.ms + ' ms' : '—';
         });
       } else {
@@ -1564,7 +2031,16 @@ return baseclass.extend({
       if (ruleDataPage) return rules.read(false);
     }
     function readRuntimeFiles() {
-      return pageShared.readRuntimeFiles(runtimeFiles, runtimeSlots, applyRuntimeFiles, fs);
+      var slots = runtimeSlots;
+      if (
+        page === 'overview' &&
+        ((!preparedSnapshotRead && preparingToLogin() && savedSetup.exit_id) ||
+          (preparedExit && preparedExit.pending && preparedExit.id))
+      ) {
+        preparedSnapshotRead = true;
+        slots = slots.concat(23);
+      }
+      return pageShared.readRuntimeFiles(runtimeFiles, slots, applyRuntimeFiles, fs);
     }
     var initialOverviewAt = 0,
       initialOverviewRead =
@@ -1723,12 +2199,14 @@ return baseclass.extend({
         centerCountry
       ]),
       warpInfo = E('p', { role: 'status', 'aria-live': 'polite' });
-    var centerReads = {};
     function observationCurrent(row, st) {
       return (
         row &&
         st &&
         row.state === 'done' &&
+        typeof row.ip === 'string' &&
+        !!row.ip &&
+        /^[A-Z]{2}$/.test(row.country) &&
         feedback.fresh(st, Date.now()) &&
         st.state === 'running' &&
         [
@@ -1744,6 +2222,25 @@ return baseclass.extend({
         Date.now() / 1000 - row.time >= -5 &&
         Date.now() / 1000 - row.time <= 300
       );
+    }
+    function preparedRuntimeMessage(state) {
+      if (
+        state?.state !== 'preparing' ||
+        state.message !== '登录环境已就绪；请完成邮箱登录，再自动读取出口'
+      )
+        return '';
+      if (catalog.available)
+        return (
+          _('登录环境已就绪，分流尚未开启；已读到 ') +
+          catalog.networks.length +
+          _(' 个账户网络（未验证连通性）')
+        );
+      if (directoryPending) return _('正在检查账户。');
+      if (registeredHere || catalog.last_success_at || setupRuntime?.registration_files_present)
+        return _('登录环境已就绪；出口目录暂未取得，可重新检查账户，或到分流设置刷新目录');
+      if (setupRuntime?.registration_files_present === false)
+        return _('登录环境已就绪。请完成邮箱验证和路由器注册，成功后会自动读取账户出口。');
+      return _('登录环境已就绪');
     }
     function updateCenter() {
       var st = wizardStatus,
@@ -1768,7 +2265,7 @@ return baseclass.extend({
           ? _('○ 状态过期，当前连接未确认')
           : st && st.state === 'disabled'
             ? _('○ 已关闭')
-            : (st && st.message) || _('○ 尚无运行状态');
+            : preparedRuntimeMessage(st) || (st && st.message) || _('○ 尚无运行状态');
       centerState.className = running ? 'rp-center-ok' : 'rp-help';
       var summary = centerState.parentNode && centerState.parentNode.parentNode;
       if (summary && summary.setAttribute)
@@ -1848,9 +2345,12 @@ return baseclass.extend({
         })
         .finally(function () {
           delete centerReads[action];
-          updateCenter();
+          if (!isCurrentView()) return;
+          if (center) updateCenter();
+          updateFirstSetup();
         });
-      updateCenter();
+      if (center) updateCenter();
+      updateFirstSetup();
       return centerReads[action];
     }
     var centerRefresh = E(
@@ -1971,6 +2471,7 @@ return baseclass.extend({
         ),
         top
       ];
+      if (['account', 'routing', 'devices', 'endpoint'].includes(page)) groups.push(setupGuide);
       if (pageGroup === 'advanced')
         groups.push(
           pageAccount.render(centerGroup, panel, protocol, warpInfo, centerRefresh, guide),
@@ -1995,8 +2496,8 @@ return baseclass.extend({
             fields,
             dns.cacheCard,
             dns.testCard,
-            dns.renderBootstrap(panel, selectFields),
-            dns.renderLanCandidates(panel)
+            dns.renderBootstrap(selectFields),
+            dns.renderLanCandidates()
           )
         );
       if (pageGroup === 'workers') groups.push(workers.render(centerGroup));
@@ -2088,12 +2589,8 @@ return baseclass.extend({
         if (intro) intro.remove();
         content.push(node);
       }
-      if (['overview', 'account', 'routing'].includes(page))
-        Promise.resolve()
-          .then(function () {
-            if (isCurrentView()) return refreshDirectory();
-          })
-          .catch(function () {});
+      setupRendered = true;
+      startInitialAccountRead();
       if (ruleDataPage)
         Promise.resolve().then(function () {
           return rules.read(true);
@@ -2102,12 +2599,6 @@ return baseclass.extend({
         Promise.resolve().then(function () {
           if (isCurrentView()) return endpoint.initialize();
         });
-      if (page === 'account')
-        Promise.resolve()
-          .then(function () {
-            if (isCurrentView()) return centerRead('warp-info');
-          })
-          .catch(function () {});
       var diagnostics =
         page === 'overview'
           ? E(

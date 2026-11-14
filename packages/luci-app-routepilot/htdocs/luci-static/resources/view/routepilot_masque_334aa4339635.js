@@ -7,15 +7,15 @@
 'require poll';
 'require rpc';
 'require dom';
-'require routepilot.feedback_199e2a9dd178 as feedback';
-'require routepilot.page_workspace_98b567f8d75f as pageWorkspace';
-'require routepilot.page_account_8fced81608ce as pageAccount';
+'require routepilot.feedback_3a581c5b4c6b as feedback';
+'require routepilot.page_workspace_8777f401a3ce as pageWorkspace';
+'require routepilot.page_account_164b6748a5fc as pageAccount';
 'require routepilot.page_endpoint_691c764fb4bc as pageEndpoint';
-'require routepilot.page_routing_8f0255bf9404 as pageRouting';
-'require routepilot.page_dns_e27407bd52d3 as pageDns';
+'require routepilot.page_routing_a051a736c281 as pageRouting';
+'require routepilot.page_dns_c5839ecc6c42 as pageDns';
 'require routepilot.page_workers_a6382e53f54e as pageWorkers';
-'require routepilot.page_devices_c4fa03bd966c as pageDevices';
-'require routepilot.page_overview_57629157a77b as pageOverview';
+'require routepilot.page_devices_b9598bb0ca64 as pageDevices';
+'require routepilot.page_overview_12a5df5ec5fc as pageOverview';
 'require routepilot.page_backup_0d3a260fdf9c as pageBackup';
 'require routepilot.page_rules_288722c683fe as pageRules';
 'require routepilot.page_shared_04a787115574 as pageShared';
@@ -25,7 +25,7 @@ var commitConfig = rpc.declare({
   object: 'uci',
   method: 'commit',
   params: ['config'],
-  expect: { '': {} }
+  reject: true
 });
 
 function refreshMenuIndex() {
@@ -64,6 +64,19 @@ function readExitDirectory() {
       return { available: false, networks: [], read_at: Date.now() };
     });
 }
+function readRuntimeStatus() {
+  return Promise.resolve()
+    .then(function () {
+      return fs.exec('/usr/libexec/routepilot-runtime-status', []);
+    })
+    .then(function (r) {
+      var d = r.code ? null : JSON.parse(r.stdout);
+      return d && d.schema === 1 && typeof d.installed === 'boolean' ? d : null;
+    })
+    .catch(function () {
+      return null;
+    });
+}
 function readHostHints() {
   return new Promise(function (resolve) {
     var timer = setTimeout(function () {
@@ -91,6 +104,7 @@ function readOverviewSnapshot() {
     [
       ['status.json', 0],
       ['connectivity.json', 2],
+      ['exit-observation.json', 13],
       ['traffic.json', 14],
       ['connection-events.json', 15]
     ].map(function (item) {
@@ -169,7 +183,42 @@ var ruleSections = {
     manage: '规则管理',
     custom: '自定义分流'
   };
-var imokStylesheet = 'routepilot/style_d8791a7df2e2.css';
+var imokStylesheet = 'routepilot/style_f98625e62fa2.css';
+var refreshImokTheme;
+
+function syncImokTheme() {
+  if (!document.documentElement || !document.body || typeof window.getComputedStyle !== 'function')
+    return;
+  if (!refreshImokTheme) {
+    var root = document.documentElement;
+    var preference = window.matchMedia?.('(prefers-color-scheme: dark)');
+    refreshImokTheme = function () {
+      var mode = root.getAttribute('data-argon-mode');
+      if (mode !== 'dark' && mode !== 'light') {
+        // Older Argon inlines the effective stylesheet, including forced modes.
+        var background = window.getComputedStyle(document.body).backgroundColor;
+        var rgba = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(
+          background
+        );
+        var dark =
+          mode !== 'normal' && rgba && (rgba[4] == null || Number(rgba[4]) === 1)
+            ? 0.2126 * rgba[1] + 0.7152 * rgba[2] + 0.0722 * rgba[3] < 128
+            : preference?.matches;
+        mode = dark ? 'dark' : 'light';
+      }
+      root.setAttribute('data-imok-theme', mode);
+    };
+    if (preference?.addEventListener) preference.addEventListener('change', refreshImokTheme);
+    else preference?.addListener?.(refreshImokTheme);
+    if (typeof window.MutationObserver === 'function')
+      new window.MutationObserver(refreshImokTheme).observe(root, {
+        attributes: true,
+        attributeFilter: ['data-argon-mode']
+      });
+  }
+  refreshImokTheme();
+}
+
 function routeLeaf() {
   var parts = window.location.pathname.split('/').filter(Boolean),
     leaf = parts.pop();
@@ -234,7 +283,7 @@ return view.extend({
     )
       window.location.replace(L.url('admin/services/routepilot/cloudflare/' + leaf));
     if (leaf === 'runtime')
-      return L.require('routepilot.runtime_7869e7cfe3ca').then(function (runtimeView) {
+      return L.require('routepilot.runtime_597c3c4ba717').then(function (runtimeView) {
         return runtimeView.load().then(function (runtimeData) {
           return { runtimeView: runtimeView, runtimeData: runtimeData };
         });
@@ -248,20 +297,9 @@ return view.extend({
     var devices = leaf === 'devices',
       interfaces = devices || leaf === 'routing';
     var initialOverviewRead = leaf === 'overview' ? readOverviewSnapshot() : null;
-    var runtimeRead =
-      leaf === 'overview'
-        ? Promise.resolve()
-            .then(function () {
-              return fs.exec('/usr/libexec/routepilot-runtime-status', []);
-            })
-            .then(function (r) {
-              var d = r.code ? null : JSON.parse(r.stdout);
-              return d && d.schema === 1 && typeof d.installed === 'boolean' ? d : null;
-            })
-            .catch(function () {
-              return null;
-            })
-        : Promise.resolve(null);
+    var runtimeRead = ['overview', 'account', 'routing'].includes(leaf)
+      ? readRuntimeStatus()
+      : null;
     return Promise.all([
       uci.load('routepilot'),
       devices ? readHostHints() : Promise.resolve(null),
@@ -300,11 +338,13 @@ return view.extend({
         })
     ]).then(function (data) {
       data.runtimeRead = runtimeRead;
+      data.refreshRuntime = readRuntimeStatus;
       data.initialOverviewRead = initialOverviewRead;
       return data;
     });
   },
   render: function (data) {
+    syncImokTheme();
     return pageWorkspace.render.call(this, data, {
       window,
       document,

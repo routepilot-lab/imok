@@ -1,8 +1,6 @@
 # imOK · Cloudflare 分流助手
 
-> **最新正式版 v0.2.37-5**。总览减少重复重绘，安装包构建不再回写源码。包含独立客户端双协议、按客户端选出口和局域网设备流量统计。[本版更新](docs/releases/v0.2.37-5.md)
-
-> **预发布 v0.2.38-17**。路由器在后台自动检测联网并更新总览，同时包含 DNS、测速与恢复修复。[预发布说明](docs/releases/v0.2.38-17.md) · [下载](https://github.com/routepilot-lab/imok/releases)
+> **最新正式版 v0.2.38-36**。新增首次安装引导、WARP 分项下载和开启前的出口检查，界面随 Argon 切换浅色与深色。支持独立客户端双协议、按客户端选出口和局域网设备流量统计。[本版更新](docs/releases/v0.2.38-36.md)
 
 ## 使用前提
 
@@ -14,7 +12,7 @@
 
 我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
-[**下载 v0.2.37-5 正式版**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-5) · [历史版本](https://github.com/routepilot-lab/imok/releases) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
+[**下载 v0.2.38-36 正式版**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-36) · [历史版本](https://github.com/routepilot-lab/imok/releases) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
 **Cloudflare WARP management for OpenWrt:** independent MASQUE and WireGuard clients, per-client egress selection, LAN device usage, private subscriptions, DNS diagnostics and persistent personal rules.
 
@@ -91,7 +89,7 @@ imOK 管理路由器侧的接入、策略和状态，并为独立手机身份选
 | 主入口 | 能力 |
 | --- | --- |
 | 总览 | 开关、当前连接与出口、接管范围、流量、七日趋势、诊断详情 |
-| WARP 安装与更新 | 环境检测、官方组件准备、每日检查、新版提示、明确确认后的维护与恢复副本；运行环境写入仍待独立实机验收 |
+| WARP 安装与更新 | 在线准备和校验依赖、分项进度、缓存复用、定期检查、新版提示、手动更新与恢复副本 |
 | Cloudflare 配置中心 | 账户与协议、主线路入口、出口与分流、设备策略与流量、DNS、Workers 六页 |
 | 客户端接入 | 独立 MASQUE / WireGuard 注册、团队服务授权、逐客户端选出口、端口 / DNS、扫码或配置导入、MASQUE 私密订阅、撤销与删除 |
 | 规则与更新 | 更新概况、来源与频率、规则管理、自定义分流四页 |
@@ -101,28 +99,28 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 下载和安装
 
-当前正式版为 **v0.2.37-5 · 收尾优化版**。历史版本仍可在 Releases 下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
+当前正式版为 **v0.2.38-36 · 安装引导与主题适配**。历史版本仍可在 Releases 下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
 
-[前往正式版下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.37-5)：
+[前往正式版下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-36)
 
 | 文件 | 用途 |
 | --- | --- |
-| `imOK-0.2.37-5-install-kit.zip` | 适合下载保存或网盘分享：完整插件 IPK、源码、安装说明、版本说明与内部校验文件 |
-| `luci-app-routepilot_0.2.37-5_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包，含本版全部功能，不是增量补丁 |
-| `imOK-0.2.37-5-public-source.zip` | 公开源码、测试、文档与许可 |
+| `imOK-0.2.38-36-install-kit.zip` | 完整插件 IPK、首装和保留设置重装程序、源码、安装说明与校验文件 |
+| `luci-app-routepilot_0.2.38-36_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包 |
+| `imOK-0.2.38-36-public-source.zip` | 公开源码、测试、文档与许可 |
 | `SHA256SUMS` | 上述安装、源码与分享包的校验值 |
 
-**新设备先读安装说明。** 公开分享包不是路由器固件，不含第三方 WARP 客户端 / Debian 运行环境、账户、私钥或任何现成节点。先安装插件，在“WARP 安装与更新”检测环境；本版提供受支持平台的官方组件自动准备实验流程，首次安装仍待独立实机验收。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。不要卸载、重注册或覆盖运行环境来完成普通升级。
+**新设备先读安装说明。** 公开分享包提供插件与安装程序。WARP 和 Debian 组件由路由器在线下载，Cloudflare 团队和云端出口由用户提供。上传首装程序后，在「WARP 安装与更新」查看环境检测和在线安装进度，再按引导注册路由器、选择出口与接管范围。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。
 
 已验证现场：**GL.iNet GL-MT6000 / ARM64 / OpenWrt 24.10 / Argon 2.2.9.4**。其他机型、架构与全新环境需自行验证，不因为 IPK 标为 `all` 就代表任意设备都可直接安装。
 
 ## 本版做了哪些验证？
 
 - 插件与服务端回归、前端检查、目标 LuCI 契约、资源哈希、可重复构建和发布保护测试通过。
-- 本版总览通过隔离浏览器验证，流量数据不变时，图表保留键盘焦点。此前已在路由器管理页核对协议选项与局域网设备流量，也验证了独立 WireGuard 客户端联网及首尔出口。
-- 实机验证采用受控更新，保留原主线路与客户端记录。常规 IPK 升级可能短暂重连。
+- 使用 Argon 2.2.9.4 样式和 Chromium 验证 14 个页面的桌面与手机布局，覆盖自动、浅色和深色模式。此前实测过独立 WireGuard 客户端联网与选定出口。
+- 在 GL-MT6000 实机验证了保留设置升级、原 MASQUE 隧道、HTTPS 与 DNS。
 
-正式插件版面向已具备兼容运行环境的设备。全新 WARP 安装、APT 升级和运行环境恢复仍待独立实机验收。详见[预发布检查摘要](docs/evidence/0.2.38-17/PUBLICATION_CHECKS.json)与[WARP 维护验证和回滚说明](docs/quality/warp-maintenance-0.2.37-1.md)。
+首次安装已在隔离环境模拟。完整新机注册流程、APT 升级和运行环境恢复仍需实机核验。[发布检查记录](docs/evidence/0.2.38-36/PUBLICATION_CHECKS.json) · [实机验收清单](docs/HARDWARE_ACCEPTANCE.md)
 
 主线路故障撤回接管时可能使用宽带直连；本插件不提供 IPv6 代理，可阻断 IPv6 或明确允许其直连。普通“导出配置”不包含客户端私钥、手机订阅、个人规则覆盖及第三方授权，迁移前请阅读说明。
 
@@ -142,4 +140,4 @@ python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/tar
 
 imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles in one Cloudflare team, each with its own MASQUE or WireGuard registration and choice of available egress. Registration is subject to team limits and permissions. MASQUE supports direct import, QR codes and private subscriptions; WireGuard supports configuration files and QR codes.
 
-**v0.2.37-5 is the current stable plugin release.** The overview reuses charts and connection history when their contents stay the same, and the build leaves the source checkout untouched. The full installation kit includes the plugin, public source, instructions and checksums. Fresh WARP installation, APT upgrades and runtime recovery still need independent hardware testing.
+**v0.2.38-36 is the current stable plugin release.** It adds guided setup, staged WARP downloads, an egress check before activation, and support for Argon light and dark themes. The installation kit includes the IPK, first-install and reinstall scripts, public source, instructions and checksums. In-place upgrades were verified on a GL-MT6000. Full fresh-device enrollment, APT upgrades and runtime recovery still need hardware validation.

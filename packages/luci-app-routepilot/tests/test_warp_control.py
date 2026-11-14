@@ -173,6 +173,10 @@ class WarpTest(unittest.TestCase):
                 self.assertNotIn("secret", json.dumps(result))
                 backup.assert_not_called()
                 self.assertEqual(runner.call_count, 1)
+                self.assertEqual(
+                    runner.call_args.args[0][:6],
+                    ["curl", "-q", "--noproxy", "*", "--interface", "if!CloudflareWARP"],
+                )
 
     def test_observation_refuses_expired_main_state(self):
         import mplane

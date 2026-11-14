@@ -42,13 +42,24 @@ const cases = String.raw`
  const lanNonce = config.apply_nonce;
  assert.notEqual(lanNonce, 'n1');
 
+ commitError = 'RPC call to uci/commit failed with error -32002: Access denied\n at synthetic stack';
+ assert.equal(await routing.applySettings(), false);
+ assert.match(lastModal.textContent, /重新登录 LuCI/);
+ assert.doesNotMatch(lastModal.textContent, /synthetic stack|配置已提交/);
+ commitError = 'RPC call to uci/commit failed with ubus code 6: Permission denied';
+ assert.equal(await routing.applySettings(), false);
+ assert.match(lastModal.textContent, /等待其他配置应用完成/);
+ commitError = null;
+ assert.ok(await routing.applySettings());
+ const retryNonce = config.apply_nonce;
+
  // Only selecting device scope would make the explicitly protected row active.
  selections.scope = 'devices';
  steps.length = 0;
  assert.equal(await routing.applySettings(), false);
  assert.deepEqual(steps, ['preflight']);
  assert.equal(config.scope, 'lan');
- assert.equal(config.apply_nonce, lanNonce);
+ assert.equal(config.apply_nonce, retryNonce);
 
  // A legacy inherited setting never turns on protection, even with the old main flag.
  policies[0].egress_guard = 'inherit';
@@ -60,8 +71,8 @@ const cases = String.raw`
  config.scope = 'devices';
  policies[0].egress_guard = '0';
  const devices = new View();
- await devices.render([null, null, [], directory]);
- const fields = { enabled: '1', mode: 'global', mac: '02:00:00:00:00:01', egress_guard: '1' };
+ await devices.render([null, null, [{name:'br-lan',up:true,network:'10.1.0.0/24'}], directory]);
+ const fields = { enabled: '1', mode: 'global', mac: '02:00:00:00:00:01', ip:'10.1.0.20', egress_guard: '1' };
  const modalMap = { root: E('div'), async save() { steps.push('device.save'); policies[0].egress_guard = fields.egress_guard; } };
  const modalOptions = (map, values) => ({ map, children: Object.keys(values).map(option => ({ option, formvalue: () => values[option] })) });
  const policySection = devices.map.children[0];
@@ -69,6 +80,11 @@ const cases = String.raw`
  assert.equal(guardOption.modalonly, true);
  assert.equal(guardOption.default, '0');
  policySection.addModalOptions(modalOptions(modalMap, fields), 'device');
+ fields.ip = '192.168.8.100';
+ steps.length = 0;
+ await assert.rejects(() => modalMap.save(), /IPv4 不属于所选 LAN 网段/);
+ assert.deepEqual(steps, []);
+ fields.ip = '10.1.0.20';
  offload = true;
  steps.length = 0;
  await assert.rejects(() => modalMap.save(), /本次未保存/);

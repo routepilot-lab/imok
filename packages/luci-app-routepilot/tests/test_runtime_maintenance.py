@@ -126,6 +126,41 @@ class Maintenance(unittest.TestCase):
         with self.assertRaises(ControlError):
             m.version_key("1; reboot")
 
+    def runtime_for_self_test(self):
+        root = self.runtime(identity=False)
+        for name in m.OMIT:
+            (root / name).mkdir(exist_ok=True)
+        daemon = root / "usr/bin/warp-svc"
+        daemon.write_bytes(b"\x7fELF\x02\x01" + bytes(12) + (183).to_bytes(2, "little"))
+        daemon.chmod(0o755)
+        return root
+
+    def test_runtime_self_test_loads_daemon_dependencies_without_running_daemon(self):
+        root = self.runtime_for_self_test()
+        m.run.side_effect = [
+            "warp-cli 2026.8.2115.0",
+            "",
+            "libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x1)",
+        ]
+        self.assertEqual(m.test_runtime(root)["version"], "2026.8.2115.0")
+        cli, verify, loader = m.run.call_args_list
+        self.assertEqual(cli.args[0], ["chroot", str(root), "/usr/bin/warp-cli", "--version"])
+        self.assertEqual(
+            verify.args[0],
+            ["chroot", str(root), "/lib/ld-linux-aarch64.so.1", "--verify", "/usr/bin/warp-svc"],
+        )
+        self.assertEqual(
+            loader.args[0],
+            ["chroot", str(root), "/lib/ld-linux-aarch64.so.1", "--list", "/usr/bin/warp-svc"],
+        )
+        self.assertTrue(all(call.kwargs["isolated"] for call in (cli, verify, loader)))
+
+    def test_runtime_self_test_still_rejects_missing_daemon_dependencies(self):
+        root = self.runtime_for_self_test()
+        m.run.side_effect = ["warp-cli 2026.8.2115.0", "", "libc.so.6 => not found"]
+        with self.assertRaisesRegex(ControlError, "缺少运行依赖"):
+            m.test_runtime(root)
+
     def test_official_catalog_rejects_wrong_path_hash_size_and_arch(self):
         self.assertEqual(m.candidate(self.catalog())["version"], "2026.9.1.0")
         for kw in [
@@ -146,9 +181,31 @@ class Maintenance(unittest.TestCase):
             m.check()
         s = m.status()
         self.assertEqual(s["check"]["state"], "failed")
+        self.assertIn("未能读取 Cloudflare 官方版本目录", s["check"]["message"])
+        self.assertTrue(s["installed"])
         self.assertIsNone(s["latest_version"])
         self.assertFalse(s["update_available"])
         self.assertTrue(s["check"]["checked_at"])
+
+    def test_apt_progress_uses_complete_bounded_status_lines_only(self):
+        name = "warp-apt-abcd1234"
+        path = self.run / name
+        target = self.run / "elsewhere"
+        target.write_bytes(b"pmstatus:warp:42.0000:Unpacking cloudflare-warp (arm64)\n")
+        target.chmod(0o600)
+        path.symlink_to(target)
+        self.assertEqual(m.apt_progress(name), {})
+        path.unlink()
+        path.write_bytes(
+            b"padding " * 2048
+            + b"\npmstatus:warp:81.2330:Configuring cloudflare-warp (arm64)\n"
+            + b"pmstatus:warp:80.3000:Running post-installation trigger for ca-certificates\n"
+            + b"pmerror:warp:100.0000:synthetic private content\n"
+            + b"pmstatus:warp:900.0000:unusable\n"
+            + b"pmstatus:warp:98.0000:incomplete"
+        )
+        path.chmod(0o600)
+        self.assertEqual(m.apt_progress(name), {"install_percent": 81, "install_step": "configure"})
 
     def test_successful_check_never_calls_install_or_changes_identity(self):
         root = self.runtime()
@@ -516,8 +573,9 @@ class Maintenance(unittest.TestCase):
                     "candidate": {"size": 2, "sha256": hashlib.sha256(b"OK").hexdigest()},
                 },
             )
-        install = [kw for args, kw in commands if "--no-download" in args]
-        self.assertEqual(install, [{"isolated": True}])
+        (install_args, options), = [(args, kw) for args, kw in commands if "--no-download" in args]
+        self.assertTrue(options["isolated"])
+        self.assertIn(f"APT::Status-Fd={options['pass_fds'][0]}", install_args)
 
     def test_first_install_stages_and_never_starts_a_service(self):
         source = self.runtime(self.folder / "source", identity=False)
@@ -661,9 +719,55 @@ class Maintenance(unittest.TestCase):
         with self.assertRaises(ControlError):
             m.job(*called[0])
 
+    def test_expired_matching_job_leaves_queue_retryable(self):
+        with patch.object(m, "launch") as launch:
+            m.queue("check", {})
+            action, token = launch.call_args.args
+            with self.assertRaises(ControlError):
+                m.job(action, "other-token")
+            self.assertEqual(m.status()["job"]["state"], "running")
+            pending = m.document(self.private / "pending.json")
+            pending["created_at"] = time.time() - 70
+            m.save(self.private / "pending.json", pending)
+            with self.assertRaisesRegex(ControlError, "维护队列已过期"):
+                m.job(action, token)
+            self.assertEqual(m.status()["job"]["state"], "failed")
+            self.assertFalse((self.private / "pending.json").exists())
+            m.queue("check", {})
+        self.assertEqual(launch.call_count, 2)
+
+    def test_scheduled_check_waits_until_runtime_exists(self):
+        with patch.object(m, "download") as download:
+            self.assertIsNone(m.check(scheduled=True))
+        download.assert_not_called()
+        self.assertFalse((self.private / "check.json").exists())
+
+    def test_online_install_refuses_recovery_marker_appearing_after_confirmation(self):
+        with patch.object(m.bootstrap, "plan", return_value={"required_bytes": 1}):
+            plan = self.plan("online-install")
+        marker = self.base / ".runtime-transaction.json"
+        marker.symlink_to("absent-journal")
+        with patch.object(m, "inactive"):
+            with self.assertRaisesRegex(ControlError, "未完成的环境替换"):
+                m.execute(plan["id"], "CONFIRM")
+        self.assertTrue(m.status()["recovery_required"])
+        self.assertTrue(marker.is_symlink())
+        self.assertFalse((self.base / "runtime").exists())
+
     def test_public_status_has_no_identity_material(self):
         self.runtime()
         self.assertNotIn("SYNTHETIC identity", json.dumps(m.status()))
+
+    def test_status_distinguishes_absent_registration_files_without_reading_them(self):
+        path = self.runtime(identity=False) / "var/lib/cloudflare-warp/reg.json"
+        self.assertIs(m.status()["registration_files_present"], False)
+        path.write_text("SYNTHETIC private registration")
+        public = m.status()
+        self.assertIs(public["registration_files_present"], True)
+        self.assertNotIn("SYNTHETIC private registration", json.dumps(public))
+        path.unlink()
+        path.symlink_to("private.json")
+        self.assertIsNone(m.status()["registration_files_present"])
 
     def test_timeout_kills_only_own_command_group_and_never_returns_stderr(self):
         from unittest.mock import Mock
