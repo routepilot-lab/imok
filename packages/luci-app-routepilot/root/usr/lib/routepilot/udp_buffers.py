@@ -12,8 +12,30 @@ import socket
 
 BUFFER_BYTES = 4 * 1024 * 1024
 INGRESS = tuple(
-    ipaddress.ip_network(n) for n in ("162.159.192.0/24", "162.159.193.0/24", "162.159.197.0/24")
+    ipaddress.ip_network(n)
+    for n in (
+        "162.159.192.0/24",
+        "162.159.193.0/24",
+        "162.159.195.0/24",
+        "162.159.197.0/24",
+        "162.159.198.0/24",
+        "162.159.199.0/24",
+        "162.159.204.0/24",
+        "188.114.96.0/20",
+    )
 )
+
+
+def configured_ingress_ip():
+    try:
+        import json
+
+        data = json.loads(Path("/etc/routepilot/endpoint-settings.json").read_text())
+        if isinstance(data, dict) and data.get("mode") == "manual" and data.get("address"):
+            return ipaddress.ip_address(str(data["address"]).rsplit(":", 1)[0].strip("[]"))
+    except (OSError, ValueError):
+        pass
+    return None
 
 
 def tune(pid, target=BUFFER_BYTES):
@@ -23,6 +45,7 @@ def tune(pid, target=BUFFER_BYTES):
     pidfd = libc.syscall(434, int(pid), 0)  # pidfd_open on Linux arm64/x86_64
     if pidfd < 0:
         return []
+    custom_peer = configured_ingress_ip()
     changed = []
     try:
         for path in Path("/proc/%d/fd" % pid).iterdir():
@@ -36,7 +59,7 @@ def tune(pid, target=BUFFER_BYTES):
                     if sock.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) != socket.SOCK_DGRAM:
                         continue
                     peer = ipaddress.ip_address(sock.getpeername()[0])
-                    if not any(peer in network for network in INGRESS):
+                    if peer != custom_peer and not any(peer in network for network in INGRESS):
                         continue
                     before = [
                         sock.getsockopt(socket.SOL_SOCKET, opt)

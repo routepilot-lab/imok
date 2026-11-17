@@ -107,7 +107,7 @@ exit 0
     prerm = """#!/bin/sh
 [ -n "$IPKG_INSTROOT" ] && exit 0
 /etc/init.d/routepilot stop
-/usr/libexec/routepilot cleanup
+/usr/libexec/routepilot cleanup || exit 1
 /etc/init.d/routepilot disable
 if [ "$1" = remove ]; then
     /usr/bin/python3 -B /usr/lib/routepilot/egress_guard.py remove || exit 1

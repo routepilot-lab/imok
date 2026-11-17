@@ -61,12 +61,15 @@ def save(data):
     except FileNotFoundError:
         pass
     atomic(STORE, payload)
-    return True
-    fd = os.open(str(STORE.parent), os.O_RDONLY | os.O_DIRECTORY)
     try:
-        os.fsync(fd)
-    finally:
-        os.close(fd)
+        fd = os.open(str(STORE.parent), os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    except OSError:
+        pass
+    return True
 
 
 def clock_synced():
@@ -401,6 +404,13 @@ def _observe():
     offload_state, version, checked, version_at = "unknown", None, 0, None
     history = deque(maxlen=60)
     persisted = STORE.stat().st_mtime if STORE.exists() else None
+    def ledger_snapshot():
+        return json.dumps(
+            {k: ledger.data[k] for k in ("total", "days", "unallocated", "gaps")},
+            sort_keys=True,
+        )
+
+    saved_snapshot = ledger_snapshot() if ledger else None
     try:
         while not STOP:
             wall, mono = time.time(), time.monotonic()
@@ -431,6 +441,7 @@ def _observe():
                         ledger.gap()
                         # Persist reconciled totals before replacing the counter table.
                         save(ledger.data)
+                        saved_snapshot = ledger_snapshot()
                         persisted, checkpoint = wall, mono
                         # If installation fails, the retry has no new counters to persist.
                         gap_checkpointed = True
@@ -460,8 +471,11 @@ def _observe():
                         wall,
                     )
                 if mono - checkpoint >= 300 or previous_day != day(wall):
-                    if save(ledger.data):
-                        persisted = wall
+                    snap = ledger_snapshot()
+                    if previous_day != day(wall) or snap != saved_snapshot:
+                        if save(ledger.data):
+                            persisted = wall
+                        saved_snapshot = snap
                     checkpoint = mono
                 previous_day = day(wall)
             except Exception:

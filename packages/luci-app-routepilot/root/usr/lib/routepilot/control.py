@@ -81,7 +81,7 @@ def set_backup(action):
         if action == "backup-enable":
             require_test()
             if read_config()["main"].get("enabled") != "1":
-                raise ValueError("请先核对并开启 imok 总开关")
+                raise ControlError("请先核对并开启 imok 总开关")
         nonce = str(time.time_ns())
         command(
             [

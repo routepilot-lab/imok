@@ -42,19 +42,19 @@ def host(value):
     try:
         addr = ipaddress.IPv4Address(value)
         if not addr.is_global:
-            raise ValueError("备用入口必须使用公网地址")
+            raise ControlError("备用入口必须使用公网地址")
         return str(addr)
     except ipaddress.AddressValueError:
         if not HOST.fullmatch(value) or value.endswith(
             (".local", ".lan", ".internal", ".localhost")
         ):
-            raise ValueError("备用入口域名格式无效")
+            raise ControlError("备用入口域名格式无效")
         return value
 
 
 def validate(node):
     if not isinstance(node, dict):
-        raise ValueError("备用节点格式无效")
+        raise ControlError("备用节点格式无效")
     try:
         identity = uuid.UUID(node.get("uuid", ""))
         if identity.version != 4:
@@ -62,22 +62,22 @@ def validate(node):
         ident = str(identity)
         port = int(node.get("port", 443))
     except (ValueError, TypeError, AttributeError):
-        raise ValueError("备用节点凭据或端口无效") from None
+        raise ControlError("备用节点凭据或端口无效") from None
     if port != 443:
-        raise ValueError("备用入口端口无效")
+        raise ControlError("备用入口端口无效")
     path = str(node.get("path", "/"))
     if (
         not path.startswith("/")
         or len(path) > 2048
         or any(ord(c) < 32 or ord(c) == 127 for c in path)
     ):
-        raise ValueError("WebSocket 路径无效")
+        raise ControlError("WebSocket 路径无效")
     name = str(node.get("name", "Workers 备用"))[:64]
     if not name or any(ord(c) < 32 for c in name):
-        raise ValueError("备用名称无效")
+        raise ControlError("备用名称无效")
     sni = host(node.get("sni"))
     if not HOST.fullmatch(sni):
-        raise ValueError("证书身份必须使用 Workers 域名")
+        raise ControlError("证书身份必须使用 Workers 域名")
     return dict(
         uuid=ident, address=host(node.get("address")), port=port, sni=sni, path=path, name=name
     )
@@ -89,9 +89,9 @@ def fingerprint(node):
 
 def load():
     if NODE.is_symlink() or NODE.stat().st_mode & 0o077:
-        raise ValueError("备用节点文件权限无效")
+        raise ControlError("备用节点文件权限无效")
     if NODE.stat().st_size > 8192:
-        raise ValueError("备用节点文件过大")
+        raise ControlError("备用节点文件过大")
     return validate(json.loads(NODE.read_text()))
 
 
@@ -156,16 +156,16 @@ def list_saved():
 
 def parse_input(data):
     if not isinstance(data, dict):
-        raise ValueError("备用导入格式无效")
+        raise ControlError("备用导入格式无效")
     if data.get("source") == "current":
         node = load()
     elif data.get("source") == "saved":
         key = data.get("id")
         if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,64}", key):
-            raise ValueError("请选择已有节点")
+            raise ControlError("请选择已有节点")
         row = inventory().get(key)
         if not row:
-            raise ValueError("已有 TLS/WebSocket 节点不存在")
+            raise ControlError("已有 TLS/WebSocket 节点不存在")
         ident = next(
             (
                 row[k]
@@ -185,7 +185,7 @@ def parse_input(data):
     elif data.get("source") == "uri":
         uri = str(data.get("uri", ""))
         if len(uri) > 4096:
-            raise ValueError("节点链接过长")
+            raise ControlError("节点链接过长")
         try:
             url = urlsplit(uri)
             query = parse_qs(url.query, strict_parsing=True)
@@ -214,20 +214,23 @@ def parse_input(data):
                 name=unquote(url.fragment) or "Workers 备用",
             )
         except (ValueError, TypeError, AttributeError):
-            raise ValueError("仅支持开启证书验证的 VLESS＋WebSocket＋TLS 链接") from None
+            raise ControlError("仅支持开启证书验证的 VLESS＋WebSocket＋TLS 链接") from None
     else:
-        raise ValueError("请选择已有节点或粘贴 VLESS 链接")
+        raise ControlError("请选择已有节点或粘贴 VLESS 链接")
     node = validate(node)
     mode = data.get("entry", "saved")
     if mode == "domain":
         node.update(address=node["sni"], port=443)
     elif mode == "ip":
-        addr = ipaddress.IPv4Address(data.get("ip", ""))
+        try:
+            addr = ipaddress.IPv4Address(str(data.get("ip", "")).strip())
+        except ipaddress.AddressValueError:
+            raise ControlError("优选入口只接受公网 IPv4") from None
         if not addr.is_global:
-            raise ValueError("优选入口只接受公网 IPv4")
+            raise ControlError("优选入口只接受公网 IPv4")
         node["address"] = str(addr)
     elif mode != "saved":
-        raise ValueError("备用入口方式无效")
+        raise ControlError("备用入口方式无效")
     return validate(node)
 
 
@@ -249,7 +252,7 @@ def _import_node(request_id):
 
     with claim_request(INPUT, request_id, 8192) as payload:
         if read_config()["main"].get("backend", "masque") == "worker":
-            raise ValueError("请先切回主线路，再修改备用节点")
+            raise ControlError("请先切回主线路，再修改备用节点")
         node = parse_input(payload)
         NODE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         NODE.parent.chmod(0o700)

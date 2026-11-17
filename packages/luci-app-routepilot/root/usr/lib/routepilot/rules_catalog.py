@@ -194,8 +194,8 @@ def enrich(stage, old, meta):
     )
 
 
-def declines(stage, old):
-    before, after = content(old), content(stage)
+def declines(stage, old, content_pair=None):
+    before, after = content_pair if content_pair is not None else (content(old), content(stage))
     return {
         kind: dict(before=len(before[kind]), after=len(after[kind]))
         for kind in KINDS
@@ -429,7 +429,7 @@ def query(request_id):
                 origins={
                     value: "excluded"
                     if view == "personal_excluded"
-                    or view == "current"
+                    or view in ("current", "added", "removed")
                     and value in personal[kind]["excluded"]
                     else "personal"
                     if value in personal[kind]["added"]

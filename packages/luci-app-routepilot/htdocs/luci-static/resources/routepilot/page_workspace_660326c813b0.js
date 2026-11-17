@@ -2,7 +2,8 @@
 'require baseclass';
 
 // The workspace owns native LuCI form state and one status poll across settings pages.
-var activeRender = 0;
+var activeRender = 0,
+  activeWorkspacePoll = null;
 
 return baseclass.extend({
   render: function (data, context) {
@@ -2050,8 +2051,12 @@ return baseclass.extend({
           if (feedback.fresh(files[0], Date.now())) initialOverviewAt = Date.now();
           return applyRuntimeFiles(files);
         });
-    poll.add(function () {
-      if (!isCurrentView()) return Promise.resolve();
+    if (activeWorkspacePoll && typeof poll.remove === 'function') poll.remove(activeWorkspacePoll);
+    var workspacePoll = (activeWorkspacePoll = function () {
+      if (!isCurrentView()) {
+        if (typeof poll.remove === 'function') poll.remove(workspacePoll);
+        return Promise.resolve();
+      }
       if (initialOverviewRead) {
         var first = initialOverviewRead;
         initialOverviewRead = null;
@@ -2061,7 +2066,8 @@ return baseclass.extend({
         });
       }
       return readRuntimeFiles();
-    }, 2);
+    });
+    poll.add(workspacePoll, 2);
     function requestChecksum(text) {
       var bytes = new TextEncoder().encode(text),
         size = (bytes.length + 72) & ~63,

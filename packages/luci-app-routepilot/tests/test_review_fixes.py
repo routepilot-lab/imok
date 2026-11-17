@@ -315,7 +315,10 @@ class RuleGenerationTests(unittest.TestCase):
                 return SimpleNamespace(
                     stdout="routepilot-control-out routepilot-device-out", returncode=0
                 )
-            return SimpleNamespace(stdout=f"{routing_service.PRIORITY}: active", returncode=0)
+            if "route" in args:
+                return SimpleNamespace(stdout=" ".join(service.tunnel_route()), returncode=0)
+            rule = " ".join(routing_service.POLICY_RULE)
+            return SimpleNamespace(stdout=f"{routing_service.PRIORITY}: {rule}", returncode=0)
 
         with (
             patch.object(routing_service, "command", side_effect=command),
@@ -348,8 +351,10 @@ class RuleGenerationTests(unittest.TestCase):
                 reply = "WARP tunnel protocol: MASQUE"
             elif "fw4" in args:
                 reply = "routepilot-control-out routepilot-device-out"
+            elif "route" in args:
+                reply = " ".join(service.tunnel_route())
             else:
-                reply = f"{routing_service.PRIORITY}: active"
+                reply = f"{routing_service.PRIORITY}: " + " ".join(routing_service.POLICY_RULE)
             return SimpleNamespace(stdout=reply, returncode=0)
 
         with (
@@ -389,7 +394,8 @@ class RuleGenerationTests(unittest.TestCase):
 
             def command(args, **kw):
                 return SimpleNamespace(
-                    stdout=str(routing_service.PRIORITY) + ": from all", returncode=0
+                    stdout=f"{routing_service.PRIORITY}: " + " ".join(routing_service.POLICY_RULE),
+                    returncode=0,
                 )
 
             with patch.object(routing_service, "command", side_effect=command):

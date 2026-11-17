@@ -1314,6 +1314,9 @@ msgstr ""
 msgid "只填写公开资料链接，不填私人订阅、账户或口令。"
 msgstr ""
 
+msgid "只填团队名称（字母、数字或连字符），不填 .cloudflareaccess.com、网址或邮箱"
+msgstr ""
+
 msgid "只显示当前阶段"
 msgstr ""
 

@@ -25,7 +25,10 @@ def uninstall(ask=input):
         raise ValueError("需要 root 权限")
     if ROOT.is_symlink() or not ROOT.is_dir():
         raise ValueError("没有找到向导创建的独立安装目录")
-    state = json.loads((ROOT / "install-state.json").read_text())
+    state_file = ROOT / "install-state.json"
+    if state_file.is_symlink() or not state_file.is_file():
+        raise ValueError("安装状态文件缺失或为符号链接；拒绝删除")
+    state = json.loads(state_file.read_text())
     if state.get("owner") != "routepilot-server" or state.get("units") != list(UNITS):
         raise ValueError("安装归属信息不匹配；拒绝删除")
     paths = []
@@ -59,6 +62,9 @@ def uninstall(ask=input):
 if __name__ == "__main__":
     try:
         uninstall()
-    except (ValueError, OSError, subprocess.SubprocessError):
-        print("卸载未完成；服务文件可能已变更，请人工核对。未继续删除未知内容。", file=sys.stderr)
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
+        if isinstance(error, ValueError):
+            print(str(error), file=sys.stderr)
+        else:
+            print("卸载未完成；服务文件可能已变更，请人工核对。未继续删除未知内容。", file=sys.stderr)
         sys.exit(1)

@@ -2273,7 +2273,10 @@ var qrcode = (function () {
     }
     return toUTF8Array(s);
   };
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 })();
+var activeClientPoll = null,
+  clientPollRegistered = false;
 
 function clientPorts(protocol) {
   return protocol === 'wireguard'
@@ -2455,6 +2458,7 @@ return baseclass.extend({
       prepared = false,
       exportCleanup = null,
       formSerial = 0,
+      detailRenderedFor = null,
       drafts = {},
       exitDrafts = {};
     var list = E('div', { class: 'imok-client-list' }),
@@ -2594,7 +2598,20 @@ return baseclass.extend({
       inFlight = true;
       if (['export', 'subscription_link'].indexOf(action) < 0) refreshSerial++;
       root.setAttribute('aria-busy', 'true');
-      root.querySelectorAll('button,input,select,textarea').forEach(function (b) {
+      var controls = Array.from(root.querySelectorAll('button,input,select,textarea'));
+      if (
+        typeof document !== 'undefined' &&
+        document &&
+        typeof document.querySelectorAll === 'function'
+      )
+        controls = controls.concat(
+          Array.from(
+            document.querySelectorAll(
+              '.imok-client-dialog button,.imok-client-dialog input,.imok-client-dialog select,.imok-client-dialog textarea'
+            )
+          )
+        );
+      controls.forEach(function (b) {
         disabled.push([b, b.disabled]);
         b.disabled = true;
       });
@@ -3239,6 +3256,7 @@ return baseclass.extend({
       var row = data.clients.filter(function (r) {
           return r.id === selected;
         })[0],
+        openDetails = {},
         cfg = drafts[row.id] || row.settings,
         wireguard = row.protocol === 'wireguard',
         protocolLabel = wireguard ? 'WireGuard' : 'MASQUE',
@@ -3510,20 +3528,28 @@ return baseclass.extend({
             ),
             field('DNS', dns, '可修改；私有域名需要对应的内部解析配置。')
           ]),
-          E('details', { class: 'imok-client-advanced' }, [
-            E('summary', {}, _(_('高级连接参数'))),
-            E('div', { class: 'imok-client-fields' }, [
-              field('MTU', mtu),
-              field('心跳间隔（秒）', keepalive)
-            ]),
-            wireguard
-              ? ''
-              : E(
-                  'p',
-                  { class: 'rp-help' },
-                  'SNI：zt-masque.cloudflareclient.com · 拥塞控制：cubic · UDP 转发开启 · HTTP2 关闭'
-                )
-          ]),
+          E(
+            'details',
+            {
+              class: 'imok-client-advanced',
+              'data-detail': 'advanced',
+              open: openDetails.advanced ? true : null
+            },
+            [
+              E('summary', {}, _(_('高级连接参数'))),
+              E('div', { class: 'imok-client-fields' }, [
+                field('MTU', mtu),
+                field('心跳间隔（秒）', keepalive)
+              ]),
+              wireguard
+                ? ''
+                : E(
+                    'p',
+                    { class: 'rp-help' },
+                    'SNI：zt-masque.cloudflareclient.com · 拥塞控制：cubic · UDP 转发开启 · HTTP2 关闭'
+                  )
+            ]
+          ),
           E('div', { class: 'rp-backup-actions' }, [saveButton])
         ]
       );
@@ -3624,24 +3650,38 @@ return baseclass.extend({
               )
             )
           ]);
-      var danger = E('details', { class: 'imok-client-advanced' }, [
-        E('summary', {}, _(_('撤销与删除'))),
-        E(
-          'p',
-          { class: 'rp-help' },
-          _(_('撤销会使已导出的配置失效。删除本地记录不会代替云端撤销。'))
-        ),
-        E('div', { class: 'rp-backup-actions' }, [
-          row.has_registration && row.state !== 'revoked'
-            ? button('撤销此客户端注册', function () {
-                confirmAction(row, 'revoke');
-              })
-            : '',
-          button('删除本地记录', function () {
-            confirmAction(row, 'delete');
-          })
-        ])
-      ]);
+      var danger = E(
+        'details',
+        {
+          class: 'imok-client-advanced',
+          'data-detail': 'danger',
+          open: openDetails.danger ? true : null
+        },
+        [
+          E('summary', {}, _(_('撤销与删除'))),
+          E(
+            'p',
+            { class: 'rp-help' },
+            _(_('撤销会使已导出的配置失效。删除本地记录不会代替云端撤销。'))
+          ),
+          E('div', { class: 'rp-backup-actions' }, [
+            row.has_registration && row.state !== 'revoked'
+              ? button('撤销此客户端注册', function () {
+                  confirmAction(row, 'revoke');
+                })
+              : '',
+            button('删除本地记录', function () {
+              confirmAction(row, 'delete');
+            })
+          ])
+        ]
+      );
+      if (detailRenderedFor === row.id && typeof detail.querySelectorAll === 'function') {
+        detail.querySelectorAll('details[data-detail]').forEach(function (el) {
+          if (el.open) openDetails[el.getAttribute('data-detail')] = true;
+        });
+      }
+      detailRenderedFor = row.id;
       detail.replaceChildren(
         summary,
         E('div', { class: 'imok-client-methods' }, [exitPanel, accessPanel]),
@@ -3665,7 +3705,7 @@ return baseclass.extend({
       }
     }
     draw();
-    poll.add(function () {
+    activeClientPoll = function () {
       if (!root.isConnected) {
         if (exportCleanup) exportCleanup();
         return Promise.resolve();
@@ -3678,7 +3718,13 @@ return baseclass.extend({
       )
         return refresh(false);
       return Promise.resolve();
-    }, 2);
+    };
+    if (!clientPollRegistered || typeof poll.remove !== 'function') {
+      clientPollRegistered = true;
+      poll.add(function () {
+        return activeClientPoll();
+      }, 2);
+    }
     return root;
   }
 });

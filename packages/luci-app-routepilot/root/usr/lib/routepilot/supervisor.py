@@ -121,6 +121,8 @@ def handle_disabled(cfg, service):
 
 
 def handle_preparing(cfg, service, schedule, last_nonce):
+    if hasattr(service.plane, "ensure_control_firewall"):
+        service.plane.ensure_control_firewall()
     output(
         "preparing",
         "登录环境已就绪；请完成邮箱登录，再自动读取出口",
@@ -232,9 +234,11 @@ def apply_running_configuration(cfg, service, previous):
     if compiled is not None:
         compiled["config_digest"] = config_digest
         compiled["dns"]["generation"] = digest
-        if waiting and not compiled["dns"]["policies"]:
+        if waiting and not compiled["dns"].get("policies"):
             if not service.withdraw():
                 raise RuntimeError("等待设备上线时，未能确认旧接管规则已撤回")
+        elif compiled["dns"].get("policies") == []:
+            raise ValueError("请在「设备」启用至少一条代理策略")
         else:
             service.apply(cfg, compiled)
         previous = digest
@@ -383,9 +387,18 @@ def run():
     last_nonce, update_message = schedule.data.get("last_nonce"), ""
     update_job_id = None
     retried_worker_nonce = None
+    consecutive_errors = 0
+    last_error_nonce = None
     try:
         while not STOP:
             cfg = None
+            failed_iteration = False
+            log = RUN / "client.log"
+            try:
+                if log.exists() and log.stat().st_size > 2 * 1024 * 1024:
+                    log.write_text("")
+            except OSError:
+                pass
             try:
                 speed_compare.expire_queued()
                 try:
@@ -672,8 +685,23 @@ def run():
                     scope=scope,
                     attempted_nonce=main_config.get("apply_nonce", ""),
                 )
+                failed_iteration = True
+                if nonce != last_error_nonce:
+                    consecutive_errors = 1
+                    last_error_nonce = nonce
+                else:
+                    consecutive_errors = min(consecutive_errors + 1, 8)
+            if not failed_iteration:
+                consecutive_errors = 0
+                last_error_nonce = None
             # A short wait leaves time for status, strict probe, and the next lease renewal.
-            time.sleep(1 if getattr(service, "unknown_since", None) is not None else 3)
+            if getattr(service, "unknown_since", None) is not None:
+                delay = 1
+            elif failed_iteration and not service.egress_guard.selectors and consecutive_errors > 1:
+                delay = min(24, 3 * (2 ** min(consecutive_errors - 1, 3)))
+            else:
+                delay = 3
+            time.sleep(delay)
     finally:
         if comparison:
             speed_compare.finish(comparison, restored=False)

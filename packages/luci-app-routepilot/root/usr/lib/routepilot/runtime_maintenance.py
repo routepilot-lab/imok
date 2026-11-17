@@ -875,19 +875,19 @@ def upgrade_copy(root, plan):
         internal(root, "usr/share/keyrings/imok-cloudflare.asc", key.decode())
     finally:
         keyfile.unlink(missing_ok=True)
-    internal(
-        root,
-        "etc/apt/sources.list.d/imok-warp.list",
-        "deb [arch=arm64 signed-by=/usr/share/keyrings/imok-cloudflare.asc] "
-        + SOURCE
-        + " bookworm main\n"
-        + "deb [arch=arm64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] https://deb.debian.org/debian bookworm main\n"
-        + "deb [arch=arm64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] https://deb.debian.org/debian-security bookworm-security main\n",
-    )
+    try:
+        host_ca = Path("/etc/ssl/certs/ca-certificates.crt")
+        if not (root / "etc/ssl/certs/ca-certificates.crt").is_file() and host_ca.is_file():
+            ca_text = host_ca.read_text()
+            if "-----BEGIN CERTIFICATE-----" in ca_text:
+                internal(root, "etc/ssl/certs/ca-certificates.crt", ca_text)
+    except OSError:
+        pass
     internal(root, "usr/sbin/policy-rc.d", "#!/bin/sh\nexit 101\n", 0o755)
     internal(root, "etc/resolv.conf", Path("/etc/resolv.conf").read_text())
     for name, minor in [("null", 3), ("zero", 5), ("random", 8), ("urandom", 9)]:
-        os.mknod(root / "dev" / name, stat.S_IFCHR | 0o666, os.makedev(1, minor))
+        if not (root / "dev" / name).exists():
+            os.mknod(root / "dev" / name, stat.S_IFCHR | 0o666, os.makedev(1, minor))
     args = [
         "chroot",
         str(root),
@@ -905,13 +905,9 @@ def upgrade_copy(root, plan):
         "-o",
         "Acquire::https::Timeout=30",
     ]
-    (root / "var/lib/apt/lists-imok/partial").mkdir(parents=True, exist_ok=True)
-    run(args + ["update"], 180)
-    # APT checks the signed InRelease; independently bind the downloaded .deb to
-    # the version/size/SHA the user confirmed. Never execute an unverified .deb.
+    if (root / "etc/ssl/certs/ca-certificates.crt").is_file():
+        args += ["-o", "Acquire::https::CaInfo=/etc/ssl/certs/ca-certificates.crt"]
     cache = root / "var/cache/apt/archives"
-    for p in cache.glob("cloudflare-warp_*.deb"):
-        p.unlink()
     install = [
         "--yes",
         "--no-remove",
@@ -919,8 +915,35 @@ def upgrade_copy(root, plan):
         "install",
         "cloudflare-warp=" + plan["version"],
     ]
-    progress("正在下载已确认的 WARP 版本；现用环境尚未替换", phase="download_packages")
-    run(args + ["--download-only"] + install, 600)
+    last_error = None
+    for origin in ("https://deb.debian.org", bootstrap.DEBIAN_APT_MIRROR, bootstrap.DEBIAN_APT_BACKUP):
+        lists = root / "var/lib/apt/lists-imok"
+        if origin != "https://deb.debian.org" and lists.exists():
+            shutil.rmtree(lists)
+        (lists / "partial").mkdir(parents=True, exist_ok=True)
+        internal(
+            root,
+            "etc/apt/sources.list.d/imok-warp.list",
+            "deb [arch=arm64 signed-by=/usr/share/keyrings/imok-cloudflare.asc] "
+            + SOURCE
+            + " bookworm main\n"
+            + f"deb [arch=arm64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] {origin}/debian bookworm main\n"
+            + f"deb [arch=arm64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] {origin}/debian-security bookworm-security main\n",
+        )
+        for p in cache.glob("*.deb"):
+            p.unlink()
+        try:
+            run(args + ["--error-on=any", "update"], 180)
+            progress("正在下载已确认的 WARP 版本；现用环境尚未替换", phase="download_packages")
+            run(args + ["--download-only"] + install, 600)
+            last_error = None
+            break
+        except ControlError as error:
+            last_error = error
+    if last_error is not None:
+        raise last_error
+    # APT checks the signed InRelease; independently bind the downloaded .deb to
+    # the version/size/SHA the user confirmed. Never execute an unverified .deb.
     progress("正在校验下载的软件包；现用环境尚未替换", phase="verify_packages")
     files = list(cache.glob("cloudflare-warp_*.deb"))
     wanted = plan["candidate"]
@@ -1000,6 +1023,24 @@ def progress(message, state="running", *, phase=None, download_id=None, apt_stat
     )
 
 
+def prune_backups(keep=2):
+    if recovery_required():
+        return
+    folder = BASE / "runtime-backups"
+    if not folder.is_dir() or folder.is_symlink():
+        return
+    valid = backups()
+    keep_ids = {row["id"] for row in valid[:keep]}
+    for item in folder.iterdir():
+        if item.is_symlink() or not re.fullmatch("[a-f0-9]{32}", item.name):
+            continue
+        if item.name not in keep_ids:
+            shutil.rmtree(item, ignore_errors=True)
+    for failed in BASE.glob(".runtime-failed-*"):
+        if not failed.is_symlink() and failed.is_dir():
+            shutil.rmtree(failed, ignore_errors=True)
+
+
 def swap(stage, version):
     root = BASE / "runtime"
     ident = uuid.uuid4().hex
@@ -1051,6 +1092,7 @@ def swap(stage, version):
         )
         journal.unlink()
         sync_directory(BASE)
+        prune_backups()
     except Exception:
         if (backup / "runtime").exists():
             if root.exists():
@@ -1132,7 +1174,7 @@ def execute(plan_id, confirmation):
                 recover(p)
                 return
             stage = BASE / (".runtime-stage-" + uuid.uuid4().hex)
-            upload_copy = PRIVATE / ("claimed-" + uuid.uuid4().hex + ".tgz")
+            upload_copy = BASE / (".claimed-" + uuid.uuid4().hex + ".tgz")
             try:
                 progress("正在准备独立副本；原环境尚未替换", phase="prepare_install")
                 if p["operation"] == "install":
@@ -1193,6 +1235,8 @@ def execute(plan_id, confirmation):
                     raise ControlError("维护期间账户或配置已变化，未提交新环境；请重新检查后确认")
                 progress("副本检查通过；正在提交运行环境", phase="commit")
                 swap(stage, package_info(stage)["version"])
+                if p["operation"] == "install":
+                    (BASE / "runtime-uploads/runtime.tgz").unlink(missing_ok=True)
                 if p["operation"] == "online-install":
                     save(
                         PRIVATE / "online.json",

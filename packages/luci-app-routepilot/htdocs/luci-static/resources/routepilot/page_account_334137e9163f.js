@@ -531,6 +531,14 @@ return baseclass.extend({
       )
     );
     o.datatype = 'hostname';
+    o.validate = function (_section, value) {
+      var v = String(value || '')
+        .trim()
+        .toLowerCase();
+      return !v || /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(v)
+        ? true
+        : _('只填团队名称（字母、数字或连字符），不填 .cloudflareaccess.com、网址或邮箱');
+    };
     var organizationOption = o;
     o = pageOption('advanced', form.Button, '_prepare', _('启动独立登录环境'));
     o.inputtitle = _('准备登录环境');

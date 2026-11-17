@@ -19,9 +19,20 @@ from speed_test import same_line, status
 
 RESULT = RUN / "endpoint-quality.json"
 SNI = "consumer-masque.cloudflareclient.com"
+ZT_SNI = "zt-masque.cloudflareclient.com"
 ATTEMPTS = 3
 ATTEMPT_SECONDS = 0.9
 MEASUREMENT_SECONDS = 28
+
+
+def target_sni(host):
+    try:
+        addr = socket.inet_aton(host)
+        if addr[:3] in (b"\xa2\x9f\xc5", b"\xa2\x9f\xc6"):  # 162.159.197.0/24, 162.159.198.0/24
+            return ZT_SNI
+    except OSError:
+        pass
+    return SNI
 
 
 def candidates():
@@ -44,7 +55,10 @@ def start():
     if not candidates():
         raise ControlError("请先读取 IPv4 入口候选")
     with (RUN / "endpoint-quality.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ControlError("已有入口候选测量正在进行，请稍候查看结果") from None
         publish(dict(state="running", started_at=time.time()))
         try:
             subprocess.Popen(
@@ -62,6 +76,7 @@ def start():
 
 
 def quic_handshake(host, port):
+    sni = target_sni(host)
     result = command(
         [
             "curl",
@@ -79,12 +94,12 @@ def quic_handshake(host, port):
             "--max-time",
             str(ATTEMPT_SECONDS),
             "--resolve",
-            f"{SNI}:{port}:{host}",
+            f"{sni}:{port}:{host}",
             "-o",
             "/dev/null",
             "-w",
             "%{time_appconnect}",
-            f"https://{SNI}:{port}/",
+            f"https://{sni}:{port}/",
         ],
         timeout=ATTEMPT_SECONDS + 0.15,
         check=False,
@@ -96,6 +111,7 @@ def quic_handshake(host, port):
 
 
 def tcp_handshake(host, port):
+    sni = target_sni(host)
     context = ssl.create_default_context()
     context.minimum_version = ssl.TLSVersion.TLSv1_3
     context.set_alpn_protocols(["h2"])
@@ -110,7 +126,7 @@ def tcp_handshake(host, port):
         if remaining <= 0:
             return None
         conn.settimeout(remaining)
-        with context.wrap_socket(conn, server_hostname=SNI) as encrypted:
+        with context.wrap_socket(conn, server_hostname=sni) as encrypted:
             if encrypted.selected_alpn_protocol() != "h2":
                 return None
     return (time.monotonic() - start_at) * 1000

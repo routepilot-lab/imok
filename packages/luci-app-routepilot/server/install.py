@@ -123,7 +123,31 @@ def prepare(directory, hostname, token, xray, cloudflared, service_root, create=
                 "streamSettings": {"network": "ws", "wsSettings": {"path": ws_path}},
             }
         ],
-        "outbounds": [{"protocol": "freedom", "tag": "direct", "settings": {}}],
+        "routing": {
+            "rules": [
+                {
+                    "type": "field",
+                    "ip": [
+                        "0.0.0.0/8",
+                        "10.0.0.0/8",
+                        "100.64.0.0/10",
+                        "127.0.0.0/8",
+                        "169.254.0.0/16",
+                        "172.16.0.0/12",
+                        "192.168.0.0/16",
+                        "198.18.0.0/15",
+                        "::1/128",
+                        "fc00::/7",
+                        "fe80::/10",
+                    ],
+                    "outboundTag": "block",
+                }
+            ]
+        },
+        "outbounds": [
+            {"protocol": "freedom", "tag": "direct", "settings": {}},
+            {"protocol": "blackhole", "tag": "block"},
+        ],
     }
     (directory / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     (directory / "tunnel-token").write_text(token + "\n")
@@ -251,6 +275,11 @@ def install(args, ask=input, secret=getpass.getpass):
             ROOT.mkdir(mode=0o700, exist_ok=False)
             owned_directory = True
             uri = prepare(ROOT, hostname, token, xray, cf, str(ROOT), create=False)
+            # Re-verify hashes and versions on the private root-owned copies to prevent TOCTOU.
+            check_binary(ROOT / "xray", args.xray_sha256, "Xray")
+            check_binary(ROOT / "cloudflared", args.cloudflared_sha256, "cloudflared")
+            check_version(ROOT / "xray", XRAY_VERSION, "Xray")
+            check_version(ROOT / "cloudflared", CF_VERSION, "cloudflared")
             # DynamicUser must traverse this directory; every secret stays 0600.
             ROOT.chmod(0o755)
             # Test Xray's complete configuration before exposing services.

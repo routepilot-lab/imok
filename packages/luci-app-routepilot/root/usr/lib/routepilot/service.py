@@ -12,6 +12,8 @@ import uuid
 
 from runtime import atomic, command, uci_value, RUN, RULES
 from masque_config import (
+    LEGACY_PRIORITY,
+    MARK,
     TABLE,
     PRIORITY,
 )
@@ -37,6 +39,30 @@ UNKNOWN_PROBE_SECONDS = 4
 UNKNOWN_STATUS_SECONDS = 300
 GUARDED_STATUS_TIMEOUT = 2
 UNKNOWN_RENEWAL_RESERVE = 2
+POLICY_SELECTOR = ("fwmark", f"{MARK:#x}/0xff000000", "lookup", str(TABLE))
+POLICY_RULE = ("from", "all", *POLICY_SELECTOR)
+
+
+def policy_rules(listing, priority):
+    return [
+        tuple(rule.split())
+        for number, _, rule in (line.strip().partition(":") for line in listing.splitlines())
+        if number == str(priority)
+    ]
+
+
+def ensure_policy_rule():
+    show = ["ip", "-4", "rule", "show"]
+    listing = command(show).stdout
+    current = policy_rules(listing, PRIORITY)
+    if current and current != [POLICY_RULE]:
+        raise ValueError("专用路由优先级被占用")
+    if not current:
+        command(["ip", "-4", "rule", "add", "pref", str(PRIORITY), *POLICY_SELECTOR])
+        if policy_rules(command(show).stdout, PRIORITY) != [POLICY_RULE]:
+            raise RuntimeError("专用策略路由规则未确认，未应用设备接管")
+    if POLICY_RULE in policy_rules(listing, LEGACY_PRIORITY):
+        command(["ip", "-4", "rule", "del", "pref", str(LEGACY_PRIORITY), *POLICY_SELECTOR])
 
 
 def guard_fallback(guard, direct):
@@ -69,6 +95,10 @@ def preflight(cfg):
     waiting = {}
     selected = []
     if cfg["main"].get("scope", "devices") != "lan":
+        if not any(
+            p.get("enabled") == "1" and p.get("mode") != "direct" for p in cfg["policies"]
+        ):
+            raise ValueError("请在「设备」启用至少一条代理策略")
         try:
             lines = DHCP_LEASES.read_text().splitlines()
         except FileNotFoundError:
@@ -102,10 +132,8 @@ def preflight(cfg):
             raise ValueError("专用 nftables 表被占用")
         if command(["ip", "-4", "route", "show", "table", str(TABLE)], check=False).stdout.strip():
             raise ValueError("专用策略路由表被占用")
-        if any(
-            line.startswith(str(PRIORITY) + ":")
-            for line in command(["ip", "-4", "rule", "show"]).stdout.splitlines()
-        ):
+        listing = command(["ip", "-4", "rule", "show"]).stdout
+        if any(policy_rules(listing, priority) for priority in (PRIORITY, LEGACY_PRIORITY)):
             raise ValueError("专用路由优先级被占用")
     return waiting
 
@@ -264,10 +292,16 @@ class Service:
                     "del",
                     "pref",
                     str(PRIORITY),
-                    "fwmark",
-                    "0x5a000000/0xff000000",
-                    "lookup",
-                    str(TABLE),
+                    *POLICY_SELECTOR,
+                ],
+                [
+                    "ip",
+                    "-4",
+                    "rule",
+                    "del",
+                    "pref",
+                    str(LEGACY_PRIORITY),
+                    *POLICY_SELECTOR,
                 ],
                 [
                     "ip",
@@ -283,6 +317,18 @@ class Service:
                     str(TABLE),
                 ],
                 ["ip", "-4", "route", "del", "default", "dev", "rp-backup", "table", str(TABLE)],
+                [
+                    "ip",
+                    "-4",
+                    "route",
+                    "del",
+                    "unreachable",
+                    "default",
+                    "metric",
+                    "4294967295",
+                    "table",
+                    str(TABLE),
+                ],
             ):
                 try:
                     command(args, check=False)
@@ -290,7 +336,7 @@ class Service:
                     clean = False
             try:
                 tables = json.loads(command(["nft", "-j", "list", "tables"]).stdout)["nftables"]
-                rules = json.loads(command(["ip", "-j", "-4", "rule", "show"]).stdout)
+                rules = command(["ip", "-4", "rule", "show"]).stdout
                 routes = json.loads(
                     command(["ip", "-j", "-4", "route", "show", "table", "all"]).stdout
                 )
@@ -299,10 +345,18 @@ class Service:
                     and t["table"].get("family") == "inet"
                     for t in tables
                 )
-                clean = clean and not any(r.get("priority") == PRIORITY for r in rules)
+                clean = clean and not any(
+                    POLICY_RULE in policy_rules(rules, priority)
+                    for priority in (PRIORITY, LEGACY_PRIORITY)
+                )
                 clean = clean and not any(str(r.get("table")) == str(TABLE) for r in routes)
             except Exception:
                 clean = False
+            if clean:
+                try:
+                    clear_dns_redirects()
+                except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
+                    clean = False
             if clean:
                 owner.unlink(missing_ok=True)
         try:
@@ -495,31 +549,26 @@ class Service:
             self.plane.forward(compiled["devices"])
             self.last_fw4_check = time.monotonic()
             atomic(RUN / "active-owner", "routepilot devices and route table 51990\n")
+            if self.backend == "worker":
+                command(["sysctl", "-w", "net.ipv4.conf.rp-backup.rp_filter=0"], check=False)
             command(
-                ["ip", "-4", "route", "replace", "default"]
-                + (
-                    ["dev", "rp-backup"]
-                    if self.backend == "worker"
-                    else ["via", "10.254.239.2", "dev", "rp-host"]
-                )
-                + ["table", str(TABLE)]
+                [
+                    "ip",
+                    "-4",
+                    "route",
+                    "replace",
+                    "unreachable",
+                    "default",
+                    "metric",
+                    "4294967295",
+                    "table",
+                    str(TABLE),
+                ]
             )
-            rules = command(["ip", "-4", "rule", "show"]).stdout
-            if not any(line.startswith(str(PRIORITY) + ":") for line in rules.splitlines()):
-                command(
-                    [
-                        "ip",
-                        "-4",
-                        "rule",
-                        "add",
-                        "pref",
-                        str(PRIORITY),
-                        "fwmark",
-                        "0x5a000000/0xff000000",
-                        "lookup",
-                        str(TABLE),
-                    ]
-                )
+            command(
+                ["ip", "-4", "route", "replace", *self.tunnel_route(), "table", str(TABLE)]
+            )
+            ensure_policy_rule()
             # fw4 reload triggered by the original service may recreate its table only.
             exists = (
                 command(["nft", "list", "table", "inet", "routepilot"], check=False).returncode == 0
@@ -647,12 +696,17 @@ class Service:
             self.last_fw4_check = now
         if command(["nft", "list", "table", "inet", "routepilot"], check=False).returncode:
             self.install_capture_table(self.compiled, exists=False, live_dns=True)
-        if not any(
-            line.startswith(str(PRIORITY) + ":")
-            for line in command(["ip", "-4", "rule", "show"]).stdout.splitlines()
-        ):
+        listing = command(["ip", "-4", "rule", "show"]).stdout
+        if policy_rules(listing, PRIORITY) != [POLICY_RULE]:
             raise RuntimeError("专用策略路由规则已丢失，将撤回 WARP 接管")
-        if not command(
+        routes = command(
             ["ip", "-4", "route", "show", "table", str(TABLE)], check=False
-        ).stdout.strip():
+        ).stdout.splitlines()
+        expected = self.tunnel_route()
+        if not any(row.split()[: len(expected)] == expected for row in routes):
             raise RuntimeError("专用路由已丢失，将撤回 WARP 接管")
+
+    def tunnel_route(self):
+        if self.backend == "worker":
+            return ["default", "dev", "rp-backup"]
+        return ["default", "via", "10.254.239.2", "dev", "rp-host"]

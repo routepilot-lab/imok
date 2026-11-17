@@ -23,7 +23,12 @@ def read_request(path, request_id, limit):
         raise ControlError("请求输入不可用，请重新提交") from None
     with os.fdopen(fd) as handle:
         st = os.fstat(handle.fileno())
-        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or st.st_size > limit:
+        if (
+            not stat.S_ISREG(st.st_mode)
+            or st.st_mode & 0o022
+            or st.st_uid != os.geteuid()
+            or st.st_size > limit
+        ):
             raise ControlError("请求输入大小、类型或属主无效")
         raw = handle.read(limit + 1)
     if len(raw.encode()) > limit:
@@ -64,7 +69,7 @@ def reap_requests(run, now=None):
     directory = Path(run) / "requests"
     for path in directory.iterdir():
         if not re.fullmatch(
-            r"(auth-input|backup-input|cloud-input|relay-input|organization-input|rules-input|client-input|runtime-input)-[a-f0-9]{32}\.json",
+            r"(auth-input|backup-input|cloud-input|relay-input|organization-input|rules-input|client-input|runtime-input|speed-compare-input|warp-dns-input)-[a-f0-9]{32}\.json",
             path.name,
         ):
             continue

@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-routepilot
 PKG_VERSION:=0.2.38
-PKG_RELEASE:=36
+PKG_RELEASE:=37
 PKG_LICENSE:=MIT GPL-2.0
 PKG_MAINTAINER:=imok contributors
 
@@ -42,7 +42,7 @@ define Package/luci-app-routepilot/prerm
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] && exit 0
 /etc/init.d/routepilot stop
-/usr/libexec/routepilot cleanup
+/usr/libexec/routepilot cleanup || exit 1
 /etc/init.d/routepilot disable
 if [ "$$1" = remove ]; then
 	/usr/bin/python3 -B /usr/lib/routepilot/egress_guard.py remove || exit 1

@@ -2,7 +2,7 @@
   "upstream": "https://github.com/cmliu/edgetunnel",
   "commit": "a8ab11125ece9bc27983f609a6359be81b21050c",
   "source_sha256": "1e84d11af0544654bf56a06fa833e77184a57193288a9ffccf62c031a9fb7d65",
-  "template_sha256": "742dfb3243585a5045796e790a8b6ed77bd7d07dcf24029afca6991d634a994f",
+  "template_sha256": "34f5006e3f399fd5e6d7f90c95d0bd7fb597ae27a971789541076ad6dbcd2dd1",
   "license": "GPL-2.0",
   "changes": [
     "Disable synthetic speed tests",

@@ -404,6 +404,39 @@ def fetch_body(url, expected=None):
                 stderr=subprocess.DEVNULL,
                 timeout=15,
             )
+            if result.returncode in (6, 7, 28, 35, 52, 56):
+                try:
+                    from runtime import RUN
+
+                    status = json.loads((RUN / "status.json").read_text())
+                except (OSError, ValueError):
+                    status = {}
+                if (
+                    isinstance(status, dict)
+                    and status.get("state") == "running"
+                    and status.get("backend") == "masque"
+                    and 0 <= time.time() - float(status.get("time", 0)) < 15
+                ):
+                    for path in (content, headers):
+                        path.write_bytes(b"")
+                    tunnel_args = [
+                        "ip",
+                        "netns",
+                        "exec",
+                        "routepilot",
+                        *args[:4],
+                        "--interface",
+                        "if!CloudflareWARP",
+                        *args[4:],
+                    ]
+                    result = subprocess.run(
+                        tunnel_args,
+                        input='url = "' + url + '"\n',
+                        text=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        timeout=15,
+                    )
             code = result.stdout.strip()
             if result.returncode == 0 and expected is None and code == "404":
                 return True

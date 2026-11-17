@@ -733,6 +733,7 @@ def apply_exit(doc, row, payload):
         acknowledged = read_network(row, reply, target)
         if acknowledged != {"acknowledged": True}:
             raise ClientError("云端尚未确认出口设置，请同步核对", uncertain=True)
+        reply = provider.request("GET", "/reg/" + row["device_id"], token=row["device_token"])
         catalog = read_network(row, reply)
         if catalog["selected_id"] != target:
             raise ClientError("云端读回的出口与所选值不一致，请同步核对", uncertain=True)
@@ -897,7 +898,8 @@ def job(ident, operation_id):
                 save(doc)
                 subscriptions.stop(PRIVATE, read_private, row, lambda: save(doc))
                 row.update(state=payload["resume_state"], updated_at=time.time())
-                row.pop("error", None)
+                if payload["resume_state"] in ("registered", "revoked"):
+                    row.pop("error", None)
             elif action == "revoke":
                 row["state"] = "revoking"
                 save(doc)
@@ -909,6 +911,16 @@ def job(ident, operation_id):
                 row.update(state="revoked", updated_at=time.time(), post_uncertain=False)
                 for k in ("private_key", "device_token", "bootstrap_key", "peer_key", "reserved"):
                     row.pop(k, None)
+                row.pop("error", None)
+                if subscriptions.state(row)["enabled"]:
+                    try:
+                        subscriptions.stop(PRIVATE, read_private, row, lambda: save(doc))
+                    except ClientError as sub_error:
+                        if row.get("subscription"):
+                            row["subscription"].update(
+                                state="unknown",
+                                error="身份已撤销，但私密订阅尚未确认移除：" + str(sub_error),
+                            )
             else:
                 raise ClientError("未知客户端任务")
         except ClientError as error:

@@ -1539,9 +1539,14 @@ return baseclass.extend({
       var prefix = String(cloudPrefix.value || '')
         .trim()
         .toLowerCase();
+      var full = zone ? prefix + '.' + zone.name : '';
       cloudHost.value =
-        zone && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(prefix)
-          ? prefix + '.' + zone.name
+        zone &&
+        full.length <= 253 &&
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(
+          prefix
+        )
+          ? full
           : '';
     }
     cloudPrefix.addEventListener('input', function () {

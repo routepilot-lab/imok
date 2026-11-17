@@ -318,12 +318,24 @@ class UpstreamTCP:
 
 
 def dns_route(name, policy):
-    domestic = suffix_match({name}, policy.get("custom_direct_domains", ())) or (
-        not suffix_match({name}, policy.get("custom_proxy_domains", ()))
-        and suffix_match({name}, policy.get("china_domains", ()))
-    )
+    mode = policy.get("mode")
     if policy.get("guarded_global"):
         domestic = False
+    elif mode == "global":
+        domestic = suffix_match({name}, policy.get("custom_direct_domains", ()))
+    elif mode == "whitelist":
+        domestic = suffix_match({name}, policy.get("custom_direct_domains", ())) or (
+            not suffix_match({name}, policy.get("custom_proxy_domains", ()))
+            and (
+                suffix_match({name}, policy.get("mode_domains", ()))
+                or suffix_match({name}, policy.get("china_domains", ()))
+            )
+        )
+    else:
+        domestic = suffix_match({name}, policy.get("custom_direct_domains", ())) or (
+            not suffix_match({name}, policy.get("custom_proxy_domains", ()))
+            and suffix_match({name}, policy.get("china_domains", ()))
+        )
     server = str(
         ipaddress.IPv4Address(
             policy.get("dns_domestic", "223.5.5.5") if domestic else policy["dns_foreign"]
@@ -401,7 +413,7 @@ def query_opt(query, finish):
 def ordinary_query(query):
     _, _, _, finish = question(query)
     _, flags, qd, answers, authority, extra = struct.unpack("!6H", query[:12])
-    if flags & ~0x0110 or qd != 1 or answers or authority or extra not in (0, 1):
+    if flags & ~0x0130 or qd != 1 or answers or authority or extra not in (0, 1):
         return None
     offset = 12
     while offset < finish - 4 and 0 < query[offset] <= 63:
@@ -416,12 +428,16 @@ def ordinary_query(query):
     return finish, bool(opt[1] & 0x8000)
 
 
+def normalized_question(packet, finish):
+    return packet[12 : finish - 4].lower() + packet[finish - 4 : finish]
+
+
 def cache_key(query):
     ordinary = ordinary_query(query)
     if ordinary is None:
         return query[2:]
     finish, dnssec = ordinary
-    return query[2:4], query[12:finish].lower(), dnssec
+    return query[2:4], normalized_question(query, finish), dnssec
 
 
 def client_response(query, response, *, tcp=False):
@@ -430,7 +446,9 @@ def client_response(query, response, *, tcp=False):
     if ordinary is not None:
         finish, _ = ordinary
         _, _, _, end = question(response, True)
-        if end == finish and response[12:end].lower() == query[12:finish].lower():
+        if end == finish and normalized_question(response, end) == normalized_question(
+            query, finish
+        ):
             packet = packet[:12] + query[12:finish] + packet[finish:]
         elif response[:2] != query[:2]:
             return failure(query)

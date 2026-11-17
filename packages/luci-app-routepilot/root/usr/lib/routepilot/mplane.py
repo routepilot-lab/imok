@@ -67,7 +67,9 @@ def fw4_remove(backend="masque", *, verify=False):
                 clean
                 and confirmed.returncode == 0
                 and not any(
-                    'comment "routepilot-worker-' in line for line in confirmed.stdout.splitlines()
+                    'comment "routepilot-' in line
+                    and ('comment "routepilot-worker-' in line) == (backend == "worker")
+                    for line in confirmed.stdout.splitlines()
                 )
             )
     return clean
@@ -138,11 +140,34 @@ def fw4_rule_text(devices, wan, proxy, control, *, preview_offload=False):
     return text
 
 
+def tunnel_resolv(text):
+    """Strip non-global WAN peers once tunnel connects unless warp-svc owns loopback DNS."""
+    servers, others = [], []
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0] == "nameserver":
+            try:
+                servers.append((line, ipaddress.ip_address(parts[1])))
+                continue
+            except ValueError:
+                pass
+        others.append(line)
+    if any(ip.is_loopback for _, ip in servers):
+        return text
+    kept = [line for line, ip in servers if ip.is_global]
+    if not kept:
+        kept = ["nameserver 1.1.1.1"]
+    return "\n".join([*kept, *others]) + "\n"
+
+
 class Plane:
     def __init__(self):
         self.owned = False
+        self.client_process = None
         self.client_pid = None
         self.last_buffer_check = 0
+        self.last_control_check = 0
+        self.control_wan = ""
         self.protocol = None
         self.protocol_managed = None
         self.protocol_preference = "auto"
@@ -160,10 +185,17 @@ class Plane:
             if line.split()
         )
 
-    @guarded_start
     def start(self):
-        if self.owned and self.exists():
+        if self.owned:
+            if self.client_process is None or self.client_process.poll() is not None:
+                raise RuntimeError("WARP 进程已退出，正在按已保存配置重新建立线路")
+            if not self.exists():
+                raise RuntimeError("WARP 专用网络已丢失，正在重新建立线路")
             return
+        self._start()
+
+    @guarded_start
+    def _start(self):
         if not (ROOT / "usr/bin/warp-svc").exists():
             raise ValueError("尚未安装适用于此路由器的 MASQUE 运行环境")
         if self.exists() or command(["ip", "link", "show", HOST], check=False).returncode == 0:
@@ -216,6 +248,7 @@ class Plane:
             command(["ip", "link", "set", PEER, "netns", NS])
             command(["ip", "addr", "add", "10.254.239.1/30", "dev", HOST])
             command(["ip", "link", "set", HOST, "up"])
+            command(["sysctl", "-w", f"net.ipv4.conf.{HOST}.rp_filter=0"], check=False)
             net(["ip", "link", "set", "lo", "up"])
             net(["ip", "addr", "add", "10.254.239.2/30", "dev", PEER])
             net(["ip", "link", "set", PEER, "up"])
@@ -233,6 +266,8 @@ class Plane:
 """.replace('"eth1"', '"' + wan + '"'),
             )
             fw4_install([])
+            self.control_wan = wan
+            self.last_control_check = time.monotonic()
             if self.dns_preferences is None:
                 resolver = bootstrap_resolver(wan, net)
             else:
@@ -249,7 +284,7 @@ class Plane:
             net(["chroot", str(ROOT), "dbus-daemon", "--system", "--fork", "--nopidfile"])
             # No shared host systemd, D-Bus socket, resolv.conf or credentials.
             with open(RUN / "client.log", "ab") as log:
-                client = subprocess.Popen(
+                self.client_process = subprocess.Popen(
                     ["ip", "netns", "exec", NS, "chroot", str(ROOT), "/usr/bin/warp-svc"],
                     stdin=subprocess.DEVNULL,
                     stdout=log,
@@ -257,11 +292,55 @@ class Plane:
                     start_new_session=True,
                     env={**os.environ, "RUST_LOG": "warn"},
                 )
-                self.client_pid = client.pid
+                self.client_pid = self.client_process.pid
             time.sleep(2)
+            if self.client_process.poll() is not None:
+                raise RuntimeError("WARP 进程在启动期间退出")
         except Exception:
             self.stop()
             raise
+
+    def ensure_control_firewall(self):
+        if not self.owned:
+            return
+        now = time.monotonic()
+        if self.last_control_check and now - self.last_control_check < 12:
+            return
+        self.last_control_check = now
+        try:
+            routes = json.loads(command(["ip", "-j", "-4", "route", "get", "1.1.1.1"]).stdout)
+            wan = routes[0].get("dev", "")
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,15}", wan) or wan in (
+                "rp-host",
+                "rp-backup",
+                "CloudflareWARP",
+                "warp_test",
+            ):
+                return
+            listing = command(
+                ["nft", "-a", "list", "chain", "inet", "fw4", "forward"], check=False
+            ).stdout
+            has_table = (
+                command(["nft", "list", "table", "inet", "routepilot_control"], check=False).returncode
+                == 0
+            )
+            if wan != self.control_wan or not has_table:
+                prefix = "delete table inet routepilot_control\n" if has_table else ""
+                command(
+                    ["nft", "-f", "-"],
+                    data=prefix
+                    + """table inet routepilot_control {
+ chain namespace_nat { type nat hook postrouting priority 99; policy accept;
+  ip saddr 10.254.239.2 oifname "eth1" masquerade
+ }
+}
+""".replace('"eth1"', '"' + wan + '"'),
+                )
+                self.control_wan = wan
+            if "routepilot-control-out" not in listing or f'oifname "{wan}"' not in listing:
+                fw4_install([])
+        except (OSError, RuntimeError, ValueError, IndexError, subprocess.TimeoutExpired):
+            pass
 
     def optimize(self):
         if self.client_pid and time.monotonic() - self.protocol_checked >= 12:
@@ -381,8 +460,8 @@ class Plane:
             if state is TunnelStatus.UNKNOWN:
                 raise UnknownTunnelStatus()
             raise RuntimeError("隧道接口尚未就绪")
-        # Host curl inside the namespace uses the same resolver as the client.
-        atomic(NETNS_CONFIG, (ROOT / "etc/resolv.conf").read_text(), 0o644)
+        # Host curl inside the namespace uses a tunnel-safe resolver.
+        atomic(NETNS_CONFIG, tunnel_resolv((ROOT / "etc/resolv.conf").read_text()), 0o644)
         return state
 
     def forward(self, devices):
@@ -441,6 +520,9 @@ class Plane:
                     os.kill(int(pid), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
+        if self.client_process is not None:
+            # Also stop our child if it is no longer listed in the namespace.
+            self.client_process.kill()
         fw4_remove()
         command(["nft", "delete", "table", "inet", "routepilot_control"], check=False)
         command(["ip", "link", "del", HOST], check=False)
@@ -452,6 +534,10 @@ class Plane:
             NETNS_CONFIG.parent.rmdir()
         except OSError:
             pass
+        if self.client_process is not None:
+            self.client_process.wait(timeout=2)
+            self.client_process = None
+            self.client_pid = None
         (RUN / "masque-owner.json").unlink(missing_ok=True)
         self.owned = False
         release_plane(self)

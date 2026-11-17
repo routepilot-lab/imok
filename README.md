@@ -1,6 +1,6 @@
 # imOK · Cloudflare 分流助手
 
-> **最新正式版 v0.2.38-36**。新增首次安装引导、WARP 分项下载和开启前的出口检查，界面随 Argon 切换浅色与深色。支持独立客户端双协议、按客户端选出口和局域网设备流量统计。[本版更新](docs/releases/v0.2.38-36.md)
+> **最新正式版 v0.2.38-37**。WARP 进程退出后自动恢复原线路，完善策略路由、DNS 与安装稳定性。支持按客户端选协议和出口，以及局域网设备流量统计。[本版更新](docs/releases/v0.2.38-37.md)
 
 ## 使用前提
 
@@ -12,7 +12,7 @@
 
 我用 Codex 和 Claude 一起开发 imOK，想把家里设备怎么分流、外出的手机走哪个出口，放到同一个路由器后台管理。
 
-[**下载 v0.2.38-36 正式版**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-36) · [历史版本](https://github.com/routepilot-lab/imok/releases) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
+[**下载 v0.2.38-37 正式版**](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-37) · [历史版本](https://github.com/routepilot-lab/imok/releases) · [安装与升级](packages/luci-app-routepilot/INSTALL.zh-CN.md) · [手机接入](docs/CLIENT_ACCESS.md) · [常见问题](docs/FAQ.md) · [更新记录](CHANGELOG.md)
 
 **Cloudflare WARP management for OpenWrt:** independent MASQUE and WireGuard clients, per-client egress selection, LAN device usage, private subscriptions, DNS diagnostics and persistent personal rules.
 
@@ -99,15 +99,15 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 下载和安装
 
-当前正式版为 **v0.2.38-36 · 安装引导与主题适配**。历史版本仍可在 Releases 下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
+当前正式版为 **v0.2.38-37 · WARP 自动恢复与分流稳定性**。历史版本仍可在 Releases 下载。`2.0` 表示界面体系，安装包沿用原有版本规则与 `luci-app-routepilot` 包名，保留旧配置兼容。
 
-[前往正式版下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-36)
+[前往正式版下载](https://github.com/routepilot-lab/imok/releases/tag/v0.2.38-37)
 
 | 文件 | 用途 |
 | --- | --- |
-| `imOK-0.2.38-36-install-kit.zip` | 完整插件 IPK、首装和保留设置重装程序、源码、安装说明与校验文件 |
-| `luci-app-routepilot_0.2.38-36_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包 |
-| `imOK-0.2.38-36-public-source.zip` | 公开源码、测试、文档与许可 |
+| `imOK-0.2.38-37-install-kit.zip` | 完整插件 IPK、首装和保留设置重装程序、源码、安装说明与校验文件 |
+| `luci-app-routepilot_0.2.38-37_all.ipk` | 已有兼容运行环境的完整插件安装 / 升级包 |
+| `imOK-0.2.38-37-public-source.zip` | 公开源码、测试、文档与许可 |
 | `SHA256SUMS` | 上述安装、源码与分享包的校验值 |
 
 **新设备先读安装说明。** 公开分享包提供插件与安装程序。WARP 和 Debian 组件由路由器在线下载，Cloudflare 团队和云端出口由用户提供。上传首装程序后，在「WARP 安装与更新」查看环境检测和在线安装进度，再按引导注册路由器、选择出口与接管范围。已有环境只升级 IPK，先备份并准备独立管理连接，升级可能短暂重连。
@@ -116,11 +116,11 @@ Workers 保留授权、域名 / 项目选择、部署、证书、PROXYIP、入�
 
 ## 本版做了哪些验证？
 
-- 插件与服务端回归、前端检查、目标 LuCI 契约、资源哈希、可重复构建和发布保护测试通过。
-- 使用 Argon 2.2.9.4 样式和 Chromium 验证 14 个页面的桌面与手机布局，覆盖自动、浅色和深色模式。此前实测过独立 WireGuard 客户端联网与选定出口。
-- 在 GL-MT6000 实机验证了保留设置升级、原 MASQUE 隧道、HTTPS 与 DNS。
+- 32 组本地检查通过，涵盖插件与服务端回归、前端、LuCI 契约、资源哈希和可重复构建。
+- 隔离环境使用真实 WARP 进程，三次终止后均在约 14–16 秒恢复到同一个公网 IPv4。试验使用独立的 Cloudflare 默认出口。
+- GL-MT6000 实机原地升级后，原配置、WARP 注册和实际出口保持一致，8 项 DNS 查询通过。
 
-首次安装已在隔离环境模拟。完整新机注册流程、APT 升级和运行环境恢复仍需实机核验。[发布检查记录](docs/evidence/0.2.38-36/PUBLICATION_CHECKS.json) · [实机验收清单](docs/HARDWARE_ACCEPTANCE.md)
+空白路由器完整首装与注册、APT 升级和运行环境恢复仍需实机核验。[发布检查记录](docs/evidence/0.2.38-37/PUBLICATION_CHECKS.json) · [实机验收清单](docs/HARDWARE_ACCEPTANCE.md)
 
 主线路故障撤回接管时可能使用宽带直连；本插件不提供 IPv6 代理，可阻断 IPv6 或明确允许其直连。普通“导出配置”不包含客户端私钥、手机订阅、个人规则覆盖及第三方授权，迁移前请阅读说明。
 
@@ -140,4 +140,4 @@ python3 packages/luci-app-routepilot/tools/check_all.py --luci-core /path/to/tar
 
 imOK brings Cloudflare WARP / MASQUE, existing organization egress routes, per-device and LAN policies, DNS diagnostics, and independent client profiles into one OpenWrt / LuCI console. Enable up to eight LAN device policies with one shared router egress. Manage up to 32 independent client profiles in one Cloudflare team, each with its own MASQUE or WireGuard registration and choice of available egress. Registration is subject to team limits and permissions. MASQUE supports direct import, QR codes and private subscriptions; WireGuard supports configuration files and QR codes.
 
-**v0.2.38-36 is the current stable plugin release.** It adds guided setup, staged WARP downloads, an egress check before activation, and support for Argon light and dark themes. The installation kit includes the IPK, first-install and reinstall scripts, public source, instructions and checksums. In-place upgrades were verified on a GL-MT6000. Full fresh-device enrollment, APT upgrades and runtime recovery still need hardware validation.
+**v0.2.38-37 is the current stable release.** It restores the saved WARP line after a daemon exit and improves policy routing, DNS, and installer reliability. The kit includes the IPK, first-install and reinstall scripts, source, instructions, and checksums. An in-place upgrade was verified on a GL-MT6000, and three isolated runs with a real WARP daemon restored the same public IPv4 after termination. Full fresh-device enrollment still needs hardware validation.

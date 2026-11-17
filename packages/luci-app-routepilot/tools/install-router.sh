@@ -12,10 +12,17 @@ set -- "$HERE"/luci-app-routepilot_*.ipk
 [ "$#" -eq 1 ] && [ -f "$1" ] || { echo '安装目录必须只包含本版的一个 imok IPK'; exit 1; }
 PKG=$1
 RUNTIME="$HERE/routepilot-runtime-arm64_2026.8.2115.0.tgz"
-[ -f "$RUNTIME" ] && [ -f "$HERE/SHA256SUMS" ] || { echo '缺少运行环境包或 SHA256SUMS'; exit 1; }
+[ -f "$HERE/SHA256SUMS" ] || { echo '缺少 SHA256SUMS'; exit 1; }
+if [ "$MODE" = --install ] || { [ "$MODE" = --check ] && [ ! -d /opt/routepilot/runtime ]; }; then
+ [ -f "$RUNTIME" ] || { echo '缺少运行环境包'; exit 1; }
+ grep -Fq "  $(basename "$RUNTIME")" "$HERE/SHA256SUMS" || { echo 'SHA256SUMS 未包含运行环境包校验项，停止安装'; exit 1; }
+fi
+grep -Fq "  $(basename "$PKG")" "$HERE/SHA256SUMS" || { echo 'SHA256SUMS 未包含当前 IPK 校验项，停止安装'; exit 1; }
 (cd "$HERE" && sha256sum -c SHA256SUMS) || { echo '文件校验失败，停止安装'; exit 1; }
 [ ! -L /opt/routepilot ] && [ ! -L /opt/routepilot/runtime ] || { echo '运行环境路径为符号链接，请先人工核对'; exit 1; }
-FREE=$(df -Pk /overlay | awk 'NR==2 {print $4}')
+DF_TARGET=/overlay
+[ -d "$DF_TARGET" ] || DF_TARGET=/
+FREE=$(df -Pk "$DF_TARGET" | awk 'NR==2 {print $4}')
 if [ ! -e /opt/routepilot/runtime ]; then
  [ "${FREE:-0}" -ge 512000 ] || { echo '首次安装至少需要 500 MB 可用存储'; exit 1; }
 fi
@@ -31,6 +38,7 @@ if [ "$MODE" = --upgrade ] && [ ! -x /opt/routepilot/runtime/usr/bin/warp-svc ];
 command -v opkg >/dev/null 2>&1 || { echo '未找到 opkg；此固件不在当前支持范围'; exit 1; }
 echo '更新软件包索引并安装缺少的依赖；不升级固件，不使用强制依赖。需要正常联网。'
 opkg update
+if ! command -v chroot >/dev/null 2>&1; then opkg install coreutils-chroot; fi
 if ! command -v xray >/dev/null 2>&1; then opkg install xray-core; fi
 if [ "$MODE" = --install ]; then
  mkdir -p /opt/routepilot
@@ -38,7 +46,7 @@ if [ "$MODE" = --install ]; then
  STAGE="/opt/routepilot/.runtime-new-$$"
  mkdir "$STAGE"
  trap '[ ! -d "$STAGE" ] || rm -rf "$STAGE"' EXIT HUP INT TERM
- tar -xzf "$RUNTIME" -C "$STAGE"
+ tar --no-same-owner --no-same-permissions -xzf "$RUNTIME" -C "$STAGE"
  [ -x "$STAGE/usr/bin/warp-cli" ] && [ -x "$STAGE/usr/bin/warp-svc" ] || { echo '运行环境不完整，停止安装'; exit 1; }
  chown 0:0 "$STAGE/usr/bin/warp-cli" "$STAGE/usr/bin/warp-svc"
  mv "$STAGE" /opt/routepilot/runtime

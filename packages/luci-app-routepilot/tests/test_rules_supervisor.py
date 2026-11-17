@@ -455,6 +455,49 @@ class SupervisorRulesTests(unittest.TestCase):
         self.assertEqual(self.events[0]["fallback"], "direct")
         self.assertTrue(self.events[0]["recovering"])
 
+    def test_killed_warp_child_reapplies_same_saved_line(self):
+        plane = m.Plane()
+        self.svc.plane = plane
+        self.cfg["main"]["warp_protocol"] = "MASQUE"
+        schedule = rs.Schedule(self.rules, self.run)
+        schedule.start(self.cfg["main"], "fixture")
+        schedule.finish(self.cfg["main"], True)
+        def stop(**kwargs):
+            plane.owned = False
+            plane.client_process = None
+            self.svc.compiled = None
+            return {"direct": True, "legacy": ""}
+
+        with subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"]) as child:
+            clients = iter((child, Mock(**{"poll.return_value": None})))
+
+            def start():
+                plane.owned = True
+                plane.client_process = next(clients)
+
+            def on_tick(tick):
+                if tick == 1:
+                    child.kill()
+                    self.assertEqual(child.wait(), -9)
+
+            try:
+                with (
+                    patch.object(plane, "_start", side_effect=start) as restart,
+                    patch.object(plane, "exists", return_value=True),
+                    patch.object(self.svc.stop, "side_effect", stop),
+                ):
+                    self.run_loop(3, on_tick)
+                self.assertEqual(restart.call_count, 2, self.events)
+            finally:
+                child.kill()
+
+        self.assertEqual([e["state"] for e in self.events], ["running", "error", "running", "stopped"])
+        self.assertIn("WARP 进程已退出", self.events[1]["message"])
+        self.assertEqual(self.svc.stop.call_count, 3)
+        self.assertEqual(plane.protocol_preference, "MASQUE")
+        applications = [call.args[1] for call in self.svc.apply.call_args_list]
+        self.assertEqual([(c["exit"], c["vnet"]) for c in applications], [("usa", "fixture")] * 2)
+
     def test_unknown_status_withdraws_then_restores_capture_without_rebuilding_plane(self):
         self.svc.unknown_since = time.monotonic() - 301
         self.svc.suspend_capture = Mock(return_value=True)

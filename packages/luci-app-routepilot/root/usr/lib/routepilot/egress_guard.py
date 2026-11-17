@@ -39,7 +39,11 @@ def policy_protected(policy):
     return value == "1"
 
 
-def scope(cfg):
+def valid_mac(mac):
+    return bool(MAC.fullmatch(mac)) and not int(mac[:2], 16) & 1
+
+
+def scope(cfg, *, partial=False):
     """Use device MACs, which exist in config before DHCP leases do."""
     mode = cfg["main"].get("scope", "devices")
     if mode not in ("lan", "devices"):
@@ -47,9 +51,10 @@ def scope(cfg):
     if mode == "lan":
         return ()
     macs = {str(p.get("mac", "")).lower() for p in cfg["policies"] if policy_protected(p)}
-    if any(not MAC.fullmatch(mac) or int(mac[:2], 16) & 1 for mac in macs):
+    valid = tuple("ether saddr " + mac for mac in sorted(macs) if valid_mac(mac))
+    if not partial and len(valid) != len(macs):
         raise ValueError("断网保护需要为所选设备填写有效的 MAC 地址")
-    return tuple("ether saddr " + mac for mac in sorted(macs))
+    return valid
 
 
 def rules(selectors):
@@ -192,6 +197,14 @@ class Guard:
             selected = scope(cfg) if active else ()
         except ValueError:
             self.block(None)
+            valid = scope(cfg, partial=True) if mode == "devices" and active else ()
+            if valid:
+                try:
+                    remove = f"delete table inet {TABLE}\n" if present() else ""
+                    self._transact(remove + rules(valid))
+                    self.selectors = valid
+                except FIREWALL_ERRORS:
+                    pass
             self.state = "unverified"
             self._record(self.state, "invalid_config")
             raise

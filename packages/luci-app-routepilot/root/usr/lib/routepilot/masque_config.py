@@ -9,11 +9,17 @@ from rules_overrides import merge, normalize
 
 MARK = PROXY_MARK
 TABLE = 51990
-PRIORITY = 11790
+PRIORITY = 1790
+LEGACY_PRIORITY = 11790
 
 
 class EmptyChinaRules(ValueError):
     """The selected mode has no effective China IPv4 rules."""
+
+
+SUBSCRIPTION_DOMAIN = re.compile(
+    r"^(?=.{1,253}$)(?:_[a-z0-9-]{1,62}\.)*(?:[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+)
 
 
 def normalize_domains(text):
@@ -21,16 +27,17 @@ def normalize_domains(text):
         raise ValueError("域名名单超过 4 MB")
     result, ignored = [], 0
     for raw in text.splitlines():
-        value = raw.strip().lower()
-        if not value or value.startswith("#"):
+        value = raw.split("#", 1)[0].strip().lower()
+        if not value:
             continue
-        if value.startswith("regexp:"):
-            # Never evaluate network-supplied regular expressions.
+        if value.startswith(("regexp:", "keyword:", "include:")):
+            # Never evaluate network-supplied regular expressions or substring wildcards.
             ignored += 1
             continue
+        value = re.sub(r"(?::@!?[a-z0-9_-]+)+$", "", value).strip()
         prefix = "full:" if value.startswith("full:") else ""
         value = value.removeprefix("full:").removeprefix("domain:").rstrip(".")
-        if not DOMAIN.fullmatch(value):
+        if not SUBSCRIPTION_DOMAIN.fullmatch(value):
             raise ValueError("域名规则格式错误：仅支持普通域名、domain: 与 full:")
         result.append(prefix + value)
         if len(result) > 200000:
@@ -211,7 +218,15 @@ def compile_config(cfg, directory, waiting=()):
         china = merge(china, "china", personal)
         china_domains = merge(china_domains, "china_domains", personal)
     domain_rules = {}
-    devices, dns_policies, sets, capture, ipv6, redirect = [], [], [], [], [], []
+    devices, dns_policies, sets, capture, ipv6, ipv6_dns, redirect = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
     ips, macs = set(), set()
     private = "{ " + ", ".join(PRIVATE4) + " }"
 
@@ -299,6 +314,17 @@ def compile_config(cfg, directory, waiting=()):
         redirect.append(
             "    %s meta l4proto { tcp, udp } th dport 53 counter redirect to :%d" % (match, port)
         )
+        ipv6_dns.append(
+            (
+                '    iifname "%s" meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 reject'
+                % lan
+            )
+            if whole_lan
+            else (
+                '    iifname "%s" ether saddr %s meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 reject'
+                % (lan, mac)
+            )
+        )
         capture.append(rule(match, "ip daddr " + private, False, protected))
         if whole_lan and main.get("bypass_clients", "1") == "1":
             capture.append(
@@ -380,6 +406,7 @@ def compile_config(cfg, directory, waiting=()):
             "  }",
             "  chain dns_guard { type filter hook input priority -10; policy accept;",
             '    iifname "lo" accept',
+            *ipv6_dns,
             "    meta l4proto { tcp, udp } th dport 12100-12107 ct status dnat accept",
             "    meta l4proto { tcp, udp } th dport 12100-12107 reject",
             "  }",

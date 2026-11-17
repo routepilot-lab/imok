@@ -8,12 +8,12 @@
 'require rpc';
 'require dom';
 'require routepilot.feedback_3a581c5b4c6b as feedback';
-'require routepilot.page_workspace_8777f401a3ce as pageWorkspace';
-'require routepilot.page_account_164b6748a5fc as pageAccount';
+'require routepilot.page_workspace_660326c813b0 as pageWorkspace';
+'require routepilot.page_account_334137e9163f as pageAccount';
 'require routepilot.page_endpoint_691c764fb4bc as pageEndpoint';
 'require routepilot.page_routing_a051a736c281 as pageRouting';
 'require routepilot.page_dns_c5839ecc6c42 as pageDns';
-'require routepilot.page_workers_a6382e53f54e as pageWorkers';
+'require routepilot.page_workers_cb79890d326a as pageWorkers';
 'require routepilot.page_devices_b9598bb0ca64 as pageDevices';
 'require routepilot.page_overview_12a5df5ec5fc as pageOverview';
 'require routepilot.page_backup_0d3a260fdf9c as pageBackup';
@@ -183,7 +183,7 @@ var ruleSections = {
     manage: '规则管理',
     custom: '自定义分流'
   };
-var imokStylesheet = 'routepilot/style_f98625e62fa2.css';
+var imokStylesheet = 'routepilot/style_6897dcca1922.css';
 var refreshImokTheme;
 
 function syncImokTheme() {
@@ -196,12 +196,19 @@ function syncImokTheme() {
       var mode = root.getAttribute('data-argon-mode');
       if (mode !== 'dark' && mode !== 'light') {
         // Older Argon inlines the effective stylesheet, including forced modes.
-        var background = window.getComputedStyle(document.body).backgroundColor;
-        var rgba = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(
-          background
-        );
+        var rgba = null;
+        [document.body, root].some(function (el) {
+          var m = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(
+            window.getComputedStyle(el).backgroundColor
+          );
+          if (m && (m[4] == null || Number(m[4]) > 0)) {
+            rgba = m;
+            return true;
+          }
+          return false;
+        });
         var dark =
-          mode !== 'normal' && rgba && (rgba[4] == null || Number(rgba[4]) === 1)
+          mode !== 'normal' && rgba
             ? 0.2126 * rgba[1] + 0.7152 * rgba[2] + 0.0722 * rgba[3] < 128
             : preference?.matches;
         mode = dark ? 'dark' : 'light';
@@ -283,13 +290,13 @@ return view.extend({
     )
       window.location.replace(L.url('admin/services/routepilot/cloudflare/' + leaf));
     if (leaf === 'runtime')
-      return L.require('routepilot.runtime_597c3c4ba717').then(function (runtimeView) {
+      return L.require('routepilot.runtime_913be6f3bc6e').then(function (runtimeView) {
         return runtimeView.load().then(function (runtimeData) {
           return { runtimeView: runtimeView, runtimeData: runtimeData };
         });
       });
     if (leaf === 'clients')
-      return L.require('routepilot.clients_b27530227248').then(function (clientView) {
+      return L.require('routepilot.clients_660419270515').then(function (clientView) {
         return clientView.load().then(function (clientData) {
           return { clientsView: clientView, clientsData: clientData };
         });
@@ -380,5 +387,6 @@ return view.extend({
   handleSaveApply: function () {
     return this.applySettings();
   },
+  handleSave: null,
   handleReset: null
 });

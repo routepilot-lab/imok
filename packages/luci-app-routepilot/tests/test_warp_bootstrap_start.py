@@ -5,7 +5,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "root/usr/lib/routepilot"))
 import mplane
@@ -83,7 +83,7 @@ class BootstrapStartTests(unittest.TestCase):
             )
             self.assertEqual(self.namespace_config.read_text(), expected)
             self.assertEqual(self.chroot_config.read_text(), expected)
-            return SimpleNamespace(pid=123)
+            return Mock(pid=123, **{"poll.return_value": None})
 
         with (
             patch.object(mplane, "command", side_effect=command) as commands,
@@ -125,6 +125,7 @@ class BootstrapStartTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("nameserver 10.0.0.2\n")
         self.plane.owned = True
+        self.plane.client_process = Mock(**{"poll.return_value": None})
         self.plane.dns_preferences = {"warp_dns_mode": "pinned", "warp_dns_pinned": "1.1.1.1"}
         with (
             patch.object(
@@ -141,6 +142,18 @@ class BootstrapStartTests(unittest.TestCase):
         daemon.assert_not_called()
         self.assertEqual(self.namespace_config.read_text(), "nameserver 10.0.0.2\n")
         self.assertEqual(self.chroot_config.read_text(), "nameserver 10.0.0.2\n")
+
+    def test_exited_warp_process_requires_cleanup_even_if_namespace_remains(self):
+        self.plane.owned = True
+        self.plane.client_process = Mock(**{"poll.return_value": -9})
+        with (
+            patch.object(self.plane, "exists", return_value=True),
+            patch.object(self.plane, "_start") as start,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "WARP 进程已退出"):
+                self.plane.start()
+        start.assert_not_called()
+        self.assertTrue(self.plane.owned)
 
     def test_connected_plane_still_copies_client_resolver_to_namespace(self):
         vnet = "11111111-1111-4111-8111-111111111111"

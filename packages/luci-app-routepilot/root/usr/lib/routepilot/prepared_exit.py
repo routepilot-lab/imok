@@ -42,7 +42,10 @@ def submit():
     except ValueError as error:
         raise ControlError(str(error)) from None
     with (RUN / "prepared-exit-test.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ControlError("路由器出口检测正在进行") from None
         current = snapshot(RESULT, RUN)
         if (
             current.get("state") in ("queued", "running")
@@ -88,6 +91,10 @@ def run_pending(main, service):
             if service.backend != "masque" or service.compiled is not None or not preparing(main):
                 raise ControlError("当前不在独立 WARP 登录环境")
             def checkpoint():
+                import supervisor
+
+                if getattr(supervisor, "STOP", False):
+                    raise ControlError("服务正在停止，已取消出口检测")
                 current = read_config(timeout=2)["main"]
                 if (
                     not preparing(current)
@@ -95,6 +102,13 @@ def run_pending(main, service):
                     or resolve_exit(current) != vnet
                 ):
                     raise ControlError("检测期间配置已变化，请重试")
+                status_doc = snapshot("status.json", RUN)
+                if status_doc.get("state") == "preparing" and time.time() - status_doc.get("time", 0) >= 8:
+                    atomic(
+                        RUN / "status.json",
+                        json.dumps({**status_doc, "time": int(time.time())}, ensure_ascii=False),
+                        0o644,
+                    )
 
             checkpoint()
 
@@ -130,7 +144,7 @@ def run_pending(main, service):
                 selected = parse_selected_network(bounded_cli("vnet", "--no-paginate").stdout)
                 if read_status(bounded_cli) is not TunnelStatus.CONNECTED or selected != vnet:
                     raise ControlError("检测期间 WARP 状态或出口已变化，请重试")
-                expected = main.get("expected_" + main["exit"])
+                expected = main.get("expected_" + main.get("exit", "seoul"))
                 message = "无法核对检测结果中的公网 IPv4 与配置的预期地址"
                 if expected and ipaddress.IPv4Address(expected) != ipaddress.IPv4Address(ip):
                     raise ControlError("实际公网 IPv4 与已设置的预期地址不一致")
@@ -139,12 +153,11 @@ def run_pending(main, service):
                     raise ControlError("无法确认 WARP 的有效协议")
             finally:
                 if before is TunnelStatus.DISCONNECTED:
+                    cleanup_error = None
                     try:
                         bounded_cli("disconnect")
                     except PROBE_ERRORS:
-                        raise ControlError(
-                            "无法确认 WARP 测试隧道已断开，请查看登录环境"
-                        ) from None
+                        cleanup_error = ControlError("无法确认 WARP 测试隧道已断开，请查看登录环境")
                     if previous_exit and previous_exit != vnet:
                         try:
                             selected = parse_selected_network(
@@ -155,12 +168,15 @@ def run_pending(main, service):
                                 selected = parse_selected_network(
                                     bounded_cli("vnet", "--no-paginate").stdout
                                 )
+                            if selected != previous_exit:
+                                raise ValueError("restore mismatch")
                         except PROBE_ERRORS:
-                            raise ControlError(
-                                "原 WARP 出口选择未确认恢复，请查看登录环境"
-                            ) from None
-                        if selected != previous_exit:
-                            raise ControlError("原 WARP 出口选择未确认恢复，请查看登录环境")
+                            if cleanup_error is None:
+                                cleanup_error = ControlError(
+                                    "原 WARP 出口选择未确认恢复，请查看登录环境"
+                                )
+                    if cleanup_error is not None:
+                        raise cleanup_error from None
         except ControlError as error:
             publish(dict(row, state="failed", time=time.time(), message=str(error)))
         except PROBE_ERRORS:

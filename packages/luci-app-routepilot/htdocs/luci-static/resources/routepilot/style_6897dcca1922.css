@@ -331,7 +331,9 @@
 .rp-layout .rp-center-summary p,.rp-layout .rp-operation-feedback p,
 .rp-layout .rp-worker-inventory p,.rp-layout .rp-worker-activity p,
 .rp-layout .rp-overview-hero p,.rp-layout .rp-traffic-section p,
-.rp-layout .rp-backup-card p,.rp-layout .rp-rule-summary p,
+.rp-layout .rp-backup-card p,.rp-layout .rp-rule-summary p {
+  margin: 0.35em 0;
+}
 
 /* Keep controls in the native theme; only constrain layout and long values. */
 .rp-layout .rp-summary-bottom,.rp-layout .rp-auth-badges,.rp-layout .rp-summary-actions,

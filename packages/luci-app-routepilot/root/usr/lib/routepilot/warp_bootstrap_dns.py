@@ -172,7 +172,12 @@ def resolver_result(endpoint, timeout=PROBE_TIMEOUT, interface=None, *, tcp=Fals
                 ]
                 if not ipv4:
                     return None, "empty_answer"
-                if any(not address.is_global or address.is_multicast for address in ipv4):
+                from worker_scan import cf_ip
+
+                if any(
+                    not address.is_global or address.is_multicast or not cf_ip(str(address))
+                    for address in ipv4
+                ):
                     return None, "unexpected_answer"
     except TimeoutError:
         return None, "timeout"
@@ -380,6 +385,12 @@ def start_manual_test(request_id=None):
     from request_input import claim_request
     from runtime import read_config
 
+    custom_override = None
+    if request_id:
+        with claim_request(RUN / "warp-dns-input", request_id, 1024) as raw:
+            if not isinstance(raw, dict) or set(raw) != {"addresses"}:
+                raise ControlError("DNS 测试请求无效")
+            custom_override = raw["addresses"]
     if not any(
         line.split()[0] == NS
         for line in command(["ip", "netns", "list"]).stdout.splitlines()
@@ -387,11 +398,8 @@ def start_manual_test(request_id=None):
     ):
         raise ControlError("请先准备 WARP 环境")
     cfg = read_config()["main"]
-    if request_id:
-        with claim_request(RUN / "warp-dns-input", request_id, 1024) as raw:
-            if not isinstance(raw, dict) or set(raw) != {"addresses"}:
-                raise ControlError("DNS 测试请求无效")
-            cfg = {**cfg, "warp_dns_mode": "auto", "warp_dns_custom": raw["addresses"]}
+    if custom_override is not None:
+        cfg = {**cfg, "warp_dns_mode": "auto", "warp_dns_custom": custom_override}
     _, _, custom = preferences(cfg, local_addresses())
     with (RUN / "warp-dns-test.lock").open("a") as lock:
         try:

@@ -22,6 +22,7 @@ var progressLabels = {
   commit: '提交 WARP 运行环境',
   installed: 'WARP 已安装'
 };
+var activeRuntimePoll = null;
 
 var downloadComponents = [
   { id: 'debian', label: 'Debian 基础环境', phase: 'download_base' },
@@ -1157,9 +1158,13 @@ return baseclass.extend({
       );
     }
     draw();
-    poll.add(function () {
+    if (activeRuntimePoll && typeof poll.remove === 'function') poll.remove(activeRuntimePoll);
+    var runtimePoll = (activeRuntimePoll = function () {
+      if (!root.isConnected) {
+        if (typeof poll.remove === 'function') poll.remove(runtimePoll);
+        return;
+      }
       if (
-        !root.isConnected ||
         working ||
         reading ||
         modalActive ||
@@ -1170,7 +1175,8 @@ return baseclass.extend({
       return refresh().catch(function (e) {
         message(e.message, true);
       });
-    }, 2);
+    });
+    poll.add(runtimePoll, 2);
     return root;
   }
 });

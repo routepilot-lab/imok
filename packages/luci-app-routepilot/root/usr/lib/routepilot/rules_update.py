@@ -66,11 +66,12 @@ def commit_rules(pending, meta, *, allow_decline=False, replace_all=False):
                 )
                 for path in stage.glob("*.txt")
             }
-            from rules_catalog import enrich, declines, hold_candidate, RulesDecline
+            from rules_catalog import content, enrich, declines, hold_candidate, RulesDecline
 
+            pair = (content(old), content(stage))
             meta = enrich(stage, old, dict(meta, counts=counts))
             atomic(stage / "updated.json", json.dumps(meta))
-            drops = declines(stage, old)
+            drops = declines(stage, old, pair)
             if drops and not allow_decline:
                 hold_candidate(RULES, stage, meta, drops)
                 raise RulesDecline("规则数量下降超过50%，整批已暂存等待确认；继续使用上一版本")
